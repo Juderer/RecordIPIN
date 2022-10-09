@@ -5,13 +5,19 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.transition.Explode;
+import android.transition.Fade;
+import android.transition.Slide;
+import android.transition.TransitionInflater;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -34,6 +40,12 @@ public class ThreadTestActivity extends AppCompatActivity implements View.OnClic
         btnTheardStart.setOnClickListener(this);
         Button btnThreadStop = (Button) findViewById(R.id.btnThreadStop);
         btnThreadStop.setOnClickListener(this);
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        overridePendingTransition(R.anim.left_to_center, R.anim.center_to_right);
     }
 
     @Override
@@ -103,15 +115,6 @@ public class ThreadTestActivity extends AppCompatActivity implements View.OnClic
             Log.d(TAG, "MyThread End");
             tv.setText("Stop");
         }
-    }
-
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK) {
-            moveTaskToBack(true);
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
     }
 
     @Override

@@ -6,43 +6,46 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/locText"
+        android:id="@+id/tvTest"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:layout_alignParentTop="true"
         android:textSize="20sp"
-        android:text="Longitude and Latitude" />
+        android:layout_marginTop="20dp"
+        android:text="Record for IPIN 2023" />
 
     <Button
         android:id="@+id/btn2TheardActivity"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/locText"
-        android:background="@color/SteelBlue"
+        android:layout_above="@+id/btnPermissionTest"
+        android:layout_marginRight="20dp"
+        android:layout_marginLeft="20dp"
         android:text="Thread Testing"
         android:textAllCaps="true"
         android:textColor="@color/black"
-        android:layout_centerHorizontal="true"/>
+        android:gravity="center" />
 
     <Button
-        android:id="@+id/gpsTestBtn"
+        android:id="@+id/btnPermissionTest"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginRight="20dp"
         android:layout_marginLeft="20dp"
+        android:layout_marginBottom="20dp"
         android:gravity="center"
-        android:text="GPS Permission Test" />
+        android:text="Permission Test" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_above="@+id/gpsTestBtn">
+        android:layout_above="@+id/btn2TheardActivity">
 
         <Button
-            android:id="@+id/gpsCollectBtn"
+            android:id="@+id/btnCollectionStart"
             android:layout_width="120dp"
             android:layout_height="wrap_content"
             android:gravity="center"
@@ -52,7 +55,7 @@
             android:text="Collect GPS" />
 
         <Button
-            android:id="@+id/gpsStopBtn"
+            android:id="@+id/btnCollectionStop"
             android:layout_width="120dp"
             android:layout_height="wrap_content"
             android:gravity="center"

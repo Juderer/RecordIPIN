@@ -8,6 +8,7 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -21,9 +22,13 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.provider.Settings;
+import android.transition.Fade;
+import android.transition.Slide;
+import android.transition.TransitionInflater;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -40,12 +45,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION};
 
-    private TextView locText;
+    private TextView tvTest;
     private long mExitTime;
 
     private GPSCollecionThread gpsCollectionThread;
 
-    public static boolean continueCollection = true;
+    public static boolean isCollectionStart = true;
 
     private Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -54,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             switch (msg.what) {
                 case GPS_LOC_UPDATE_CODE:
                     String locStr = (String) msg.obj;
-                    locText.setText(locStr);
+                    tvTest.setText(locStr);
                     break;
                 default:
                     break;
@@ -68,19 +73,19 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         Log.d(TAG, "onCreate");
 
-        locText = (TextView) findViewById(R.id.locText);
+        tvTest = (TextView) findViewById(R.id.tvTest);
 
         Button btn2ThreadActivity = (Button) findViewById(R.id.btn2TheardActivity);
         btn2ThreadActivity.setOnClickListener(this);
 
-        Button gpsTestBtn = (Button) findViewById(R.id.gpsTestBtn);
-        gpsTestBtn.setOnClickListener(this);
+        Button btnPermissionTest = (Button) findViewById(R.id.btnPermissionTest);
+        btnPermissionTest.setOnClickListener(this);
 
-        Button gpsCollectBtn = (Button) findViewById(R.id.gpsCollectBtn);
-        gpsCollectBtn.setOnClickListener(this);
+        Button btnCollectionStart = (Button) findViewById(R.id.btnCollectionStart);
+        btnCollectionStart.setOnClickListener(this);
 
-        Button gpsStopBtn = (Button) findViewById(R.id.gpsStopBtn);
-        gpsStopBtn.setOnClickListener(this);
+        Button btnCollectionStop = (Button) findViewById(R.id.btnCollectionStop);
+        btnCollectionStop.setOnClickListener(this);
     }
 
     @Override
@@ -89,8 +94,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn2TheardActivity:
                 Intent intent = new Intent(this, ThreadTestActivity.class);
                 startActivity(intent);
+//                startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(MainActivity.this).toBundle());
+                overridePendingTransition(R.anim.right_to_center, R.anim.center_to_left);
+//                overridePendingTransition(R.anim.fade_in, R.anim.fade_out);
                 break;
-            case R.id.gpsTestBtn:
+            case R.id.btnPermissionTest:
                 boolean isAllGranted = checkPermissionAllGranted(permissions);
                 if (!isAllGranted) {
                     Log.d(TAG, "定位未授权");
@@ -99,14 +107,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Toast.makeText(this, "GPS正常", Toast.LENGTH_SHORT).show();
                 }
                 break;
-            case R.id.gpsCollectBtn:
-                continueCollection = true;
+            case R.id.btnCollectionStart:
+                isCollectionStart = true;
                 gpsCollectionThread = new GPSCollecionThread(MainActivity.this, getHandler());
                 Thread testThread = new Thread(gpsCollectionThread);
                 testThread.start();
                 break;
-            case R.id.gpsStopBtn:
-                continueCollection = false;
+            case R.id.btnCollectionStop:
+                isCollectionStart = false;
+                tvTest.setText("Collection Stop");
                 break;
             default:
                 break;
@@ -195,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         public void run() {
             Looper.prepare();
             Log.d(TAG, "GPSCollectionThread Start");
-            while (MainActivity.continueCollection) {
+            while (MainActivity.isCollectionStart) {
                 if (mLocation != null) {
                     StringBuilder sb = new StringBuilder();
                     sb.append(mLocation.getLongitude());

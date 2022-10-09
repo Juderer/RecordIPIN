@@ -14,10 +14,16 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.RecordIPIN">
+
+        <activity
+            android:name=".LocationActivity"
+            android:exported="false"
+            android:launchMode="standard" />
         <activity
             android:name=".ThreadTestActivity"
             android:exported="false"
-            android:launchMode="singleInstance"/>
+            android:launchMode="standard"
+            android:label="ThreadTest"/>
 
         <service
             android:name=".LocationService"
@@ -27,7 +33,8 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
