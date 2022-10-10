@@ -16,6 +16,18 @@
         android:text="Record for IPIN 2023" />
 
     <Button
+        android:id="@+id/btn2LocationActivity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btn2TheardActivity"
+        android:layout_marginRight="20dp"
+        android:layout_marginLeft="20dp"
+        android:text="Location Testing"
+        android:textAllCaps="true"
+        android:textColor="@color/black"
+        android:gravity="center"/>
+
+    <Button
         android:id="@+id/btn2TheardActivity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -42,7 +54,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:layout_above="@+id/btn2TheardActivity">
+        android:layout_above="@+id/btn2LocationActivity">
 
         <Button
             android:id="@+id/btnCollectionStart"

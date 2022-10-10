@@ -18,7 +18,8 @@
         <activity
             android:name=".LocationActivity"
             android:exported="false"
-            android:launchMode="standard" />
+            android:launchMode="standard"
+            android:label="LocationTest"/>
         <activity
             android:name=".ThreadTestActivity"
             android:exported="false"
