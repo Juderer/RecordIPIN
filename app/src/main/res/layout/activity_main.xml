@@ -18,24 +18,25 @@
     <Button
         android:id="@+id/btn2LocationActivity"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="60dp"
         android:layout_above="@+id/btn2TheardActivity"
-        android:layout_marginRight="20dp"
-        android:layout_marginLeft="20dp"
-        android:text="Location Testing"
-        android:textAllCaps="true"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="Location Test"
+        android:textAllCaps="false"
         android:textColor="@color/black"
-        android:gravity="center"/>
+        android:gravity="center"
+        android:textSize="20sp" />
 
     <Button
         android:id="@+id/btn2TheardActivity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/btnPermissionTest"
-        android:layout_marginRight="20dp"
-        android:layout_marginLeft="20dp"
-        android:text="Thread Testing"
-        android:textAllCaps="true"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="Thread Test"
+        android:textAllCaps="false"
         android:textColor="@color/black"
         android:gravity="center" />
 
@@ -44,37 +45,11 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_marginRight="20dp"
-        android:layout_marginLeft="20dp"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
         android:layout_marginBottom="20dp"
         android:gravity="center"
+        android:textAllCaps="false"
         android:text="Permission Test" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:layout_above="@+id/btn2LocationActivity">
-
-        <Button
-            android:id="@+id/btnCollectionStart"
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_weight="1"
-            android:layout_marginRight="20dp"
-            android:layout_marginLeft="20dp"
-            android:text="Collect GPS" />
-
-        <Button
-            android:id="@+id/btnCollectionStop"
-            android:layout_width="120dp"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:layout_weight="1"
-            android:layout_marginRight="20dp"
-            android:layout_marginLeft="20dp"
-            android:text="Stop GPS" />
-    </LinearLayout>
 
 </RelativeLayout>

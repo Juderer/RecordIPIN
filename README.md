@@ -20,3 +20,7 @@
 - [官方指南-动画资源](https://developer.android.com/guide/topics/resources/animation-resource#Property)
 - [Android Animation Example](https://www.digitalocean.com/community/tutorials/android-animation-example)
 - [XML Animaitons](https://www.raywenderlich.com/books/android-animations-by-tutorials/v1.0/chapters/3-xml-animations)
+
+### 1.4 colors
+
+- [The X11 Color Set](http://cng.seas.rochester.edu/CNG/docs/x11color.html)

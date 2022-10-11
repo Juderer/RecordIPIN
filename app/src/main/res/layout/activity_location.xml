@@ -5,9 +5,47 @@
     android:layout_height="match_parent"
     tools:context=".LocationActivity">
 
-    <Button
+    <TextView
+        android:id="@+id/tvLocationMsg"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Collection"/>
+        android:gravity="center"
+        android:layout_alignParentTop="true"
+        android:textSize="20sp"
+        android:layout_marginTop="20dp"
+        android:text="Location Testing" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="20dp">
+
+        <Button
+            android:id="@+id/btnLocationStart"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_weight="1"
+            android:layout_marginRight="20dp"
+            android:layout_marginLeft="20dp"
+            android:text="Start"
+            android:textAllCaps="false"
+            android:textSize="20sp"
+            android:textColor="@color/DarkSlateGray"
+            android:backgroundTint="@color/Silver"/>
+
+        <Button
+            android:id="@+id/btnLocationStop"
+            android:layout_width="120dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:layout_weight="1"
+            android:layout_marginRight="20dp"
+            android:layout_marginLeft="20dp"
+            android:text="Stop"
+            android:textAllCaps="false"
+            android:textSize="20sp" />
+    </LinearLayout>
 </RelativeLayout>

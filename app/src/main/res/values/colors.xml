@@ -8,4 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name='SteelBlue'>#4682B4</color>
+    <color name="DarkSlateGray">#2F4F4F</color>
+    <color name="Silver">#C0C0C0</color>
 </resources>

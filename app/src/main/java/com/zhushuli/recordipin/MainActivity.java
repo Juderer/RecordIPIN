@@ -1,26 +1,13 @@
 package com.zhushuli.recordipin;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -34,7 +21,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private static final String TAG = "My" + MainActivity.class.getSimpleName();
 
     private static final int MY_PERMISSION_REQUEST_CODE = 2024;
-    private static final int GPS_LOC_UPDATE_CODE = 8402;
 
     private final String[] permissions = {
             Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -46,25 +32,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btn2ThreadActivity;
     private Button btn2LocationActivity;
     private long mExitTime;
-
-    private GPSCollecionThread gpsCollectionThread;
-
-    public static boolean isCollectionStart = true;
-
-    private Handler mHandler = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            super.handleMessage(msg);
-            switch (msg.what) {
-                case GPS_LOC_UPDATE_CODE:
-                    String locStr = (String) msg.obj;
-                    tvTest.setText(locStr);
-                    break;
-                default:
-                    break;
-            }
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,11 +50,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn2LocationActivity = (Button) findViewById(R.id.btn2LocationActivity);
         btn2LocationActivity.setOnClickListener(this);
 
-        Button btnCollectionStart = (Button) findViewById(R.id.btnCollectionStart);
-        btnCollectionStart.setOnClickListener(this);
-
-        Button btnCollectionStop = (Button) findViewById(R.id.btnCollectionStop);
-        btnCollectionStop.setOnClickListener(this);
+        isAllGranted = checkPermissionAllGranted(permissions);
+        if (!isAllGranted) {
+            Log.d(TAG, "定位未授权");
+            ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+        } else {
+            Toast.makeText(this, "GPS正常", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override
@@ -109,22 +78,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btn2LocationActivity:
                 startActivity(new Intent(this, LocationActivity.class));
 //                overridePendingTransition(R.anim.bottom_to_center, R.anim.center_to_top);
-                break;
-            case R.id.btnCollectionStart:
-                if (!checkPermissionAllGranted(permissions)) {
-//                    Toast.makeText(MainActivity.this, "请先授权", Toast.LENGTH_SHORT).show();
-                    openAppDetails();
-                    break;
-                }
-
-                isCollectionStart = true;
-                gpsCollectionThread = new GPSCollecionThread(MainActivity.this, getHandler());
-                Thread testThread = new Thread(gpsCollectionThread);
-                testThread.start();
-                break;
-            case R.id.btnCollectionStop:
-                isCollectionStart = false;
-                tvTest.setText("Collection Stop");
                 break;
             default:
                 break;
@@ -155,93 +108,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 Log.d(TAG, "用户已授权");
             } else {
                 Log.d(TAG, "用户未授权");
-                openAppDetails();
+                DialogUtils.openAppDetails(MainActivity.this);
             }
         }
-    }
-
-    private void openAppDetails() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("RecordIPI需要定位权限，请到\"应用信息->权限\"中授予！");
-        builder.setPositiveButton("去手动授权", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                Intent intent = new Intent();
-                intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
-                intent.setData(Uri.parse("package:" + getPackageName()));
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NO_HISTORY);
-                intent.addFlags(Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-                startActivity(intent);
-            }
-        });
-        builder.setNegativeButton("取消", null);
-        builder.show();
-    }
-
-    @SuppressLint("HandlerLeak")
-    private class GPSCollecionThread implements Runnable {
-        private Activity activity;
-        private LocationManager mLocationManager;
-        private Location mLocation = null;
-        private Handler mMainHandler;
-        private int sleepDuration = 1000;
-
-        private LocationListener mLocationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(@NonNull Location location) {
-                mLocation = location;
-                Log.d(TAG, "onLocationChanged: " + String.valueOf(mLocation.getLongitude()) + "," + String.valueOf(mLocation.getLatitude()));
-            }
-        };
-
-        public GPSCollecionThread(Activity activity, Handler mMainHandler) {
-            this.activity = activity;
-            this.mMainHandler = mMainHandler;
-            mLocationManager = (LocationManager) this.activity.getSystemService(Context.LOCATION_SERVICE);
-            initLocation();
-        }
-
-        @SuppressLint("MissingPermission")
-        public void initLocation() {
-            mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            Log.d(TAG, "mLocation: " + String.valueOf(mLocation.getLongitude()) + "," + String.valueOf(mLocation.getLatitude()));
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
-        }
-
-        @Override
-        public void run() {
-            Looper.prepare();
-            Log.d(TAG, "GPSCollectionThread Start");
-            while (MainActivity.isCollectionStart) {
-                if (mLocation != null) {
-                    StringBuilder sb = new StringBuilder();
-                    sb.append(mLocation.getLongitude());
-                    sb.append(";");
-                    sb.append(mLocation.getLatitude());
-                    Log.d(TAG, sb.toString());
-
-                    Message mMessage = Message.obtain();
-                    mMessage.obj = sb.toString();
-                    mMessage.what = GPS_LOC_UPDATE_CODE;
-                    mMainHandler.sendMessage(mMessage);
-                }
-                try {
-                    Thread.sleep(sleepDuration);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-            }
-            Log.d(TAG, "GPSCollectionThread End");
-        }
-
-        public Handler getHandler() {
-            return mHandler;
-        }
-    }
-
-    public Handler getHandler() {
-        return mHandler;
     }
 
     @Override
