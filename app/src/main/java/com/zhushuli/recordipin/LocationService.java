@@ -8,9 +8,11 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Message;
 import android.util.Log;
+
 
 import androidx.annotation.NonNull;
 
@@ -56,6 +58,16 @@ public class LocationService extends Service {
             public void onProviderDisabled(@NonNull String provider) {
                 mLocation = null;
             }
+
+            @Override
+            public void onProviderEnabled(@NonNull String provider) {
+                mLocation = null;
+            }
+
+            @Override
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+                Log.d(TAG, "onStatusChanged");
+            }
         };
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
 
@@ -74,7 +86,6 @@ public class LocationService extends Service {
 
         public LocationThread() {
             checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-
             dfLon = new DecimalFormat("#.000000");  // (经纬度)保留小数点后六位
             dfSpd = new DecimalFormat("#0.00");  // (速度或航向)保留小数点后两位
         }
@@ -97,20 +108,21 @@ public class LocationService extends Service {
         @Override
         public void run() {
             Log.d(TAG, "LocationThread Start");
-            int num = 0;
             while (isConnecting) {
                 if (callback != null) {
+                    checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
                     if (!checkGPS) {
                         callback.onLocationProvoiderDisabled();
                         isConnecting = false;
-                    } else if (mLocation != null) {
+                        break;
+                    }
+                    if (mLocation != null) {
                         String locationMsg = getLocationMsg();
                         callback.onLocationChange(locationMsg);
                     } else {
                         callback.onLocationSearching();
                     }
                 }
-                num ++;
                 try {
                     Thread.sleep(sleepDuration);
                 } catch (InterruptedException e) {
@@ -137,7 +149,9 @@ public class LocationService extends Service {
 
     public interface Callback {
         void onLocationChange(String data);
+
         void onLocationProvoiderDisabled();
+
         void onLocationSearching();
     }
 

@@ -24,3 +24,12 @@
 ### 1.4 colors
 
 - [The X11 Color Set](http://cng.seas.rochester.edu/CNG/docs/x11color.html)
+
+### 1.5 Service与Activity通信
+
+- [Service和Activity双向通信的两种方式](https://github.com/gitEkko/MyApplication)
+
+### 1.6 Android Studio打包
+
+- [Android Studio 超级简单的打包生成apk](https://blog.csdn.net/woaichimahua/article/details/54427528)
+- [Android Studio 打包APK （详细版）](https://blog.csdn.net/qq_38436214/article/details/112288954)
