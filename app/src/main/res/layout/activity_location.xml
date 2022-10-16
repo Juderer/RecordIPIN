@@ -23,9 +23,9 @@
         android:layout_marginBottom="20dp">
 
         <Button
-            android:id="@+id/btnLocationStart"
+            android:id="@+id/btnLocServiceStart"
             android:layout_width="120dp"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             android:gravity="center"
             android:layout_weight="1"
             android:layout_marginRight="20dp"
@@ -33,19 +33,19 @@
             android:text="Start"
             android:textAllCaps="false"
             android:textSize="20sp"
-            android:textColor="@color/DarkSlateGray"
-            android:backgroundTint="@color/Silver"/>
+            android:textAppearance="@android:style/Widget.TextView"/>
 
         <Button
-            android:id="@+id/btnLocationStop"
+            android:id="@+id/btnLocServiceStop"
             android:layout_width="120dp"
-            android:layout_height="wrap_content"
+            android:layout_height="60dp"
             android:gravity="center"
             android:layout_weight="1"
             android:layout_marginRight="20dp"
             android:layout_marginLeft="20dp"
             android:text="Stop"
             android:textAllCaps="false"
-            android:textSize="20sp" />
+            android:textSize="20sp"
+            android:textAppearance="@android:style/Widget.Button.Toggle"/>
     </LinearLayout>
 </RelativeLayout>

@@ -14,7 +14,9 @@
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
         <item name="android:windowAnimationStyle">@style/MyAnimation</item>
-    </style>
+        <item name="android:keepScreenOn">true</item>
+    </style>/Users/zhushuli/Projects.localized/Androigd/RecordIPIN
+
 
     <style name="MyAnimation">
         <item name="android:activityOpenExitAnimation">@anim/center_to_left</item>

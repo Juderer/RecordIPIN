@@ -24,7 +24,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     private final String[] permissions = {
             Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_FINE_LOCATION};
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
+            Manifest.permission.FOREGROUND_SERVICE};
     private boolean isAllGranted = false;
 
     private TextView tvTest;
@@ -54,8 +56,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (!isAllGranted) {
             Log.d(TAG, "定位未授权");
             ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
-        } else {
-            Toast.makeText(this, "GPS正常", Toast.LENGTH_SHORT).show();
         }
     }
 
