@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.location.GnssStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -27,7 +28,11 @@ public class LocationService extends Service {
 
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
+    private GnssStatus.Callback mGnssStatusCallback;
     private Location mLocation;
+    private int mSatelliteCount;
+    private int mBeidouSatelliteCount;
+    private int mGpsSatelliteCount;
 
     class MyBinder extends Binder {
         public LocationService getLocationService() {
@@ -67,9 +72,48 @@ public class LocationService extends Service {
             @Override
             public void onStatusChanged(String provider, int status, Bundle extras) {
                 Log.d(TAG, "onStatusChanged");
+                switch (status) {
+
+                }
             }
         };
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
+
+        mSatelliteCount = 0;
+        mGnssStatusCallback = new GnssStatus.Callback() {
+            @Override
+            public void onStarted() {
+                super.onStarted();
+                Log.d(TAG, "GnssStatus, onStarted");
+            }
+
+            @Override
+            public void onFirstFix(int ttffMillis) {
+                super.onFirstFix(ttffMillis);
+                Log.d(TAG, "GnssStatus, onFirstFix");
+            }
+
+            @Override
+            public void onSatelliteStatusChanged(@NonNull GnssStatus status) {
+                super.onSatelliteStatusChanged(status);
+                mSatelliteCount = status.getSatelliteCount();
+                mBeidouSatelliteCount = 0;
+                mGpsSatelliteCount = 0;
+                for (int index = 0; index < mSatelliteCount; index++) {
+                    switch (status.getConstellationType(index)) {
+                        case GnssStatus.CONSTELLATION_BEIDOU:
+                            mBeidouSatelliteCount++;
+                            break;
+                        case GnssStatus.CONSTELLATION_GPS:
+                            mGpsSatelliteCount++;
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+        };
+        mLocationManager.registerGnssStatusCallback(mGnssStatusCallback);
 
         isConnecting = true;
         LocationThread mLocationThread = new LocationThread();
@@ -79,7 +123,6 @@ public class LocationService extends Service {
     @SuppressLint("HandlerLeak")
     private class LocationThread implements Runnable {
         private int sleepDuration = 1000;
-        private Message mMessage;
         private boolean checkGPS;
         private DecimalFormat dfLon;
         private DecimalFormat dfSpd;
@@ -120,7 +163,9 @@ public class LocationService extends Service {
                         String locationMsg = getLocationMsg();
                         callback.onLocationChange(locationMsg);
                     } else {
-                        callback.onLocationSearching();
+                        callback.onLocationSearching("GNSS Searching ...\n" +
+                                String.valueOf(mBeidouSatelliteCount) + " Beidou Satellites\n" +
+                                String.valueOf(mGpsSatelliteCount) + " GPS Satellites");
                     }
                 }
                 try {
@@ -152,7 +197,7 @@ public class LocationService extends Service {
 
         void onLocationProvoiderDisabled();
 
-        void onLocationSearching();
+        void onLocationSearching(String data);
     }
 
     @Override
@@ -169,6 +214,7 @@ public class LocationService extends Service {
         isConnecting = false;
         if (mLocationManager != null) {
             mLocationManager.removeUpdates(mLocationListener);
+            mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
             mLocationManager = null;
         }
     }

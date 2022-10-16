@@ -33,3 +33,7 @@
 
 - [Android Studio 超级简单的打包生成apk](https://blog.csdn.net/woaichimahua/article/details/54427528)
 - [Android Studio 打包APK （详细版）](https://blog.csdn.net/qq_38436214/article/details/112288954)
+
+### 1.7 GNSS Status
+
+- [GnssStatus](https://developer.android.com/reference/android/location/GnssStatus)

@@ -36,11 +36,12 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
                 case GNSS_LOCATION_UPDATE_CODE:
-                    String mLocationMsg = (String) msg.obj;
-                    tvLocationMsg.setText(mLocationMsg);
+                    String locationMsg = (String) msg.obj;
+                    tvLocationMsg.setText(locationMsg);
                     break;
                 case GNSS_SEARCHING_CODE:
-                    tvLocationMsg.setText("GNSS Searching ...");
+                    String satelliteMsg = (String) msg.obj;
+                    tvLocationMsg.setText(satelliteMsg);
                     break;
                 case GNSS_PROVIDER_DISABLED_CODE:
                     tvLocationMsg.setText("GNSS Provider Disabled");
@@ -89,9 +90,10 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             }
 
             @Override
-            public void onLocationSearching() {
+            public void onLocationSearching(String data) {
                 Message msg = Message.obtain();
                 msg.what = GNSS_SEARCHING_CODE;
+                msg.obj = data;
                 mHandler.sendMessage(msg);
             }
         });
