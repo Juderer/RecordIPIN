@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btnPermissionTest;
     private Button btn2ThreadActivity;
     private Button btn2LocationActivity;
+    private Button btn2ImuActivity;
     private long mExitTime;
 
     @Override
@@ -51,6 +52,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btn2LocationActivity = (Button) findViewById(R.id.btn2LocationActivity);
         btn2LocationActivity.setOnClickListener(this);
+
+        btn2ImuActivity = (Button) findViewById(R.id.btn2ImuActivity);
+        btn2ImuActivity.setOnClickListener(this);
 
         isAllGranted = checkPermissionAllGranted(permissions);
         if (!isAllGranted) {
@@ -79,6 +83,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startActivity(new Intent(this, LocationActivity.class));
 //                overridePendingTransition(R.anim.bottom_to_center, R.anim.center_to_top);
                 break;
+            case R.id.btn2ImuActivity:
+                startActivity(new Intent(this, ImuActivity.class));
             default:
                 break;
         }

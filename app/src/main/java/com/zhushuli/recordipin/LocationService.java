@@ -68,14 +68,6 @@ public class LocationService extends Service {
             public void onProviderEnabled(@NonNull String provider) {
                 mLocation = null;
             }
-
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-                Log.d(TAG, "onStatusChanged");
-                switch (status) {
-
-                }
-            }
         };
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
 

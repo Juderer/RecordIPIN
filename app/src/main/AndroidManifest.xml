@@ -6,7 +6,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application
         android:allowBackup="true"
@@ -15,17 +15,19 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.RecordIPIN">
-
+        <activity
+            android:name=".ImuActivity"
+            android:exported="false" />
         <activity
             android:name=".LocationActivity"
             android:exported="false"
-            android:launchMode="standard"
-            android:label="LocationTest"/>
+            android:label="LocationTest"
+            android:launchMode="standard" />
         <activity
             android:name=".ThreadTestActivity"
             android:exported="false"
-            android:launchMode="standard"
-            android:label="ThreadTest"/>
+            android:label="ThreadTest"
+            android:launchMode="standard" />
 
         <service
             android:name=".LocationService"
