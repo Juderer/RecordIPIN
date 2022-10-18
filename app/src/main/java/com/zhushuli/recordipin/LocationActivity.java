@@ -16,6 +16,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.zhushuli.recordipin.utils.DialogUtils;
+
 
 public class LocationActivity extends AppCompatActivity implements ServiceConnection {
 

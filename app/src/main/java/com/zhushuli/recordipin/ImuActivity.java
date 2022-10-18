@@ -1,6 +1,5 @@
 package com.zhushuli.recordipin;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
@@ -10,16 +9,13 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
+import android.os.HandlerThread;
 import android.util.Log;
-import android.view.View;
-import android.widget.Button;
 import android.widget.TextView;
 
 import java.text.DecimalFormat;
 
-public class ImuActivity extends AppCompatActivity{
+public class ImuActivity extends AppCompatActivity {
 
     private static final String TAG = "My" + ImuActivity.class.getSimpleName();
 
@@ -37,13 +33,7 @@ public class ImuActivity extends AppCompatActivity{
 
     private DecimalFormat dfSensor = new DecimalFormat("#0.00000");  // 传感器数据显示精度
 
-    private Handler mHandler = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(@NonNull Message msg) {
-            super.handleMessage(msg);
-            Log.d(TAG, "handleMessage");
-        }
-    };
+    private HandlerThread mSensorThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,9 +62,10 @@ public class ImuActivity extends AppCompatActivity{
                         tvAcceZ.setText(dfSensor.format(event.values[2]));
                         break;
                     case Sensor.TYPE_GYROSCOPE:
-                        tvGyroX.setText(dfSensor.format(event.values[0]));
-                        tvGyroY.setText(dfSensor.format(event.values[1]));
-                        tvGyroZ.setText(dfSensor.format(event.values[2]));
+                        tvGyroX.setText(String.format("%.5f", event.values[0]));
+                        tvGyroY.setText(String.format("%.5f", event.values[1]));
+                        tvGyroZ.setText(String.format("%.5f", event.values[2]));
+                        break;
                     default:
                         break;
                 }
@@ -85,7 +76,12 @@ public class ImuActivity extends AppCompatActivity{
 
             }
         };
-        mSensorManager.registerListener(mSensorEventListener, mAcceSensor, SensorManager.SENSOR_DELAY_NORMAL);
+
+        mSensorThread = new HandlerThread("Sensor Thread");
+        mSensorThread.start();
+        Handler mHandler = new Handler(mSensorThread.getLooper());
+
+        mSensorManager.registerListener(mSensorEventListener, mAcceSensor, SensorManager.SENSOR_DELAY_NORMAL, mHandler);
         mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_NORMAL, mHandler);
     }
 
@@ -94,10 +90,9 @@ public class ImuActivity extends AppCompatActivity{
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
-        if (mSensorManager != null) {
-            mSensorManager.unregisterListener(mSensorEventListener, mAcceSensor);
-            mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
-            mSensorManager = null;
-        }
+        mSensorManager.unregisterListener(mSensorEventListener, mAcceSensor);
+        mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
+        mSensorManager.unregisterListener(mSensorEventListener);
+        mSensorThread.quitSafely();
     }
 }

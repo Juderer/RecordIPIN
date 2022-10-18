@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin;
+package com.zhushuli.recordipin.utils;
 
 import android.content.Context;
 import android.content.DialogInterface;

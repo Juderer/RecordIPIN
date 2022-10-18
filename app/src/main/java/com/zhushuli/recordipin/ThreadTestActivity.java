@@ -109,7 +109,25 @@ public class ThreadTestActivity extends AppCompatActivity implements View.OnClic
         }
     }
 
-//    @Override
+    @Override
+    public void onBackPressed() {
+        if (myThread == null || isMyThreadOver) {
+            Log.d(TAG, String.valueOf(myThread) + " running");
+        } else {
+            Message message = Message.obtain();
+            message.what = MY_THREAD_STOP_CODE;
+            myThread.mHandler.sendMessage(message);
+            isMyThreadOver = true;
+        }
+//        try {
+//            Thread.sleep(2000);
+//        } catch (InterruptedException e) {
+//            e.printStackTrace();
+//        }
+        super.onBackPressed();
+    }
+
+    //    @Override
 //    public boolean onKeyDown(int keyCode, KeyEvent event) {
 //        if (keyCode == KeyEvent.KEYCODE_BACK) {
 //            moveTaskToBack(true);

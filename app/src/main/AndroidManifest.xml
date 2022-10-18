@@ -17,7 +17,8 @@
         android:theme="@style/Theme.RecordIPIN">
         <activity
             android:name=".ImuActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:label="IMUTest"/>
         <activity
             android:name=".LocationActivity"
             android:exported="false"
