@@ -10,6 +10,8 @@ import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -27,8 +29,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private final String[] permissions = {
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_BACKGROUND_LOCATION,
-            Manifest.permission.FOREGROUND_SERVICE};
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE};
     private boolean isAllGranted = false;
 
     private TextView tvTest;
@@ -36,6 +38,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btn2ThreadActivity;
     private Button btn2LocationActivity;
     private Button btn2ImuActivity;
+    private Button btn2CollActivity;
     private long mExitTime;
 
     @Override
@@ -58,9 +61,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn2ImuActivity = (Button) findViewById(R.id.btn2ImuActivity);
         btn2ImuActivity.setOnClickListener(this);
 
+        btn2CollActivity = (Button) findViewById(R.id.btn2CollActivity);
+        btn2CollActivity.setOnClickListener(this);
+
         isAllGranted = checkPermissionAllGranted(permissions);
         if (!isAllGranted) {
-            Log.d(TAG, "定位未授权");
+            Log.d(TAG, "未授权");
             ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
         }
     }
@@ -71,10 +77,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.btnPermissionTest:
                 isAllGranted = checkPermissionAllGranted(permissions);
                 if (!isAllGranted) {
-                    Log.d(TAG, "定位未授权");
+                    Log.d(TAG, "未授权");
                     ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
                 } else {
-                    Toast.makeText(this, "GPS正常", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "权限正常", Toast.LENGTH_SHORT).show();
                 }
                 break;
             case R.id.btn2TheardActivity:
@@ -82,11 +88,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startActivity(threadIntent);
                 break;
             case R.id.btn2LocationActivity:
+                isAllGranted = checkPermissionAllGranted(new String[]{
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION});
+                if (!isAllGranted) {
+                    Log.d(TAG, "未授权");
+                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+                    break;
+                }
                 startActivity(new Intent(this, LocationActivity.class));
 //                overridePendingTransition(R.anim.bottom_to_center, R.anim.center_to_top);
                 break;
             case R.id.btn2ImuActivity:
                 startActivity(new Intent(this, ImuActivity.class));
+                break;
+            case R.id.btn2CollActivity:
+                startActivity(new Intent(this, CollectionActivity.class));
+                break;
             default:
                 break;
         }
@@ -133,6 +151,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             return true;
         }
         return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.showAbout:
+                // TODO::加入RecordIPIN的开发说明(如: 设计静态文字页面)
+                Toast.makeText(this, "juderer.github.io", Toast.LENGTH_SHORT).show();
+                break;
+            case R.id.showIMU:
+                startActivity(new Intent(this, ImuActivity.class));
+                break;
+            default:
+                break;
+        }
+        return true;
     }
 
     @Override

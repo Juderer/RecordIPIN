@@ -15,8 +15,9 @@
         <!-- Customize your theme here. -->
         <item name="android:windowAnimationStyle">@style/MyAnimation</item>
         <item name="android:keepScreenOn">true</item>
-    </style>/Users/zhushuli/Projects.localized/Androigd/RecordIPIN
-
+        <item name="android:requestLegacyExternalStorage" tools:targetApi="q">true</item>
+        <item name="android:preserveLegacyExternalStorage" tools:targetApi="r">true</item>
+    </style>
 
     <style name="MyAnimation">
         <item name="android:activityOpenExitAnimation">@anim/center_to_left</item>

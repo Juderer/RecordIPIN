@@ -16,6 +16,19 @@
         android:text="Record for IPIN 2023" />
 
     <Button
+        android:id="@+id/btn2CollActivity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btn2ImuActivity"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="Collection Test"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:textSize="25sp"
+        android:typeface="serif"/>
+
+    <Button
         android:id="@+id/btn2ImuActivity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -25,8 +38,9 @@
         android:text="IMU Test"
         android:textAllCaps="false"
         android:gravity="center"
-        android:textSize="25sp"
-        android:typeface="serif"/>
+        android:textSize="20sp"
+        android:typeface="serif"
+        android:enabled="true" />
 
     <Button
         android:id="@+id/btn2LocationActivity"
