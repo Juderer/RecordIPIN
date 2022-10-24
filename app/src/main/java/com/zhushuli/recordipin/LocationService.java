@@ -18,6 +18,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 public class LocationService extends Service {
 
@@ -33,6 +35,10 @@ public class LocationService extends Service {
     private int mSatelliteCount;
     private int mBeidouSatelliteCount;
     private int mGpsSatelliteCount;
+
+    private DecimalFormat dfLon;
+    private DecimalFormat dfSpd;
+    private SimpleDateFormat formatter;
 
     class MyBinder extends Binder {
         public LocationService getLocationService() {
@@ -118,16 +124,23 @@ public class LocationService extends Service {
         private boolean checkGPS;
         private DecimalFormat dfLon;
         private DecimalFormat dfSpd;
+        private SimpleDateFormat formatter;
 
         public LocationThread() {
             checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             dfLon = new DecimalFormat("#.000000");  // (经纬度)保留小数点后六位
             dfSpd = new DecimalFormat("#0.00");  // (速度或航向)保留小数点后两位
+            formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         }
 
-        public String getLocationMsg() {
+        public String printLocationMsg() {
             StringBuilder sb = new StringBuilder();
-            sb.append("Longitude:\t");
+            sb.append("SysTime:\t");
+//            sb.append(String.valueOf(System.currentTimeMillis()));
+            sb.append(formatter.format(new Date(System.currentTimeMillis())));
+            sb.append("\nTime:\t");
+            sb.append(String.valueOf(mLocation.getTime()));
+            sb.append("\nLongitude:\t");
             sb.append(dfLon.format(mLocation.getLongitude()));
             sb.append("\nLatitude:\t");
             sb.append(dfLon.format(mLocation.getLatitude()));
@@ -152,12 +165,11 @@ public class LocationService extends Service {
                         break;
                     }
                     if (mLocation != null) {
-                        String locationMsg = getLocationMsg();
-                        callback.onLocationChange(locationMsg);
+                        callback.onLocationChange(mLocation);
                     } else {
                         callback.onLocationSearching("GNSS Searching ...\n" +
-                                String.valueOf(mBeidouSatelliteCount) + " Beidou Satellites\n" +
-                                String.valueOf(mGpsSatelliteCount) + " GPS Satellites");
+                                mBeidouSatelliteCount + " Beidou Satellites\n" +
+                                mGpsSatelliteCount + " GPS Satellites");
                     }
                 }
                 try {
@@ -185,7 +197,8 @@ public class LocationService extends Service {
     }
 
     public interface Callback {
-        void onLocationChange(String data);
+//        void onLocationChange(String data);
+        void onLocationChange(Location location);
 
         void onLocationProvoiderDisabled();
 

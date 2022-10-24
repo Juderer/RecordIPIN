@@ -169,6 +169,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.showIMU:
                 startActivity(new Intent(this, ImuActivity.class));
                 break;
+            case R.id.checkPermission:
+                isAllGranted = checkPermissionAllGranted(permissions);
+                if (!isAllGranted) {
+                    Log.d(TAG, "未授权");
+                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+                } else {
+                    Toast.makeText(this, "权限正常", Toast.LENGTH_SHORT).show();
+                }
+                break;
             default:
                 break;
         }
