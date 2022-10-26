@@ -43,3 +43,13 @@
 ### 1.9 TableLayout
 
 - [TableLayout的基本使用方式](https://blog.csdn.net/BASIC_DU/article/details/73441167)
+
+### 1.10 屏幕旋转
+
+- [Android旋转屏幕时阻止activity重建](https://blog.csdn.net/u011421608/article/details/50883665)
+
+### 1.11 Unknown Module in Android Studio
+
+- [Unknown Module in Android Studio](https://stackoverflow.com/questions/71769500/unknown-module-in-android-studio)
+
+### 1.12 Gradle学习
