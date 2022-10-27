@@ -9,31 +9,32 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
-import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
-
 import androidx.annotation.NonNull;
 
-import java.text.DecimalFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LocationService extends Service {
 
     private static final String TAG = "My" + LocationService.class.getSimpleName();
 
-    private boolean isConnecting;
     private Callback callback;
 
+    // 位置监听相关类
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
-    private GnssStatus.Callback mGnssStatusCallback;
     private Location mLocation;
+
+    // 卫星状态监听
+    private GnssStatus.Callback mGnssStatusCallback;
     private int mSatelliteCount;
     private int mBeidouSatelliteCount;
     private int mGpsSatelliteCount;
+
+    // 子线程
+    private LocationThread mLocationThread;
 
     public class MyBinder extends Binder {
         public LocationService getLocationService() {
@@ -75,7 +76,6 @@ public class LocationService extends Service {
         };
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
 
-//        mSatelliteCount = 0;
         mGnssStatusCallback = new GnssStatus.Callback() {
             @Override
             public void onStopped() {
@@ -117,8 +117,7 @@ public class LocationService extends Service {
         };
         mLocationManager.registerGnssStatusCallback(mGnssStatusCallback);
 
-        isConnecting = true;
-        LocationThread mLocationThread = new LocationThread();
+        mLocationThread = new LocationThread();
         new Thread(mLocationThread).start();
     }
 
@@ -126,49 +125,31 @@ public class LocationService extends Service {
     private class LocationThread implements Runnable {
         private int sleepDuration = 1000;
         private boolean checkGPS;
-        private DecimalFormat dfLon;
-        private DecimalFormat dfSpd;
-        private SimpleDateFormat formatter;
         private Location mPreLoation;
+        private AtomicBoolean abConnected = new AtomicBoolean(true);
 
         public LocationThread() {
             checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-            dfLon = new DecimalFormat("#.000000");  // (经纬度)保留小数点后六位
-            dfSpd = new DecimalFormat("#0.00");  // (速度或航向)保留小数点后两位
-            formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
             mPreLoation = null;
         }
 
-        public String printLocationMsg() {
-            StringBuilder sb = new StringBuilder();
-            sb.append("SysTime:\t");
-//            sb.append(String.valueOf(System.currentTimeMillis()));
-            sb.append(formatter.format(new Date(System.currentTimeMillis())));
-            sb.append("\nTime:\t");
-            sb.append(String.valueOf(mLocation.getTime()));
-            sb.append("\nLongitude:\t");
-            sb.append(dfLon.format(mLocation.getLongitude()));
-            sb.append("\nLatitude:\t");
-            sb.append(dfLon.format(mLocation.getLatitude()));
-            sb.append("\nAccuracy:\t");
-            sb.append((int) mLocation.getAccuracy());
-            sb.append("\nSpeed:\t");
-            sb.append(dfSpd.format(mLocation.getSpeed()));
-            sb.append("\nBearing:\t");
-            sb.append(dfSpd.format(mLocation.getBearing()));
-            return sb.toString();
+        public boolean getConnected() {
+            return abConnected.get();
+        }
+
+        public void setConnected(boolean connected) {
+            abConnected.set(connected);
         }
 
         @Override
         public void run() {
             Log.d(TAG, "LocationThread Start");
-            while (isConnecting) {
+            while (abConnected.get()) {
                 if (callback != null) {
                     checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
                     if (!checkGPS) {
                         callback.onLocationProvoiderDisabled();
-                        isConnecting = false;
+                        abConnected.set(false);
                         break;
                     }
                     if (mLocation != null) {
@@ -212,7 +193,9 @@ public class LocationService extends Service {
 
     public interface Callback {
         void onLocationChanged(Location location);
+
         void onLocationProvoiderDisabled();
+
         void onLocationSearching(String data);
     }
 
@@ -227,11 +210,10 @@ public class LocationService extends Service {
         super.onDestroy();
         Log.d(TAG, "onDestory");
 
-        isConnecting = false;
-        if (mLocationManager != null) {
-            mLocationManager.removeUpdates(mLocationListener);
-            mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
-            mLocationManager = null;
+        if (mLocationThread.getConnected()) {
+            mLocationThread.setConnected(false);
         }
+        mLocationManager.removeUpdates(mLocationListener);
+        mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
     }
 }
