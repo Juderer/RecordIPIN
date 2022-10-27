@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
 
 import java.io.BufferedWriter;
@@ -28,6 +29,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class LocationActivity extends AppCompatActivity implements ServiceConnection {
@@ -39,6 +41,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     private static final int GNSS_PROVIDER_DISABLED_CODE = 404;
     private static final int GNSS_FILE_WRITING_CODE = 1010;
     private static final int GNSS_FILE_CLOSE_CODE = 2020;
+    private static final int GNSS_DOWNLOAD_THREAD_INTERRUPT_CODE = 3030;
 
     private TextView tvLocationMsg;
     private Button btnLocServiceStart;
@@ -103,16 +106,19 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
     @Override
     public void onServiceConnected(ComponentName name, IBinder service) {
+        Log.d(TAG, "onServiceConnected");
         binder = (LocationService.MyBinder) service;
         LocationService mLocationService = binder.getLocationService();
         mLocationService.setCallback(new LocationService.Callback() {
             @Override
-            public void onLocationChange(Location location) {
+            public void onLocationChanged(Location location) {
+                Log.d(TAG, "onLocationChanged");
                 Message msg = new Message();
                 msg.what = GNSS_LOCATION_UPDATE_CODE;
                 msg.obj = printLocationMsg(location);
                 mMainHandler.sendMessage(msg);
 
+                // TODO::手机锁屏后无法保存数据
                 writeLocation2File(location);
             }
 
@@ -140,7 +146,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
     @Override
     public void onServiceDisconnected(ComponentName name) {
-
+        Log.d(TAG, "onServiceDisconnected");
     }
 
     public void onClick(View v) {
@@ -232,9 +238,15 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         private BufferedWriter mBufferWriter;
         private FileWriter mFileWriter;
         private Handler mHandler;
+        private String mDirRootPath;
+        private AtomicBoolean bFileWriterOpen = new AtomicBoolean(false);
 
         public DownloadThread(String dirRootPath) {
-            String dirPath = dirRootPath + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+            mDirRootPath = dirRootPath;
+        }
+
+        public void initWriter() {
+            String dirPath = mDirRootPath + File.separator + formatter.format(new Date(System.currentTimeMillis()));
             File mFile = new File(dirPath);
             if (!mFile.exists()) {
                 mFile.mkdirs();
@@ -257,8 +269,14 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                 @Override
                 public void handleMessage(@NonNull Message msg) {
                     switch (msg.what) {
+                        case GNSS_DOWNLOAD_THREAD_INTERRUPT_CODE:
+                            Looper.myLooper().quit();
+                            break;
                         case GNSS_FILE_WRITING_CODE:
                             Log.d(TAG, "Download Thread Write");
+                            if (!bFileWriterOpen.getAndSet(true)) {
+                                initWriter();
+                            }
                             try {
                                 mBufferWriter.write((String) msg.obj);
                             } catch (IOException e) {
@@ -268,6 +286,13 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                             break;
                         case GNSS_FILE_CLOSE_CODE:
                             Log.d(TAG, "Download Thread Close");
+                            if (!bFileWriterOpen.get()) {
+                                if (msg.obj != null) {
+                                    initWriter();
+                                } else {
+                                    break;
+                                }
+                            }
                             try {
                                 if (msg.obj != null) {
                                     mBufferWriter.write((String) msg.obj);
@@ -276,7 +301,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                             } catch (IOException e) {
                                 e.printStackTrace();
                             }
-                            Looper.myLooper().quit();
+                            bFileWriterOpen.set(false);
                             break;
                         default:
                             break;
@@ -284,7 +309,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                 }
             };
             Looper.loop();
-            Log.d(TAG, "Download Thread End");
+            Log.d(TAG, "Download Thread Interrupt");
         }
 
         public Handler getHandler() {
@@ -326,6 +351,12 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         Log.d(TAG, "onRestart");
     }
 
+    protected void interruptDownloadThread() {
+        Message msg = Message.obtain();
+        msg.what = GNSS_DOWNLOAD_THREAD_INTERRUPT_CODE;
+        mDownloadThread.getHandler().sendMessage(msg);
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -337,5 +368,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         }
 
         closeLocation2File();
+        interruptDownloadThread();
     }
 }

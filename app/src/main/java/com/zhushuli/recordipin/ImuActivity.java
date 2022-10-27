@@ -1,19 +1,24 @@
 package com.zhushuli.recordipin;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.Context;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.zhushuli.recordipin.service.ImuService;
 
 import java.text.DecimalFormat;
 
@@ -33,17 +38,39 @@ public class ImuActivity extends AppCompatActivity {
 
     private Button btnImuCollection;
 
-    private SensorManager mSensorManager;
-    private SensorEventListener mSensorEventListener;
-    private Sensor mAcceSensor;
-    private Sensor mGyroSensor;
-    private Sensor mMagSensor;
+    private DecimalFormat dfSensor = new DecimalFormat("#0.0000");  // 传感器数据显示精度
 
-    private DecimalFormat dfSensor = new DecimalFormat("#0.00000");  // 传感器数据显示精度
+    // IMU服务相关类
+    private ImuService.MyBinder mBinder = null;
+    private ImuService mImuService;
+    private ServiceConnection mImuServiceConnection;
 
-    private HandlerThread mSensorThread;
-
-    private boolean isRegister = false;
+    private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
+        @Override
+        public void handleMessage(@NonNull Message msg) {
+            super.handleMessage(msg);
+            SensorEvent event = (SensorEvent) msg.obj;
+            switch (msg.what) {
+                case Sensor.TYPE_ACCELEROMETER:
+                    tvAcceX.setText(dfSensor.format(event.values[0]));
+                    tvAcceY.setText(dfSensor.format(event.values[1]));
+                    tvAcceZ.setText(dfSensor.format(event.values[2]));
+                    break;
+                case Sensor.TYPE_GYROSCOPE:
+                    tvGyroX.setText(String.format("%.4f", event.values[0]));
+                    tvGyroY.setText(String.format("%.4f", event.values[1]));
+                    tvGyroZ.setText(String.format("%.4f", event.values[2]));
+                    break;
+                case Sensor.TYPE_MAGNETIC_FIELD:
+                    tvMagX.setText(String.format("%.4f", event.values[0]));
+                    tvMagY.setText(String.format("%.4f", event.values[1]));
+                    tvMagZ.setText(String.format("%.4f", event.values[2]));
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,53 +91,44 @@ public class ImuActivity extends AppCompatActivity {
         btnImuCollection = (Button) findViewById(R.id.btnImuStart);
         btnImuCollection.setOnClickListener(this::onClick);
 
-        mSensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
-        mAcceSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        mMagSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        initImuServiceConnection();
+    }
 
-        mSensorEventListener = new SensorEventListener() {
+    private void initImuServiceConnection() {
+        mImuServiceConnection = new ServiceConnection() {
             @Override
-            public void onSensorChanged(SensorEvent event) {
-                switch (event.sensor.getType()) {
-                    case Sensor.TYPE_ACCELEROMETER:
-                        tvAcceX.setText(dfSensor.format(event.values[0]));
-                        tvAcceY.setText(dfSensor.format(event.values[1]));
-                        tvAcceZ.setText(dfSensor.format(event.values[2]));
-                        break;
-                    case Sensor.TYPE_GYROSCOPE:
-                        tvGyroX.setText(String.format("%.5f", event.values[0]));
-                        tvGyroY.setText(String.format("%.5f", event.values[1]));
-                        tvGyroZ.setText(String.format("%.5f", event.values[2]));
-                        break;
-                    case Sensor.TYPE_MAGNETIC_FIELD:
-                        tvMagX.setText(String.format("%.5f", event.values[0]));
-                        tvMagY.setText(String.format("%.5f", event.values[0]));
-                        tvMagZ.setText(String.format("%.5f", event.values[0]));
-                        break;
-                    default:
-                        break;
-                }
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.d(TAG, "onServiceConnected");
+                mBinder = (ImuService.MyBinder) service;
+                mImuService = mBinder.getImuService();
+                mImuService.setCallback(new ImuService.Callback() {
+                    @Override
+                    public void onSensorChanged(SensorEvent event) {
+                        Message msg = Message.obtain();
+                        switch (event.sensor.getType()) {
+                            case Sensor.TYPE_ACCELEROMETER:
+                                msg.what = Sensor.TYPE_ACCELEROMETER;
+                                break;
+                            case Sensor.TYPE_GYROSCOPE:
+                                msg.what = Sensor.TYPE_GYROSCOPE;
+                                break;
+                            case Sensor.TYPE_MAGNETIC_FIELD:
+                                msg.what = Sensor.TYPE_MAGNETIC_FIELD;
+                                break;
+                            default:
+                                break;
+                        }
+                        msg.obj = event;
+                        ImuActivity.this.getHandler().sendMessage(msg);
+                    }
+                });
             }
 
             @Override
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            public void onServiceDisconnected(ComponentName name) {
 
             }
         };
-    }
-
-    private void registerResource() {
-        mSensorThread = new HandlerThread("Sensor Thread");
-        mSensorThread.start();
-        Handler mHandler = new Handler(mSensorThread.getLooper());
-
-        // TODO::参考使用getSharedPreference获取配置
-        mSensorManager.registerListener(mSensorEventListener, mAcceSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-        mSensorManager.registerListener(mSensorEventListener, mMagSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-
-        isRegister = true;
     }
 
     public void onClick(View v) {
@@ -118,10 +136,11 @@ public class ImuActivity extends AppCompatActivity {
             case R.id.btnImuStart:
                 if (btnImuCollection.getText().equals("Start")) {
                     btnImuCollection.setText("Stop");
-                    registerResource();
+                    Intent intent = new Intent(ImuActivity.this, ImuService.class);
+                    bindService(intent, mImuServiceConnection, BIND_AUTO_CREATE);
                 } else {
                     btnImuCollection.setText("Start");
-                    unregisterResource();
+                    unbindService(mImuServiceConnection);
                 }
                 break;
             default:
@@ -129,23 +148,14 @@ public class ImuActivity extends AppCompatActivity {
         }
     }
 
-    private void unregisterResource() {
-        mSensorManager.unregisterListener(mSensorEventListener, mAcceSensor);
-        mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
-        mSensorManager.unregisterListener(mSensorEventListener, mMagSensor);
-        mSensorManager.unregisterListener(mSensorEventListener);
-        mSensorThread.quitSafely();
 
-        isRegister = false;
+    public Handler getHandler() {
+        return mMainHandler;
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-
-        if (isRegister) {
-            unregisterResource();
-        }
     }
 }

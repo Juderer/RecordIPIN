@@ -53,3 +53,5 @@
 - [Unknown Module in Android Studio](https://stackoverflow.com/questions/71769500/unknown-module-in-android-studio)
 
 ### 1.12 Gradle学习
+
+### 1.13 Android命名规范

@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin;
+package com.zhushuli.recordipin.service;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
@@ -11,7 +11,6 @@ import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.Message;
 import android.util.Log;
 
 
@@ -36,11 +35,7 @@ public class LocationService extends Service {
     private int mBeidouSatelliteCount;
     private int mGpsSatelliteCount;
 
-    private DecimalFormat dfLon;
-    private DecimalFormat dfSpd;
-    private SimpleDateFormat formatter;
-
-    class MyBinder extends Binder {
+    public class MyBinder extends Binder {
         public LocationService getLocationService() {
             return LocationService.this;
         }
@@ -62,23 +57,32 @@ public class LocationService extends Service {
         mLocationListener = new LocationListener() {
             @Override
             public void onLocationChanged(@NonNull Location location) {
+                Log.d(TAG, "onLocationChanged");
                 mLocation = location;
             }
 
             @Override
             public void onProviderDisabled(@NonNull String provider) {
+                Log.d(TAG, "onProviderDisabled");
                 mLocation = null;
             }
 
             @Override
             public void onProviderEnabled(@NonNull String provider) {
+                Log.d(TAG, "onProviderEnabled");
                 mLocation = null;
             }
         };
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
 
-        mSatelliteCount = 0;
+//        mSatelliteCount = 0;
         mGnssStatusCallback = new GnssStatus.Callback() {
+            @Override
+            public void onStopped() {
+                super.onStopped();
+                Log.d(TAG, "GnssStatus, onStopped");
+            }
+
             @Override
             public void onStarted() {
                 super.onStarted();
@@ -125,12 +129,15 @@ public class LocationService extends Service {
         private DecimalFormat dfLon;
         private DecimalFormat dfSpd;
         private SimpleDateFormat formatter;
+        private Location mPreLoation;
 
         public LocationThread() {
             checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
             dfLon = new DecimalFormat("#.000000");  // (经纬度)保留小数点后六位
             dfSpd = new DecimalFormat("#0.00");  // (速度或航向)保留小数点后两位
             formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+            mPreLoation = null;
         }
 
         public String printLocationMsg() {
@@ -165,7 +172,14 @@ public class LocationService extends Service {
                         break;
                     }
                     if (mLocation != null) {
-                        callback.onLocationChange(mLocation);
+                        if (mPreLoation == null) {
+                            mPreLoation = mLocation;
+                        } else {
+                            if (!mPreLoation.equals(mLocation)) {
+                                callback.onLocationChanged(mLocation);
+                            }
+                            mPreLoation = mLocation;
+                        }
                     } else {
                         callback.onLocationSearching("GNSS Searching ...\n" +
                                 mBeidouSatelliteCount + " Beidou Satellites\n" +
@@ -197,11 +211,8 @@ public class LocationService extends Service {
     }
 
     public interface Callback {
-//        void onLocationChange(String data);
-        void onLocationChange(Location location);
-
+        void onLocationChanged(Location location);
         void onLocationProvoiderDisabled();
-
         void onLocationSearching(String data);
     }
 

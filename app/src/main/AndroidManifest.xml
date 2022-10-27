@@ -9,44 +9,55 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.MANAGE_DOCUMENTS"
+    <uses-permission
+        android:name="android.permission.MANAGE_DOCUMENTS"
         tools:ignore="ProtectedPermissions" />
 
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:requestLegacyExternalStorage="true"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.RecordIPIN"
-        android:requestLegacyExternalStorage="true" >
+        android:theme="@style/Theme.RecordIPIN">
+
         <activity
             android:name=".CollectionActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="CollectionTest"/>
+            android:label="CollectionTest" /> <!-- configChanges: 旋转屏幕时阻止activity重建 -->
         <activity
             android:name=".ImuActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="false"
             android:label="IMUTest" />
         <activity
             android:name=".LocationActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="false"
             android:label="LocationTest"
             android:launchMode="standard" />
         <activity
             android:name=".ThreadTestActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="false"
             android:label="ThreadTest"
             android:launchMode="standard" />
 
         <service
-            android:name=".LocationService"
+            android:name=".service.LocationService"
             android:enabled="true"
             android:exported="true"
             tools:ignore="Instantiatable" />
+        <service
+            android:name=".service.ImuService"
+            android:enabled="true"
+            android:exported="true" />
 
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize"
             android:exported="true"
             android:launchMode="standard">
             <intent-filter>
