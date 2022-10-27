@@ -26,7 +26,7 @@ public class ImuService extends Service {
     private Sensor mMagSensor;
 
     private HandlerThread mSensorThread;
-    private AtomicBoolean abRegistered = new AtomicBoolean(false);
+    private final AtomicBoolean abRegistered = new AtomicBoolean(false);
 
     private Callback callback = null;
 
