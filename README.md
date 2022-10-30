@@ -55,3 +55,7 @@
 ### 1.12 Gradle学习
 
 ### 1.13 Android命名规范
+
+### 1.14 Notification
+
+- [前台进程报错](https://blog.csdn.net/shulianghan/article/details/115529328)

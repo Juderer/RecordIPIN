@@ -1,18 +1,26 @@
 package com.zhushuli.recordipin.service;
 
 import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.location.GnssStatus;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
+import android.os.Build;
 import android.os.IBinder;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+
+import com.zhushuli.recordipin.R;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -33,7 +41,7 @@ public class LocationService extends Service {
     private int mBeidouSatelliteCount;
     private int mGpsSatelliteCount;
 
-    // 子线程
+    // 子线程: 位置监听与卫星状态监听信息整合
     private LocationThread mLocationThread;
 
     public class MyBinder extends Binder {
@@ -48,17 +56,56 @@ public class LocationService extends Service {
         return new MyBinder();
     }
 
-    @SuppressLint("MissingPermission")
+
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
 
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+        requestLocationUpdates();
+        registerGnssStatus();
+
+        mLocationThread = new LocationThread();
+        new Thread(mLocationThread).start();
+
+        // 启动前台服务, 确保APP长时间后台运行后返回前台无法更新定位
+        Notification notification = createNotification();
+        startForeground(1, notification);
+    }
+
+    private Notification createNotification() {
+        String channelID = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            channelID = createNotificationChannel("com.zhushuli.recordipin", "foregroundservice");
+        } else {
+            channelID = "";
+        }
+        // TODO::notification的详细设计
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("RecordIPIN")
+                .setContentText("RecordIPIN正在使用定位服务")
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+        Notification notification = builder.build();
+        return notification;
+    }
+
+    private String createNotificationChannel(String channelID, String channelName) {
+        NotificationChannel channel = new NotificationChannel(channelID, channelName, NotificationManager.IMPORTANCE_HIGH);
+        channel.setLightColor(Color.BLUE);
+        channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        manager.createNotificationChannel(channel);
+        return channelID;
+    }
+
+    @SuppressLint("MissingPermission")
+    private void requestLocationUpdates() {
         mLocationListener = new LocationListener() {
             @Override
             public void onLocationChanged(@NonNull Location location) {
-                Log.d(TAG, "onLocationChanged");
+//                Log.d(TAG, "onLocationChanged");
                 mLocation = location;
             }
 
@@ -75,7 +122,10 @@ public class LocationService extends Service {
             }
         };
         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
+    }
 
+    @SuppressLint("MissingPermission")
+    private void registerGnssStatus() {
         mGnssStatusCallback = new GnssStatus.Callback() {
             @Override
             public void onStopped() {
@@ -113,12 +163,10 @@ public class LocationService extends Service {
                             break;
                     }
                 }
+//                Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
             }
         };
         mLocationManager.registerGnssStatusCallback(mGnssStatusCallback);
-
-        mLocationThread = new LocationThread();
-        new Thread(mLocationThread).start();
     }
 
     @SuppressLint("HandlerLeak")
@@ -166,6 +214,7 @@ public class LocationService extends Service {
                                 mBeidouSatelliteCount + " Beidou Satellites\n" +
                                 mGpsSatelliteCount + " GPS Satellites");
                     }
+//                    Log.d(TAG, "callback is not null");
                 }
                 try {
                     Thread.sleep(sleepDuration);
@@ -215,5 +264,7 @@ public class LocationService extends Service {
         }
         mLocationManager.removeUpdates(mLocationListener);
         mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
+
+        stopForeground(true);
     }
 }

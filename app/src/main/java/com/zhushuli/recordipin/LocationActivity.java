@@ -20,21 +20,22 @@ import android.widget.TextView;
 
 import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
+import com.zhushuli.recordipin.utils.LocationStrUtils;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 
-public class LocationActivity extends AppCompatActivity implements ServiceConnection {
+public class LocationActivity extends AppCompatActivity implements ServiceConnection, View.OnClickListener {
 
     private static final String TAG = "My" + LocationActivity.class.getSimpleName();
+//    private static final String TAG = "My" + LocationActivity.class.getName();
 
     private static final int GNSS_LOCATION_UPDATE_CODE = 8402;
     private static final int GNSS_SEARCHING_CODE = 502;
@@ -49,8 +50,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
     private LocationService.MyBinder binder = null;
 
-    private DecimalFormat dfLon;
-    private DecimalFormat dfSpd;
     private SimpleDateFormat formatter;
 
     private DownloadThread mDownloadThread;
@@ -88,12 +87,10 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
         tvLocationMsg = (TextView) findViewById(R.id.tvLocationMsg);
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
-        btnLocServiceStart.setOnClickListener(this::onClick);
+        btnLocServiceStart.setOnClickListener(this);
         btnLocServiceStop = (Button) findViewById(R.id.btnLocServiceStop);
-        btnLocServiceStop.setOnClickListener(this::onClick);
+        btnLocServiceStop.setOnClickListener(this);
 
-        dfLon = new DecimalFormat("#.000000");  // (经纬度)保留小数点后六位
-        dfSpd = new DecimalFormat("#0.00");  // (速度或航向)保留小数点后两位
         formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 
         // 存储文件路径
@@ -115,7 +112,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                 Log.d(TAG, "onLocationChanged");
                 Message msg = new Message();
                 msg.what = GNSS_LOCATION_UPDATE_CODE;
-                msg.obj = printLocationMsg(location);
+                msg.obj = LocationStrUtils.printLocationMsg(location);
                 mMainHandler.sendMessage(msg);
 
                 // TODO::手机锁屏后无法保存数据
@@ -136,6 +133,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
             @Override
             public void onLocationSearching(String data) {
+                Log.d(TAG, "onLocationSearching");
                 Message msg = Message.obtain();
                 msg.what = GNSS_SEARCHING_CODE;
                 msg.obj = data;
@@ -149,6 +147,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         Log.d(TAG, "onServiceDisconnected");
     }
 
+    @Override
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btnLocServiceStart:
@@ -169,36 +168,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         }
     }
 
-    public String printLocationMsg(Location location) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("SysTime:\t");
-        sb.append(formatter.format(new Date(System.currentTimeMillis())));
-        sb.append("\nTime:\t");
-        sb.append(location.getTime());
-        sb.append("\nLongitude:\t");
-        sb.append(dfLon.format(location.getLongitude()));
-        sb.append("\nLatitude:\t");
-        sb.append(dfLon.format(location.getLatitude()));
-        sb.append("\nAccuracy:\t");
-        sb.append((int) location.getAccuracy());
-        sb.append("\nSpeed:\t");
-        sb.append(dfSpd.format(location.getSpeed()));
-        sb.append("\nBearing:\t");
-        sb.append(dfSpd.format(location.getBearing()));
-        sb.append("\n");
-        return sb.toString();
-    }
-
-    public String genLocationCsv(Location location) {
-        // system timestamp, GNSS timestamp, longitude, latitude, accuracy, speed, speed accuracy, bearing, bearing accuracy
-        String csvString = String.format("%d,%d,%.6f,%.6f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
-                System.currentTimeMillis(), location.getTime(),
-                location.getLongitude(), location.getLatitude(), location.getAccuracy(),
-                location.getSpeed(), location.getSpeedAccuracyMetersPerSecond(),
-                location.getBearing(), location.getBearingAccuracyDegrees());
-        return csvString;
-    }
-
     public void writeLocation2File(Location location) {
         // 每11秒保存一次
         if (mLocationStrList.size() > 10) {
@@ -213,7 +182,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             mLocationStrList.clear();
             Log.d(TAG, "writing");
         } else {
-            mLocationStrList.add(genLocationCsv(location));
+            mLocationStrList.add(LocationStrUtils.genLocationCsv(location));
         }
     }
 
@@ -279,6 +248,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                             }
                             try {
                                 mBufferWriter.write((String) msg.obj);
+                                mBufferWriter.flush();  // 缓冲区未满时强制数据写入
                             } catch (IOException e) {
                                 e.printStackTrace();
                                 Log.d(TAG, "2222");
@@ -331,6 +301,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
+
     }
 
     @Override
