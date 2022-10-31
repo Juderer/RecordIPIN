@@ -46,7 +46,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
     private TextView tvLocationMsg;
     private Button btnLocServiceStart;
-    private Button btnLocServiceStop;
 
     private LocationService.MyBinder binder = null;
 
@@ -88,8 +87,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         tvLocationMsg = (TextView) findViewById(R.id.tvLocationMsg);
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
-        btnLocServiceStop = (Button) findViewById(R.id.btnLocServiceStop);
-        btnLocServiceStop.setOnClickListener(this);
 
         formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 
@@ -151,16 +148,19 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btnLocServiceStart:
-                Intent intent = new Intent(LocationActivity.this, LocationService.class);
-                bindService(intent, LocationActivity.this, BIND_AUTO_CREATE);
-                break;
-            case R.id.btnLocServiceStop:
-                if (binder != null) {
+                if (btnLocServiceStart.getText().equals("Start")) {
+                    Intent intent = new Intent(LocationActivity.this, LocationService.class);
+                    bindService(intent, LocationActivity.this, BIND_AUTO_CREATE);
+
+                    btnLocServiceStart.setText("Stop");
+                } else {
                     unbindService(LocationActivity.this);
                     binder = null;
                     tvLocationMsg.setText("Location Stop");
 
                     closeLocation2File();
+
+                    btnLocServiceStart.setText("Start");
                 }
                 break;
             default:
