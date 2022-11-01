@@ -20,6 +20,7 @@ import android.widget.TextView;
 
 import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
+import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.LocationStrUtils;
 
 import java.io.BufferedWriter;
@@ -205,7 +206,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
     public class DownloadThread implements Runnable {
         private BufferedWriter mBufferWriter;
-        private FileWriter mFileWriter;
         private Handler mHandler;
         private String mDirRootPath;
         private AtomicBoolean bFileWriterOpen = new AtomicBoolean(false);
@@ -214,15 +214,10 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             mDirRootPath = dirRootPath;
         }
 
-        public void initWriter() {
+        private void initWriter() {
             String dirPath = mDirRootPath + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-            File mFile = new File(dirPath);
-            if (!mFile.exists()) {
-                mFile.mkdirs();
-            }
+            mBufferWriter = FileUtils.initWriter(dirPath, "GNSS.csv");
             try {
-                mFileWriter = new FileWriter(dirPath + File.separator + "GNSS.csv");
-                mBufferWriter = new BufferedWriter(mFileWriter);
                 mBufferWriter.write("sysTime,gnssTime,longitude,latitude,accuracy,speed,speedAccuracy,bearing,bearingAccuracy\n");
             } catch (IOException e) {
                 e.printStackTrace();

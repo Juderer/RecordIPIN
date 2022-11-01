@@ -101,6 +101,7 @@ public class ImuActivity extends AppCompatActivity {
                 Log.d(TAG, "onServiceConnected");
                 mBinder = (ImuService.MyBinder) service;
                 mImuService = mBinder.getImuService();
+                mImuService.startImuRecording();
                 mImuService.setCallback(new ImuService.Callback() {
                     @Override
                     public void onSensorChanged(SensorEvent event) {
