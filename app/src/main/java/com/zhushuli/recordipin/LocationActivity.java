@@ -181,6 +181,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             msg.obj = csvString;
             mDownloadThread.getHandler().sendMessage(msg);
             mLocationStrList.clear();
+            mLocationStrList.add(LocationStrUtils.genLocationCsv(location));
             Log.d(TAG, "writing");
         } else {
             mLocationStrList.add(LocationStrUtils.genLocationCsv(location));
