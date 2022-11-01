@@ -12,8 +12,12 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Message;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import com.google.common.collect.Queues;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ImuStrUtils;
 
@@ -21,9 +25,13 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ImuService extends Service {
@@ -36,13 +44,15 @@ public class ImuService extends Service {
     private Sensor mGyroSensor;
     private Sensor mMagSensor;
 
-    private HandlerThread mSensorThread;
-    private final AtomicBoolean abRegistered = new AtomicBoolean(false);
-
     private Callback callback = null;
+
+    // SensorEvent数据预处理
+    private HandlerThread mSensorThread;
+    private Handler mHandler;
 
     // 设置队列, 用于写入文件
     private Queue<SensorEvent> mEventQueue = new LinkedList<>();
+    private BlockingQueue<String> mBlockingQueue = new ArrayBlockingQueue<String>(3000, true);
     // 传感器数据写入文件子线程
     private ImuRecordThread mImuRecordThread;
     private AtomicBoolean abRunning = new AtomicBoolean(false);
@@ -91,17 +101,13 @@ public class ImuService extends Service {
             @Override
             public void onSensorChanged(SensorEvent event) {
 //                Log.d(TAG, "onSensorChanged");
-                // set reference time
-                if (sensorTimeReference == 0L && myTimeReference == 0L) {
-                    sensorTimeReference = event.timestamp;
-                    myTimeReference = System.currentTimeMillis();
-                }
-                // set event timestamp to current time in milliseconds
-                event.timestamp = myTimeReference +
-                        Math.round((event.timestamp - sensorTimeReference) / 1000000L);
                 if (callback != null) {
                     callback.onSensorChanged(event);
                     mEventQueue.offer(event);
+                    Message msg = Message.obtain();
+                    msg.obj = event;
+                    mHandler.sendMessage(msg);
+                    Log.d(TAG, "onSensorChanged");
                 }
             }
 
@@ -115,25 +121,36 @@ public class ImuService extends Service {
     }
 
     private void registerResource() {
-        if (!abRegistered.getAndSet(true)) {
-            mSensorThread = new HandlerThread("Sensor Thread");
-            mSensorThread.start();
-            Handler mHandler = new Handler(mSensorThread.getLooper());
+        mSensorThread = new HandlerThread("Sensor Thread", Thread.MAX_PRIORITY);
+        mSensorThread.start();
+        mHandler = new Handler(mSensorThread.getLooper()) {
+            @Override
+            public void handleMessage(@NonNull Message msg) {
+                SensorEvent event = (SensorEvent) msg.obj;
+                // set reference time
+                if (sensorTimeReference == 0L && myTimeReference == 0L) {
+                    sensorTimeReference = event.timestamp;
+                    myTimeReference = System.currentTimeMillis();
+                }
+                // set event timestamp to current time in milliseconds
+                event.timestamp = myTimeReference +
+                        Math.round((event.timestamp - sensorTimeReference) / 1000000L);
+                mBlockingQueue.offer(ImuStrUtils.sensorEvent2Str(event));
+                Log.d(TAG, "event handler");
+            }
+        };
 
-            mSensorManager.registerListener(mSensorEventListener, mAcceSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-            mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-            mSensorManager.registerListener(mSensorEventListener, mMagSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-        }
+        mSensorManager.registerListener(mSensorEventListener, mAcceSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
+        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
+        mSensorManager.registerListener(mSensorEventListener, mMagSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
     }
 
     private void unregisterResource() {
-        if (abRegistered.getAndSet(false)) {
-            mSensorManager.unregisterListener(mSensorEventListener, mAcceSensor);
-            mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
-            mSensorManager.unregisterListener(mSensorEventListener, mMagSensor);
-            mSensorManager.unregisterListener(mSensorEventListener);
-            mSensorThread.quitSafely();
-        }
+        mSensorManager.unregisterListener(mSensorEventListener, mAcceSensor);
+        mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
+        mSensorManager.unregisterListener(mSensorEventListener, mMagSensor);
+        mSensorManager.unregisterListener(mSensorEventListener);
+        mSensorThread.quitSafely();
     }
 
     public void startImuRecording() {
@@ -162,27 +179,38 @@ public class ImuService extends Service {
         @Override
         public void run() {
             initWriter();
-            int writeRowCount = 0;
+//            int writeRowCount = 0;
             Log.d(TAG, "IMU recording start");
             while (ImuService.this.getAbRunning()) {
                 try {
-                    if (mEventQueue.size() > 0) {
-                        mBufferedWriter.write(ImuStrUtils.sensorEvent2Str(mEventQueue.poll()));
-                        writeRowCount++;
-                    }
-                    if (writeRowCount > 1500) {
-                        mBufferedWriter.flush();
-                        writeRowCount = 0;
-                        Log.d(TAG, "IMU recording write");
-                    }
+//                    if (mEventQueue.size() > 0) {
+//                        mBufferedWriter.write(ImuStrUtils.sensorEvent2Str(mEventQueue.poll()));
+//                        writeRowCount++;
+//                    }
+//                    if (writeRowCount > 1500) {
+//                        mBufferedWriter.flush();
+//                        writeRowCount = 0;
+//                    }
+
+                    ArrayList<String> list = new ArrayList<>();
+                    Queues.drain(mBlockingQueue, list, 1500, 10, TimeUnit.SECONDS);
+                    mBufferedWriter.write(String.join("", list));
+                    mBufferedWriter.flush();
+                    Log.d(TAG, "IMU recording write");
                 } catch (IOException e) {
                     e.printStackTrace();
-                } catch (NullPointerException e) {
-                    e.printStackTrace();  // 某次出现SensorEvent.sensor相关异常, 暂未复现, 以NullPointerException代替
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
+//            try {
+//                mBufferedWriter.flush();
+//                mBufferedWriter.close();
+//                Log.d(TAG, "IMU recording end");
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
             try {
-                mBufferedWriter.flush();
                 mBufferedWriter.close();
                 Log.d(TAG, "IMU recording end");
             } catch (IOException e) {
