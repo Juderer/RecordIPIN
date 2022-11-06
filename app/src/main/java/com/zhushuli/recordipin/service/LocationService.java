@@ -14,6 +14,7 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -21,7 +22,16 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
 import com.zhushuli.recordipin.R;
+import com.zhushuli.recordipin.utils.FileUtils;
+import com.zhushuli.recordipin.utils.LocationStrUtils;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LocationService extends Service {
@@ -43,6 +53,12 @@ public class LocationService extends Service {
 
     // 子线程: 位置监听与卫星状态监听信息整合
     private LocationThread mLocationThread;
+
+    // 子线程: 记录位置信息
+    private RecordThread mRecordThread;
+    private AtomicBoolean abRunning = new AtomicBoolean(false);
+
+    private Queue<Location> mLocationQueue = new LinkedList<>();
 
     public class MyBinder extends Binder {
         public LocationService getLocationService() {
@@ -107,6 +123,7 @@ public class LocationService extends Service {
             public void onLocationChanged(@NonNull Location location) {
 //                Log.d(TAG, "onLocationChanged");
                 mLocation = location;
+                mLocationQueue.offer(location);
             }
 
             @Override
@@ -121,7 +138,7 @@ public class LocationService extends Service {
                 mLocation = null;
             }
         };
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
     }
 
     @SuppressLint("MissingPermission")
@@ -171,7 +188,6 @@ public class LocationService extends Service {
 
     @SuppressLint("HandlerLeak")
     private class LocationThread implements Runnable {
-        private int sleepDuration = 1000;
         private boolean checkGPS;
         private Location mPreLoation;
         private AtomicBoolean abConnected = new AtomicBoolean(true);
@@ -216,14 +232,80 @@ public class LocationService extends Service {
                     }
 //                    Log.d(TAG, "callback is not null");
                 }
-                try {
-                    Thread.sleep(sleepDuration);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
             }
             Log.d(TAG, "LocationThread End");
         }
+    }
+
+    public void startLocationRecording() {
+        abRunning.set(true);
+        // 存储文件路径
+        String mRecordingDir = getExternalFilesDir(
+                Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+        mRecordThread = new RecordThread(mRecordingDir);
+        new Thread(mRecordThread).start();
+    }
+
+    private class RecordThread implements Runnable {
+        private boolean bRunning;
+        private String mDirRootPath;
+        private BufferedWriter mBufferWriter;
+        private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+
+        public RecordThread(String dirRootPath) {
+            mDirRootPath = dirRootPath;
+        }
+
+        public boolean checkRunning() {
+            return bRunning;
+        }
+
+        public void setRunning(boolean bRunning) {
+            this.bRunning = bRunning;
+        }
+
+        private void initWriter() {
+            String dirPath = mDirRootPath + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+            mBufferWriter = FileUtils.initWriter(dirPath, "GNSS.csv");
+            try {
+                mBufferWriter.write("sysTime,gnssTime,longitude,latitude,accuracy,speed,speedAccuracy,bearing,bearingAccuracy\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.d(TAG, "1111");
+            }
+        }
+        @Override
+        public void run() {
+            initWriter();
+            int writeRowCount = 0;
+            Log.d(TAG, "GNSS Record Start");
+            while (LocationService.this.getAbRunning()) {
+                if (mLocationQueue.size() > 0) {
+                    try {
+                        mBufferWriter.write(LocationStrUtils.genLocationCsv(mLocationQueue.poll()));
+                        writeRowCount ++;
+                        if (writeRowCount > 10) {
+                            mBufferWriter.flush();
+                            writeRowCount = 0;
+                            Log.d(TAG, "GNSS Record Write");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            try {
+//                    mBufferWriter.flush();
+                mBufferWriter.close();
+                Log.d(TAG, "GNSS Record End");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public boolean getAbRunning() {
+        return abRunning.get();
     }
 
     @Override
@@ -266,5 +348,6 @@ public class LocationService extends Service {
         mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
 
         stopForeground(true);
+        abRunning.set(false);
     }
 }

@@ -51,7 +51,7 @@ public class ImuService extends Service {
     private Handler mHandler;
 
     // 设置队列, 用于写入文件
-    private Queue<SensorEvent> mEventQueue = new LinkedList<>();
+    private Queue<String> mStrQueue = new LinkedList<>();
     private BlockingQueue<String> mBlockingQueue = new ArrayBlockingQueue<String>(3000, true);
     // 传感器数据写入文件子线程
     private ImuRecordThread mImuRecordThread;
@@ -103,11 +103,9 @@ public class ImuService extends Service {
 //                Log.d(TAG, "onSensorChanged");
                 if (callback != null) {
                     callback.onSensorChanged(event);
-                    mEventQueue.offer(event);
                     Message msg = Message.obtain();
                     msg.obj = event;
                     mHandler.sendMessage(msg);
-                    Log.d(TAG, "onSensorChanged");
                 }
             }
 
@@ -136,7 +134,7 @@ public class ImuService extends Service {
                 event.timestamp = myTimeReference +
                         Math.round((event.timestamp - sensorTimeReference) / 1000000L);
                 mBlockingQueue.offer(ImuStrUtils.sensorEvent2Str(event));
-                Log.d(TAG, "event handler");
+//                Log.d(TAG, "event handler");
             }
         };
 
@@ -179,37 +177,18 @@ public class ImuService extends Service {
         @Override
         public void run() {
             initWriter();
-//            int writeRowCount = 0;
             Log.d(TAG, "IMU recording start");
             while (ImuService.this.getAbRunning()) {
                 try {
-//                    if (mEventQueue.size() > 0) {
-//                        mBufferedWriter.write(ImuStrUtils.sensorEvent2Str(mEventQueue.poll()));
-//                        writeRowCount++;
-//                    }
-//                    if (writeRowCount > 1500) {
-//                        mBufferedWriter.flush();
-//                        writeRowCount = 0;
-//                    }
-
                     ArrayList<String> list = new ArrayList<>();
-                    Queues.drain(mBlockingQueue, list, 1500, 10, TimeUnit.SECONDS);
+                    Queues.drain(mBlockingQueue, list, 750, 5, TimeUnit.SECONDS);
                     mBufferedWriter.write(String.join("", list));
                     mBufferedWriter.flush();
                     Log.d(TAG, "IMU recording write");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (InterruptedException e) {
+                } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
             }
-//            try {
-//                mBufferedWriter.flush();
-//                mBufferedWriter.close();
-//                Log.d(TAG, "IMU recording end");
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
             try {
                 mBufferedWriter.close();
                 Log.d(TAG, "IMU recording end");

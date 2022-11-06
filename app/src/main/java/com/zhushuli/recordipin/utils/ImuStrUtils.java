@@ -3,7 +3,6 @@ package com.zhushuli.recordipin.utils;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 
-import java.util.Date;
 
 public class ImuStrUtils {
 
@@ -17,7 +16,7 @@ public class ImuStrUtils {
                 typeStr = "GYRO";
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
-                typeStr = "MAG";
+                typeStr = "MAGN";
                 break;
             default:
                 typeStr = "unknown";
