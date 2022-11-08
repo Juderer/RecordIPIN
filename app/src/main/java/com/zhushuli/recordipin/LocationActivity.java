@@ -20,17 +20,11 @@ import android.widget.TextView;
 
 import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
-import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.LocationStrUtils;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 public class LocationActivity extends AppCompatActivity implements ServiceConnection, View.OnClickListener {
@@ -46,6 +40,10 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     private Button btnLocServiceStart;
 
     private LocationService.MyBinder binder = null;
+
+    // 数据存储路径
+    private SimpleDateFormat formatter;
+    private String mRecordingDir;
 
     private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -79,6 +77,10 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         tvLocationMsg = (TextView) findViewById(R.id.tvLocationMsg);
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
+
+        formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        mRecordingDir = getExternalFilesDir(
+                Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
     }
 
     @Override
@@ -86,7 +88,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         Log.d(TAG, "onServiceConnected");
         binder = (LocationService.MyBinder) service;
         LocationService mLocationService = binder.getLocationService();
-        mLocationService.startLocationRecording();
+        mLocationService.startLocationRecording(mRecordingDir);
         mLocationService.setCallback(new LocationService.Callback() {
             @Override
             public void onLocationChanged(Location location) {
@@ -128,6 +130,9 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         switch (v.getId()) {
             case R.id.btnLocServiceStart:
                 if (btnLocServiceStart.getText().equals("Start")) {
+                    // 数据存储路径
+                    mRecordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+
                     Intent intent = new Intent(LocationActivity.this, LocationService.class);
                     bindService(intent, LocationActivity.this, BIND_AUTO_CREATE);
 

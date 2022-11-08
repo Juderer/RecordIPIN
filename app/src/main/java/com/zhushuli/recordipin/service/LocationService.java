@@ -14,7 +14,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Build;
-import android.os.Environment;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -26,10 +25,7 @@ import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.LocationStrUtils;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -101,7 +97,7 @@ public class LocationService extends Service {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelID)
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("RecordIPIN")
-                .setContentText("RecordIPIN正在使用定位服务")
+                .setContentText("正在使用定位服务")
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
         Notification notification = builder.build();
         return notification;
@@ -237,36 +233,22 @@ public class LocationService extends Service {
         }
     }
 
-    public void startLocationRecording() {
+    public void startLocationRecording(String mRecordingDir) {
         abRunning.set(true);
-        // 存储文件路径
-        String mRecordingDir = getExternalFilesDir(
-                Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
         mRecordThread = new RecordThread(mRecordingDir);
         new Thread(mRecordThread).start();
     }
 
     private class RecordThread implements Runnable {
-        private boolean bRunning;
-        private String mDirRootPath;
+        private String mRecordingDir;
         private BufferedWriter mBufferWriter;
-        private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 
-        public RecordThread(String dirRootPath) {
-            mDirRootPath = dirRootPath;
-        }
-
-        public boolean checkRunning() {
-            return bRunning;
-        }
-
-        public void setRunning(boolean bRunning) {
-            this.bRunning = bRunning;
+        public RecordThread(String recordingDir) {
+            mRecordingDir = recordingDir;
         }
 
         private void initWriter() {
-            String dirPath = mDirRootPath + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-            mBufferWriter = FileUtils.initWriter(dirPath, "GNSS.csv");
+            mBufferWriter = FileUtils.initWriter(mRecordingDir, "GNSS.csv");
             try {
                 mBufferWriter.write("sysTime,gnssTime,longitude,latitude,accuracy,speed,speedAccuracy,bearing,bearingAccuracy\n");
             } catch (IOException e) {
@@ -295,7 +277,7 @@ public class LocationService extends Service {
                 }
             }
             try {
-//                    mBufferWriter.flush();
+                mBufferWriter.flush();
                 mBufferWriter.close();
                 Log.d(TAG, "GNSS Record End");
             } catch (IOException e) {

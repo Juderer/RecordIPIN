@@ -8,7 +8,6 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Binder;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -22,11 +21,8 @@ import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ImuStrUtils;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -151,27 +147,23 @@ public class ImuService extends Service {
         mSensorThread.quitSafely();
     }
 
-    public void startImuRecording() {
+    public void startImuRecording(String mRecordingDir) {
         abRunning.set(true);
-        // 存储文件路径
-        String mRecordingDir = getExternalFilesDir(
-                Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
         mImuRecordThread = new ImuRecordThread(mRecordingDir);
         new Thread(mImuRecordThread).start();
     }
 
     private class ImuRecordThread implements Runnable {
         private BufferedWriter mBufferedWriter;
-        private String mDirRootPath;
-        private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        private String mRecordingDir;
+        private ArrayList<String> mStringList = new ArrayList<>();
 
-        public ImuRecordThread(String dirRootPath) {
-            mDirRootPath = dirRootPath;
+        public ImuRecordThread(String recordingDir) {
+            mRecordingDir = recordingDir;
         }
 
         private void initWriter() {
-            String dirPath = mDirRootPath + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-            mBufferedWriter = FileUtils.initWriter(dirPath, "IMU.csv");
+            mBufferedWriter = FileUtils.initWriter(mRecordingDir, "IMU.csv");
         }
 
         @Override
@@ -180,10 +172,10 @@ public class ImuService extends Service {
             Log.d(TAG, "IMU recording start");
             while (ImuService.this.getAbRunning()) {
                 try {
-                    ArrayList<String> list = new ArrayList<>();
-                    Queues.drain(mBlockingQueue, list, 750, 5, TimeUnit.SECONDS);
-                    mBufferedWriter.write(String.join("", list));
+                    Queues.drain(mBlockingQueue, mStringList, 750, 5, TimeUnit.SECONDS);
+                    mBufferedWriter.write(String.join("", mStringList));
                     mBufferedWriter.flush();
+                    mStringList.clear();
                     Log.d(TAG, "IMU recording write");
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
