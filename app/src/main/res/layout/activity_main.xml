@@ -22,7 +22,7 @@
         android:layout_above="@+id/btn2ImuActivity"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
-        android:text="Collection Test"
+        android:text="Collection"
         android:textAllCaps="false"
         android:gravity="center"
         android:textSize="25sp"
@@ -46,7 +46,8 @@
         android:id="@+id/btn2LocationActivity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/btn2TheardActivity"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="20dp"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
         android:text="Location Test"
@@ -54,30 +55,5 @@
         android:gravity="center"
         android:textSize="20sp"
         android:typeface="serif"/>
-
-    <Button
-        android:id="@+id/btn2TheardActivity"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/btnPermissionTest"
-        android:layout_marginRight="30dp"
-        android:layout_marginLeft="30dp"
-        android:text="Thread Test"
-        android:textAllCaps="false"
-        android:gravity="center"
-        android:textSize="20sp"
-        android:typeface="serif"/>
-
-    <Button
-        android:id="@+id/btnPermissionTest"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_marginRight="30dp"
-        android:layout_marginLeft="30dp"
-        android:layout_marginBottom="20dp"
-        android:gravity="center"
-        android:textAllCaps="false"
-        android:text="Permission Test" />
 
 </RelativeLayout>

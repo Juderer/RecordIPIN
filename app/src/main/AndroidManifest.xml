@@ -22,11 +22,12 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RecordIPIN">
 
+        <!-- configChanges: 旋转屏幕时阻止activity重建 -->
         <activity
             android:name=".CollectionActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="CollectionTest" /> <!-- configChanges: 旋转屏幕时阻止activity重建 -->
+            android:label="CollectionTest" />
         <activity
             android:name=".ImuActivity"
             android:configChanges="orientation|screenSize"

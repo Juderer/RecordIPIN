@@ -34,8 +34,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private boolean isAllGranted = false;
 
     private TextView tvTest;
-    private Button btnPermissionTest;
-    private Button btn2ThreadActivity;
     private Button btn2LocationActivity;
     private Button btn2ImuActivity;
     private Button btn2CollActivity;
@@ -48,12 +46,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Log.d(TAG, "onCreate");
 
         tvTest = (TextView) findViewById(R.id.tvTest);
-
-        btnPermissionTest = (Button) findViewById(R.id.btnPermissionTest);
-        btnPermissionTest.setOnClickListener(this);
-
-        btn2ThreadActivity = (Button) findViewById(R.id.btn2TheardActivity);
-        btn2ThreadActivity.setOnClickListener(this);
 
         btn2LocationActivity = (Button) findViewById(R.id.btn2LocationActivity);
         btn2LocationActivity.setOnClickListener(this);
@@ -74,19 +66,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.btnPermissionTest:
-                isAllGranted = checkPermissionAllGranted(permissions);
-                if (!isAllGranted) {
-                    Log.d(TAG, "未授权");
-                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
-                } else {
-                    Toast.makeText(this, "权限正常", Toast.LENGTH_SHORT).show();
-                }
-                break;
-            case R.id.btn2TheardActivity:
-                Intent threadIntent = new Intent(this, ThreadTestActivity.class);
-                startActivity(threadIntent);
-                break;
             case R.id.btn2LocationActivity:
                 isAllGranted = checkPermissionAllGranted(new String[]{
                         Manifest.permission.ACCESS_COARSE_LOCATION,
@@ -97,12 +76,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 }
                 startActivity(new Intent(this, LocationActivity.class));
-//                overridePendingTransition(R.anim.bottom_to_center, R.anim.center_to_top);
                 break;
             case R.id.btn2ImuActivity:
+                // 注意！不授予外部读写权限仍能保存IMU数据，因为保存的路径算是内部存储
+                isAllGranted = checkPermissionAllGranted(new String[]{
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                });
+                if (!isAllGranted) {
+                    Log.d(TAG, "外部存储读写权限未授权");
+                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+                }
                 startActivity(new Intent(this, ImuActivity.class));
                 break;
             case R.id.btn2CollActivity:
+                isAllGranted = checkPermissionAllGranted(new String[]{
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION});
+                if (!isAllGranted) {
+                    Log.d(TAG, "未授权");
+                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+                    break;
+                }
                 startActivity(new Intent(this, CollectionActivity.class));
                 break;
             default:
@@ -177,6 +172,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 } else {
                     Toast.makeText(this, "权限正常", Toast.LENGTH_SHORT).show();
                 }
+                break;
+            case R.id.exit:
+                finish();
                 break;
             default:
                 break;

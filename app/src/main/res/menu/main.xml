@@ -9,4 +9,7 @@
     <item
         android:id="@+id/checkPermission"
         android:title="Permission" />
+    <item
+        android:id="@+id/exit"
+        android:title="Exit" />
 </menu>

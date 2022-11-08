@@ -10,13 +10,13 @@ public class ImuStrUtils {
         String typeStr = "";
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
-                typeStr = "ACCE";
+                typeStr = "ACCEL";
                 break;
             case Sensor.TYPE_GYROSCOPE:
                 typeStr = "GYRO";
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
-                typeStr = "MAGN";
+                typeStr = "MAN";
                 break;
             default:
                 typeStr = "unknown";

@@ -36,7 +36,7 @@ public class ImuService extends Service {
 
     private SensorManager mSensorManager;
     private SensorEventListener mSensorEventListener;
-    private Sensor mAcceSensor;
+    private Sensor mAccelSensor;
     private Sensor mGyroSensor;
     private Sensor mMagSensor;
 
@@ -89,7 +89,7 @@ public class ImuService extends Service {
         Log.d(TAG, "onCreate");
 
         mSensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
-        mAcceSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         mMagSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
@@ -134,13 +134,13 @@ public class ImuService extends Service {
             }
         };
 
-        mSensorManager.registerListener(mSensorEventListener, mAcceSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
+        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
         mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
         mSensorManager.registerListener(mSensorEventListener, mMagSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
     }
 
     private void unregisterResource() {
-        mSensorManager.unregisterListener(mSensorEventListener, mAcceSensor);
+        mSensorManager.unregisterListener(mSensorEventListener, mAccelSensor);
         mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
         mSensorManager.unregisterListener(mSensorEventListener, mMagSensor);
         mSensorManager.unregisterListener(mSensorEventListener);
