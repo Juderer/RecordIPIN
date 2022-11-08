@@ -16,7 +16,7 @@ public class ImuStrUtils {
                 typeStr = "GYRO";
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
-                typeStr = "MAN";
+                typeStr = "MAG";
                 break;
             default:
                 typeStr = "unknown";

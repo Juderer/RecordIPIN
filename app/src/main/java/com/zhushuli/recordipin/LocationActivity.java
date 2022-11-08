@@ -39,7 +39,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     private TextView tvLocationMsg;
     private Button btnLocServiceStart;
 
-    private LocationService.MyBinder binder = null;
+    private LocationService.MyBinder binder;
 
     // 数据存储路径
     private SimpleDateFormat formatter;
@@ -107,6 +107,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
                 unbindService(LocationActivity.this);
                 binder = null;
+                btnLocServiceStart.setText("Start");
             }
 
             @Override
@@ -139,7 +140,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                     btnLocServiceStart.setText("Stop");
                 } else {
                     unbindService(LocationActivity.this);
-                    binder = null;
                     tvLocationMsg.setText("Location Stop");
 
                     btnLocServiceStart.setText("Start");
@@ -190,9 +190,8 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         super.onDestroy();
         Log.d(TAG, "onDestory");
 
-        if (binder != null) {
+        if (btnLocServiceStart.getText().equals("Stop")) {
             unbindService(LocationActivity.this);
-            binder = null;
         }
     }
 }

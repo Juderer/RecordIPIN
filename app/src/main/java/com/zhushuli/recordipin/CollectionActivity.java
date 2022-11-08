@@ -135,24 +135,34 @@ public class CollectionActivity extends AppCompatActivity {
         tvMagZ = (TextView) findViewById(R.id.tvMagZ);
     }
 
+    private void bindServices() {
+        // 绑定定位服务
+        Intent locationIntent = new Intent(CollectionActivity.this, LocationService.class);
+        bindService(locationIntent, mLocationServiceConnection, BIND_AUTO_CREATE);
+        // 绑定IMU服务
+        Intent imuIntent = new Intent(CollectionActivity.this, ImuService.class);
+        bindService(imuIntent, mImuServiceConnection, BIND_AUTO_CREATE);
+
+        btnCollectData.setText("Stop");
+    }
+
+    private void unbindServices() {
+        // 服务解绑
+        unbindService(mLocationServiceConnection);
+        unbindService(mImuServiceConnection);
+
+        btnCollectData.setText("Collect");
+    }
+
     private void onClick(View v) {
         switch (v.getId()) {
             case R.id.btnCollectData:
                 if (btnCollectData.getText().equals("Collect")) {
-                    btnCollectData.setText("Stop");
                     // 数据存储路径
                     mRecordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-                    // 绑定定位服务
-                    Intent locationIntent = new Intent(CollectionActivity.this, LocationService.class);
-                    bindService(locationIntent, mLocationServiceConnection, BIND_AUTO_CREATE);
-                    // 绑定IMU服务
-                    Intent imuIntent = new Intent(CollectionActivity.this, ImuService.class);
-                    bindService(imuIntent, mImuServiceConnection, BIND_AUTO_CREATE);
+                    bindServices();
                 } else {
-                    btnCollectData.setText("Collect");
-                    // 服务解绑
-                    unbindService(mLocationServiceConnection);
-                    unbindService(mImuServiceConnection);
+                    unbindServices();
                 }
                 break;
             default:
@@ -184,9 +194,7 @@ public class CollectionActivity extends AppCompatActivity {
                         msg.what = GNSS_PROVIDER_DISABLED_CODE;
                         CollectionActivity.this.getHandler().sendMessage(msg);
 
-                        // TODO::定位与IMU服务解绑需区分
-                        unbindService(mLocationServiceConnection);
-                        mLocationBinder = null;
+                        unbindServices();
                     }
 
                     @Override
@@ -209,6 +217,7 @@ public class CollectionActivity extends AppCompatActivity {
         mImuServiceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.d(TAG, "onServiceConnected IMU");
                 mImuBinder = (ImuService.MyBinder) service;
                 mImuService = mImuBinder.getImuService();
                 mImuService.startImuRecording(mRecordingDir);
@@ -250,5 +259,9 @@ public class CollectionActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+
+        if (btnCollectData.getText().equals("Stop")) {
+            unbindServices();
+        }
     }
 }

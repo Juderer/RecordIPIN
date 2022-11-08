@@ -176,7 +176,7 @@ public class LocationService extends Service {
                             break;
                     }
                 }
-//                Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
+                Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
             }
         };
         mLocationManager.registerGnssStatusCallback(mGnssStatusCallback);
@@ -225,6 +225,12 @@ public class LocationService extends Service {
                         callback.onLocationSearching("GNSS Searching ...\n" +
                                 mBeidouSatelliteCount + " Beidou Satellites\n" +
                                 mGpsSatelliteCount + " GPS Satellites");
+                        // 耗时操作；尤其在室内无法定位时，会严重影响主线程
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
                     }
 //                    Log.d(TAG, "callback is not null");
                 }
