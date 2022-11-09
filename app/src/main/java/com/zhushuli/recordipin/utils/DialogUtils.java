@@ -14,7 +14,7 @@ public class DialogUtils {
     public static void openAppDetails(Context mContext) {
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
         builder.setTitle("权限未授予");
-        builder.setMessage("RecordIPIN需要定位权限，请到\"应用信息->权限\"中授予！");
+        builder.setMessage("RecordIPIN需要定位与读写权限，请到\"应用信息->权限管理\"中授予！");
         builder.setPositiveButton("去手动授权", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {

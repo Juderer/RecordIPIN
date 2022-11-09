@@ -20,7 +20,7 @@ import android.widget.TextView;
 
 import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
-import com.zhushuli.recordipin.utils.LocationStrUtils;
+import com.zhushuli.recordipin.utils.LocationUtils;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -88,14 +88,18 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         Log.d(TAG, "onServiceConnected");
         binder = (LocationService.MyBinder) service;
         LocationService mLocationService = binder.getLocationService();
-        mLocationService.startLocationRecording(mRecordingDir);
+
+        // 数据存储路径
+        String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+        mLocationService.startLocationRecording(recordingDir);
+
         mLocationService.setCallback(new LocationService.Callback() {
             @Override
             public void onLocationChanged(Location location) {
                 Log.d(TAG, "onLocationChanged");
                 Message msg = new Message();
                 msg.what = GNSS_LOCATION_UPDATE_CODE;
-                msg.obj = LocationStrUtils.printLocationMsg(location);
+                msg.obj = LocationUtils.printLocationMsg(location);
                 mMainHandler.sendMessage(msg);
             }
 
@@ -131,9 +135,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         switch (v.getId()) {
             case R.id.btnLocServiceStart:
                 if (btnLocServiceStart.getText().equals("Start")) {
-                    // 数据存储路径
-                    mRecordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-
                     Intent intent = new Intent(LocationActivity.this, LocationService.class);
                     bindService(intent, LocationActivity.this, BIND_AUTO_CREATE);
 

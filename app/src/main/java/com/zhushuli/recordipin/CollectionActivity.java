@@ -23,7 +23,7 @@ import android.widget.TextView;
 import com.zhushuli.recordipin.service.ImuService;
 import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
-import com.zhushuli.recordipin.utils.LocationStrUtils;
+import com.zhushuli.recordipin.utils.LocationUtils;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -116,11 +116,11 @@ public class CollectionActivity extends AppCompatActivity {
         btnCollectData = (Button) findViewById(R.id.btnCollectData);
         btnCollectData.setOnClickListener(this::onClick);
 
-        initServiceConnection();
-
         formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         mRecordingDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+
+        initServiceConnection();
     }
 
     private void initImuView() {
@@ -158,8 +158,6 @@ public class CollectionActivity extends AppCompatActivity {
         switch (v.getId()) {
             case R.id.btnCollectData:
                 if (btnCollectData.getText().equals("Collect")) {
-                    // 数据存储路径
-                    mRecordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
                     bindServices();
                 } else {
                     unbindServices();
@@ -171,20 +169,25 @@ public class CollectionActivity extends AppCompatActivity {
     }
 
     private void initServiceConnection() {
+        // 数据存储路径
+        String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+
         mLocationServiceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 Log.d(TAG, "onServiceConnected location");
                 mLocationBinder = (LocationService.MyBinder) service;
                 mLocationService = mLocationBinder.getLocationService();
-                mLocationService.startLocationRecording(mRecordingDir);
+
+                mLocationService.startLocationRecording(recordingDir);
+
                 mLocationService.setCallback(new LocationService.Callback() {
                     @Override
                     public void onLocationChanged(Location location) {
                         Log.d(TAG, "onLocationChanged");
                         Message msg = new Message();
                         msg.what = GNSS_LOCATION_UPDATE_CODE;
-                        msg.obj = LocationStrUtils.printLocationMsg(location);
+                        msg.obj = LocationUtils.printLocationMsg(location);
                         CollectionActivity.this.getHandler().sendMessage(msg);
                     }
 
@@ -220,7 +223,9 @@ public class CollectionActivity extends AppCompatActivity {
                 Log.d(TAG, "onServiceConnected IMU");
                 mImuBinder = (ImuService.MyBinder) service;
                 mImuService = mImuBinder.getImuService();
-                mImuService.startImuRecording(mRecordingDir);
+
+                mImuService.startImuRecording(recordingDir);
+
                 mImuService.setCallback(new ImuService.Callback() {
                     @Override
                     public void onSensorChanged(SensorEvent event) {

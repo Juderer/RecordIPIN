@@ -6,7 +6,7 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class LocationStrUtils {
+public class LocationUtils {
     /**
      * 方法参数均包括位置信息
      * 方法返回值均为字符串*/

@@ -22,7 +22,8 @@ import androidx.core.app.NotificationCompat;
 
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.utils.FileUtils;
-import com.zhushuli.recordipin.utils.LocationStrUtils;
+import com.zhushuli.recordipin.utils.LocationUtils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -226,11 +227,7 @@ public class LocationService extends Service {
                                 mBeidouSatelliteCount + " Beidou Satellites\n" +
                                 mGpsSatelliteCount + " GPS Satellites");
                         // 耗时操作；尤其在室内无法定位时，会严重影响主线程
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
+                        ThreadUtils.threadSleep(1000);
                     }
 //                    Log.d(TAG, "callback is not null");
                 }
@@ -270,7 +267,7 @@ public class LocationService extends Service {
             while (LocationService.this.getAbRunning()) {
                 if (mLocationQueue.size() > 0) {
                     try {
-                        mBufferWriter.write(LocationStrUtils.genLocationCsv(mLocationQueue.poll()));
+                        mBufferWriter.write(LocationUtils.genLocationCsv(mLocationQueue.poll()));
                         writeRowCount ++;
                         if (writeRowCount > 10) {
                             mBufferWriter.flush();
@@ -282,13 +279,8 @@ public class LocationService extends Service {
                     }
                 }
             }
-            try {
-                mBufferWriter.flush();
-                mBufferWriter.close();
-                Log.d(TAG, "GNSS Record End");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            FileUtils.closeBufferedWriter(mBufferWriter);
+            Log.d(TAG, "GNSS Record End");
         }
     }
 
