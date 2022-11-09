@@ -31,4 +31,13 @@ public class FileUtils {
         }
         return bufferedWriter;
     }
+
+    public static void closeBufferedWriter(BufferedWriter writer) {
+        try {
+            writer.flush();
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }

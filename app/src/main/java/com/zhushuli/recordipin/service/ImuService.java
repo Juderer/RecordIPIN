@@ -18,7 +18,7 @@ import androidx.annotation.NonNull;
 
 import com.google.common.collect.Queues;
 import com.zhushuli.recordipin.utils.FileUtils;
-import com.zhushuli.recordipin.utils.ImuStrUtils;
+import com.zhushuli.recordipin.utils.ImuUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -52,10 +52,6 @@ public class ImuService extends Service {
     // 传感器数据写入文件子线程
     private ImuRecordThread mImuRecordThread;
     private AtomicBoolean abRunning = new AtomicBoolean(false);
-
-    // 解决SensorEvent时间戳问题
-    private long sensorTimeReference = 0L;
-    private long myTimeReference = 0L;
 
     public ImuService() {
 
@@ -104,15 +100,7 @@ public class ImuService extends Service {
 //                    msg.obj = event;
 //                    mHandler.sendMessage(msg);
 
-                    // set reference time
-                    if (sensorTimeReference == 0L && myTimeReference == 0L) {
-                        sensorTimeReference = event.timestamp;
-                        myTimeReference = System.currentTimeMillis();
-                    }
-                    // set event timestamp to current time in milliseconds
-                    event.timestamp = myTimeReference +
-                            Math.round((event.timestamp - sensorTimeReference) / 1000000L);
-                    mBlockingQueue.offer(ImuStrUtils.sensorEvent2Str(event));
+                    mBlockingQueue.offer(ImuUtils.sensorEvent2Str(event));
                 }
             }
 
@@ -134,15 +122,7 @@ public class ImuService extends Service {
                 // 使用该Handler处理会造成时间戳计算出现问题
                 // 且放在主线程中处理不会造成太大时间消耗
                 SensorEvent event = (SensorEvent) msg.obj;
-                // set reference time
-                if (sensorTimeReference == 0L && myTimeReference == 0L) {
-                    sensorTimeReference = event.timestamp;
-                    myTimeReference = System.currentTimeMillis();
-                }
-                // set event timestamp to current time in milliseconds
-                event.timestamp = myTimeReference +
-                        Math.round((event.timestamp - sensorTimeReference) / 1000000L);
-                mBlockingQueue.offer(ImuStrUtils.sensorEvent2Str(event));
+                mBlockingQueue.offer(ImuUtils.sensorEvent2Str(event));
                 Log.d(TAG, "event handler");
             }
         };
@@ -194,12 +174,8 @@ public class ImuService extends Service {
                     e.printStackTrace();
                 }
             }
-            try {
-                mBufferedWriter.close();
-                Log.d(TAG, "IMU recording end");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            FileUtils.closeBufferedWriter(mBufferedWriter);
+            Log.d(TAG, "IMU recording end");
         }
     }
 

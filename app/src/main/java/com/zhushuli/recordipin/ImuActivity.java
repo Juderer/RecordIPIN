@@ -113,7 +113,11 @@ public class ImuActivity extends AppCompatActivity {
                 Log.d(TAG, "onServiceConnected");
                 mBinder = (ImuService.MyBinder) service;
                 mImuService = mBinder.getImuService();
-                mImuService.startImuRecording(mRecordingDir);
+
+                // 数据存储路径
+                String recorindDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+                mImuService.startImuRecording(recorindDir);
+
                 mImuService.setCallback(new ImuService.Callback() {
                     @Override
                     public void onSensorChanged(SensorEvent event) {
@@ -148,9 +152,6 @@ public class ImuActivity extends AppCompatActivity {
         switch (v.getId()) {
             case R.id.btnImuStart:
                 if (btnImuCollection.getText().equals("Start")) {
-                    // 数据存储路径
-                    mRecordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-
                     Intent intent = new Intent(ImuActivity.this, ImuService.class);
                     bindService(intent, mImuServiceConnection, BIND_AUTO_CREATE);
 
