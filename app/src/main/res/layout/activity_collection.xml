@@ -10,18 +10,31 @@
         android:id="@+id/layoutImu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"/>
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="5dp"
+        android:layout_marginLeft="3dp"
+        android:layout_marginRight="3dp"/>
 
-    <TextView
-        android:id="@+id/tvCollectGnss"
+    <include
+        layout="@layout/layout_location"
+        android:id="@+id/layoutLocation"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="left"
         android:layout_below="@+id/layoutImu"
-        android:textSize="20sp"
         android:layout_marginTop="10dp"
-        android:layout_marginLeft="10dp"
-        android:text="Location" />
+        android:layout_marginLeft="3dp"
+        android:layout_marginRight="3dp"/>
+
+<!--    <TextView-->
+<!--        android:id="@+id/tvCollectGnss"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:gravity="left"-->
+<!--        android:layout_below="@+id/layoutImu"-->
+<!--        android:textSize="20sp"-->
+<!--        android:layout_marginTop="10dp"-->
+<!--        android:layout_marginLeft="10dp"-->
+<!--        android:text="Location" />-->
 
     <Button
         android:id="@+id/btnCollectData"

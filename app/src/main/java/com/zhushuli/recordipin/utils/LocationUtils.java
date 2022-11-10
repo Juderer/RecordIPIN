@@ -5,6 +5,8 @@ import android.location.Location;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LocationUtils {
     /**
@@ -18,7 +20,7 @@ public class LocationUtils {
     static {
         dfLon = new DecimalFormat("#.000000");  // (经纬度)保留小数点后六位
         dfSpd = new DecimalFormat("#0.00");  // (速度或航向)保留小数点后两位
-        formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     }
 
     public static String genLocationCsv(Location location) {
@@ -29,6 +31,18 @@ public class LocationUtils {
                 location.getSpeed(), location.getSpeedAccuracyMetersPerSecond(),
                 location.getBearing(), location.getBearingAccuracyDegrees());
         return csvString;
+    }
+
+    public static Map genLocationMap(Location location) {
+        HashMap<String, String> map = new HashMap();
+        map.put("date", formatter.format(new Date(System.currentTimeMillis())));
+        map.put("time", String.valueOf(location.getTime()));
+        map.put("location", String.format("%.6f,%.6f", location.getLongitude(), location.getLatitude()));
+        map.put("accuracy", String.format("%.2f", location.getAccuracy()));
+        map.put("speed", String.format("%.2fm/s,%.2fkm/h", location.getSpeed(), location.getSpeed() * 3.6));
+        map.put("bearing", String.format("%.2f", location.getBearing()));
+        map.put("altitude", String.format("%.2fm", location.getAltitude()));
+        return map;
     }
 
     public static String printLocationMsg(Location location) {

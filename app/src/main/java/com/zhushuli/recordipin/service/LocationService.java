@@ -48,12 +48,15 @@ public class LocationService extends Service {
     private int mBeidouSatelliteCount;
     private int mGpsSatelliteCount;
 
-    // 子线程: 位置监听与卫星状态监听信息整合
+    // 子线程：位置监听与卫星状态监听信息整合
     private LocationThread mLocationThread;
 
-    // 子线程: 记录位置信息
+    // 子线程：记录位置信息
     private RecordThread mRecordThread;
     private AtomicBoolean abRunning = new AtomicBoolean(false);
+
+    // 定位时间间隔（毫秒）
+    private static final int MIN_LOCATION_DURATION = 1000;
 
     private Queue<Location> mLocationQueue = new LinkedList<>();
 
@@ -118,7 +121,7 @@ public class LocationService extends Service {
         mLocationListener = new LocationListener() {
             @Override
             public void onLocationChanged(@NonNull Location location) {
-//                Log.d(TAG, "onLocationChanged");
+                Log.d(TAG, "onLocationChanged");
                 mLocation = location;
                 mLocationQueue.offer(location);
             }
@@ -135,7 +138,7 @@ public class LocationService extends Service {
                 mLocation = null;
             }
         };
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, mLocationListener);
+        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_LOCATION_DURATION, 0, mLocationListener);
     }
 
     @SuppressLint("MissingPermission")
@@ -161,6 +164,7 @@ public class LocationService extends Service {
 
             @Override
             public void onSatelliteStatusChanged(@NonNull GnssStatus status) {
+                // 耗时操作；尤其在室内无法定位时，会严重影响主线程
                 super.onSatelliteStatusChanged(status);
                 mSatelliteCount = status.getSatelliteCount();
                 mBeidouSatelliteCount = 0;
@@ -186,12 +190,10 @@ public class LocationService extends Service {
     @SuppressLint("HandlerLeak")
     private class LocationThread implements Runnable {
         private boolean checkGPS;
-        private Location mPreLoation;
         private AtomicBoolean abConnected = new AtomicBoolean(true);
 
         public LocationThread() {
             checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-            mPreLoation = null;
         }
 
         public boolean getConnected() {
@@ -214,22 +216,14 @@ public class LocationService extends Service {
                         break;
                     }
                     if (mLocation != null) {
-                        if (mPreLoation == null) {
-                            mPreLoation = mLocation;
-                        } else {
-                            if (!mPreLoation.equals(mLocation)) {
-                                callback.onLocationChanged(mLocation);
-                            }
-                            mPreLoation = mLocation;
-                        }
+                        callback.onLocationChanged(mLocation);
+                        mLocation = null;
                     } else {
-                        callback.onLocationSearching("GNSS Searching ...\n" +
-                                mBeidouSatelliteCount + " Beidou Satellites\n" +
-                                mGpsSatelliteCount + " GPS Satellites");
-                        // 耗时操作；尤其在室内无法定位时，会严重影响主线程
-                        ThreadUtils.threadSleep(1000);
+                        callback.onLocationSearching(mBeidouSatelliteCount + " " + "Beidou" +
+                                "," + mGpsSatelliteCount + " " + "GPS");
                     }
-//                    Log.d(TAG, "callback is not null");
+                    ThreadUtils.threadSleep(MIN_LOCATION_DURATION);
+                    Log.d(TAG, "LocationThread Show");
                 }
             }
             Log.d(TAG, "LocationThread End");

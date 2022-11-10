@@ -28,6 +28,7 @@ import com.zhushuli.recordipin.utils.LocationUtils;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 
 public class CollectionActivity extends AppCompatActivity {
 
@@ -37,16 +38,27 @@ public class CollectionActivity extends AppCompatActivity {
     private static final int GNSS_SEARCHING_CODE = 502;
     private static final int GNSS_PROVIDER_DISABLED_CODE = 404;
 
-    private TextView tvCollectGnss;
-    private TextView tvAcceX;
-    private TextView tvAcceY;
-    private TextView tvAcceZ;
+    // IMU相关控件
+    private TextView tvAccelX;
+    private TextView tvAccelY;
+    private TextView tvAccelZ;
     private TextView tvGyroX;
     private TextView tvGyroY;
     private TextView tvGyroZ;
     private TextView tvMagX;
     private TextView tvMagY;
     private TextView tvMagZ;
+    // GNSS相关控件
+    private TextView tvDate;
+    private TextView tvCoordinate;
+    private TextView tvSatellite;
+    private TextView tvGnssTime;
+    private TextView tvLocation;
+    private TextView tvLocationAcc;
+    private TextView tvSpeed;
+    private TextView tvBearing;
+    private TextView tvAltitude;
+
     private Button btnCollectData;
 
     // 定位服务相关类
@@ -69,22 +81,30 @@ public class CollectionActivity extends AppCompatActivity {
             SensorEvent event = null;
             switch (msg.what) {
                 case GNSS_LOCATION_UPDATE_CODE:
-                    String locationMsg = (String) msg.obj;
-                    tvCollectGnss.setText(locationMsg);
+                    tvSatellite.setText("--");
+
+                    tvCoordinate.setText("WGS84");
+                    HashMap<String, String> map = (HashMap<String, String>) msg.obj;
+                    tvDate.setText(map.get("date"));
+                    tvGnssTime.setText(map.get("time"));
+                    tvLocation.setText(map.get("location"));
+                    tvLocationAcc.setText(map.get("accuracy"));
+                    tvSpeed.setText(map.get("speed"));
+                    tvBearing.setText(map.get("bearing"));
+                    tvAltitude.setText(map.get("altitude"));
                     break;
                 case GNSS_SEARCHING_CODE:
-                    String satelliteMsg = (String) msg.obj;
-                    tvCollectGnss.setText(satelliteMsg);
+                    setDefaultGnssInfo();
+                    tvSatellite.setText((String) msg.obj);
                     break;
                 case GNSS_PROVIDER_DISABLED_CODE:
-                    tvCollectGnss.setText("GNSS Provider Disabled");
                     DialogUtils.showLocationSettingsAlert(CollectionActivity.this);
                     break;
                 case Sensor.TYPE_ACCELEROMETER:
                     event = (SensorEvent) msg.obj;
-                    tvAcceX.setText(String.format("%.4f", event.values[0]));
-                    tvAcceY.setText(String.format("%.4f", event.values[1]));
-                    tvAcceZ.setText(String.format("%.4f", event.values[2]));
+                    tvAccelX.setText(String.format("%.4f", event.values[0]));
+                    tvAccelY.setText(String.format("%.4f", event.values[1]));
+                    tvAccelZ.setText(String.format("%.4f", event.values[2]));
                     break;
                 case Sensor.TYPE_GYROSCOPE:
                     event = (SensorEvent) msg.obj;
@@ -99,7 +119,6 @@ public class CollectionActivity extends AppCompatActivity {
                     tvMagZ.setText(String.format("%.4f", event.values[2]));
                     break;
                 default:
-                    tvCollectGnss.setText((String) msg.obj);
                     break;
             }
         }
@@ -111,8 +130,8 @@ public class CollectionActivity extends AppCompatActivity {
         setContentView(R.layout.activity_collection);
         Log.d(TAG, "onCreate");
 
-        tvCollectGnss = (TextView) findViewById(R.id.tvCollectGnss);
         initImuView();
+        initGnssView();
         btnCollectData = (Button) findViewById(R.id.btnCollectData);
         btnCollectData.setOnClickListener(this::onClick);
 
@@ -124,15 +143,27 @@ public class CollectionActivity extends AppCompatActivity {
     }
 
     private void initImuView() {
-        tvAcceX = (TextView) findViewById(R.id.tvAcceX);
-        tvAcceY = (TextView) findViewById(R.id.tvAcceY);
-        tvAcceZ = (TextView) findViewById(R.id.tvAcceZ);
+        tvAccelX = (TextView) findViewById(R.id.tvAcceX);
+        tvAccelY = (TextView) findViewById(R.id.tvAcceY);
+        tvAccelZ = (TextView) findViewById(R.id.tvAcceZ);
         tvGyroX = (TextView) findViewById(R.id.tvGyroX);
         tvGyroY = (TextView) findViewById(R.id.tvGyroY);
         tvGyroZ = (TextView) findViewById(R.id.tvGyroZ);
         tvMagX = (TextView) findViewById(R.id.tvMagX);
         tvMagY = (TextView) findViewById(R.id.tvMagY);
         tvMagZ = (TextView) findViewById(R.id.tvMagZ);
+    }
+
+    private void initGnssView() {
+        tvDate = (TextView) findViewById(R.id.tvDate);
+        tvCoordinate = (TextView) findViewById(R.id.tvCoordinate);
+        tvSatellite = (TextView) findViewById(R.id.tvSatellite);
+        tvGnssTime = (TextView) findViewById(R.id.tvGnssTime);
+        tvLocation = (TextView) findViewById(R.id.tvLocation);
+        tvLocationAcc = (TextView) findViewById(R.id.tvLocationAcc);
+        tvSpeed = (TextView) findViewById(R.id.tvSpeed);
+        tvBearing = (TextView) findViewById(R.id.tvBearing);
+        tvAltitude = (TextView) findViewById(R.id.tvAltitude);
     }
 
     private void bindServices() {
@@ -152,6 +183,8 @@ public class CollectionActivity extends AppCompatActivity {
         unbindService(mImuServiceConnection);
 
         btnCollectData.setText("Collect");
+        setDefaultImuInfo();
+        setDefaultGnssInfo();
     }
 
     private void onClick(View v) {
@@ -187,7 +220,7 @@ public class CollectionActivity extends AppCompatActivity {
                         Log.d(TAG, "onLocationChanged");
                         Message msg = new Message();
                         msg.what = GNSS_LOCATION_UPDATE_CODE;
-                        msg.obj = LocationUtils.printLocationMsg(location);
+                        msg.obj = LocationUtils.genLocationMap(location);
                         CollectionActivity.this.getHandler().sendMessage(msg);
                     }
 
@@ -258,6 +291,30 @@ public class CollectionActivity extends AppCompatActivity {
 
     public Handler getHandler() {
         return mMainHandler;
+    }
+
+    private void setDefaultImuInfo() {
+        tvAccelX.setText("--");
+        tvAccelY.setText("--");
+        tvAccelZ.setText("--");
+        tvGyroX.setText("--");
+        tvGyroY.setText("--");
+        tvGyroZ.setText("--");
+        tvMagX.setText("--");
+        tvMagY.setText("--");
+        tvMagZ.setText("--");
+    }
+
+    private void setDefaultGnssInfo() {
+        tvDate.setText("--");
+        tvCoordinate.setText("--");
+        tvSatellite.setText("--");
+        tvGnssTime.setText("--");
+        tvLocation.setText("--");
+        tvLocationAcc.setText("--");
+        tvSpeed.setText("--");
+        tvBearing.setText("--");
+        tvAltitude.setText("--");
     }
 
     @Override

@@ -5,16 +5,22 @@
     android:layout_height="match_parent"
     tools:context=".LocationActivity">
 
-    <TextView
-        android:id="@+id/tvLocationMsg"
+<!--    <TextView-->
+<!--        android:id="@+id/tvLocationMsg"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:gravity="center"-->
+<!--        android:layout_centerInParent="true"-->
+<!--        android:layout_alignParentTop="true"-->
+<!--        android:textSize="20sp"-->
+<!--        android:layout_marginTop="20dp"-->
+<!--        android:text="Location Testing" />-->
+
+    <include
+        layout="@layout/layout_location"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:layout_centerInParent="true"
-        android:layout_alignParentTop="true"
-        android:textSize="20sp"
-        android:layout_marginTop="20dp"
-        android:text="Location Testing" />
+        android:layout_alignParentTop="true"/>
 
     <Button
         android:id="@+id/btnLocServiceStart"

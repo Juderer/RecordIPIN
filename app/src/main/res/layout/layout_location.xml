@@ -11,7 +11,7 @@
         android:showDividers="beginning|end"
         android:orientation="horizontal">
         <TextView
-            android:text="IMU"
+            android:text="GNSS"
             android:layout_width="match_parent"
             android:textSize="16sp"
             android:gravity="left"
@@ -23,29 +23,18 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text=""
+            android:text="Date"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
-            android:text="X"
+            android:id="@+id/tvDate"
+            android:text="--"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:text="Y"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:text="Z"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="3"/>
     </TableRow>
 
     <TableRow
@@ -53,32 +42,18 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text="加速度计"
+            android:text="Coordinate"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
-            android:id="@+id/tvAcceX"
-            android:text="0"
+            android:id="@+id/tvCoordinate"
+            android:text="--"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvAcceY"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvAcceZ"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="3"/>
     </TableRow>
 
     <TableRow
@@ -86,32 +61,18 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text="陀螺仪"
+            android:text="Satellite"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
-            android:id="@+id/tvGyroX"
-            android:text="0"
+            android:id="@+id/tvSatellite"
+            android:text="--"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvGyroY"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvGyroZ"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="3"/>
     </TableRow>
 
     <TableRow
@@ -119,31 +80,113 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text="磁力计"
+            android:text="Time"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
-            android:id="@+id/tvMagX"
-            android:text="0"
+            android:id="@+id/tvGnssTime"
+            android:text="--"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvMagY"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvMagZ"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="3"/>
     </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|middle|end"
+        android:orientation="horizontal">
+        <TextView
+            android:text="Location"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/tvLocation"
+            android:text="--"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="3"/>
+    </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|middle|end"
+        android:orientation="horizontal">
+        <TextView
+            android:text="Accuracy"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/tvLocationAcc"
+            android:text="--"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="3"/>
+    </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|middle|end"
+        android:orientation="horizontal">
+        <TextView
+            android:text="Speed"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/tvSpeed"
+            android:text="--"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="3"/>
+    </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|middle|end"
+        android:orientation="horizontal">
+        <TextView
+            android:text="Bearing"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/tvBearing"
+            android:text="--"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="3"/>
+    </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|middle|end"
+        android:orientation="horizontal">
+        <TextView
+            android:text="Altitude"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/tvAltitude"
+            android:text="--"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="3"/>
+    </TableRow>
+
 </TableLayout>

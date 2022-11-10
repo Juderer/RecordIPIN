@@ -22,9 +22,12 @@ import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
 import com.zhushuli.recordipin.utils.LocationUtils;
 
+import org.w3c.dom.Text;
+
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.HashMap;
 
 
 public class LocationActivity extends AppCompatActivity implements ServiceConnection, View.OnClickListener {
@@ -36,7 +39,15 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     private static final int GNSS_SEARCHING_CODE = 502;
     private static final int GNSS_PROVIDER_DISABLED_CODE = 404;
 
-    private TextView tvLocationMsg;
+    private TextView tvDate;
+    private TextView tvCoordinate;
+    private TextView tvSatellite;
+    private TextView tvGnssTime;
+    private TextView tvLocation;
+    private TextView tvLocationAcc;
+    private TextView tvSpeed;
+    private TextView tvBearing;
+    private TextView tvAltitude;
     private Button btnLocServiceStart;
 
     private LocationService.MyBinder binder;
@@ -50,19 +61,27 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
                 case GNSS_LOCATION_UPDATE_CODE:
-                    String locationMsg = (String) msg.obj;
-                    tvLocationMsg.setText(locationMsg);
+                    tvSatellite.setText("--");
+
+                    tvCoordinate.setText("WGS84");
+                    HashMap<String, String> map = (HashMap<String, String>) msg.obj;
+                    tvDate.setText(map.get("date"));
+                    tvGnssTime.setText(map.get("time"));
+                    tvLocation.setText(map.get("location"));
+                    tvLocationAcc.setText(map.get("accuracy"));
+                    tvSpeed.setText(map.get("speed"));
+                    tvBearing.setText(map.get("bearing"));
+                    tvAltitude.setText(map.get("altitude"));
                     break;
                 case GNSS_SEARCHING_CODE:
-                    String satelliteMsg = (String) msg.obj;
-                    tvLocationMsg.setText(satelliteMsg);
+                    setDefaultGnssInfo();
+                    tvSatellite.setText((String) msg.obj);
                     break;
                 case GNSS_PROVIDER_DISABLED_CODE:
-                    tvLocationMsg.setText("GNSS Provider Disabled");
+                    setDefaultGnssInfo();
                     DialogUtils.showLocationSettingsAlert(LocationActivity.this);
                     break;
                 default:
-                    tvLocationMsg.setText((String) msg.obj);
                     break;
             }
         }
@@ -74,7 +93,15 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         setContentView(R.layout.activity_location);
         Log.d(TAG, "onCreate");
 
-        tvLocationMsg = (TextView) findViewById(R.id.tvLocationMsg);
+        tvDate = (TextView) findViewById(R.id.tvDate);
+        tvCoordinate = (TextView) findViewById(R.id.tvCoordinate);
+        tvSatellite = (TextView) findViewById(R.id.tvSatellite);
+        tvGnssTime = (TextView) findViewById(R.id.tvGnssTime);
+        tvLocation = (TextView) findViewById(R.id.tvLocation);
+        tvLocationAcc = (TextView) findViewById(R.id.tvLocationAcc);
+        tvSpeed = (TextView) findViewById(R.id.tvSpeed);
+        tvBearing = (TextView) findViewById(R.id.tvBearing);
+        tvAltitude = (TextView) findViewById(R.id.tvAltitude);
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
 
@@ -99,7 +126,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                 Log.d(TAG, "onLocationChanged");
                 Message msg = new Message();
                 msg.what = GNSS_LOCATION_UPDATE_CODE;
-                msg.obj = LocationUtils.printLocationMsg(location);
+                msg.obj = LocationUtils.genLocationMap(location);
                 mMainHandler.sendMessage(msg);
             }
 
@@ -141,7 +168,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                     btnLocServiceStart.setText("Stop");
                 } else {
                     unbindService(LocationActivity.this);
-                    tvLocationMsg.setText("Location Stop");
+                    setDefaultGnssInfo();
 
                     btnLocServiceStart.setText("Start");
                 }
@@ -153,6 +180,18 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
     public Handler getMainHandler() {
         return mMainHandler;
+    }
+
+    private void setDefaultGnssInfo() {
+        tvDate.setText("--");
+        tvCoordinate.setText("--");
+        tvSatellite.setText("--");
+        tvGnssTime.setText("--");
+        tvLocation.setText("--");
+        tvLocationAcc.setText("--");
+        tvSpeed.setText("--");
+        tvBearing.setText("--");
+        tvAltitude.setText("--");
     }
 
     @Override
