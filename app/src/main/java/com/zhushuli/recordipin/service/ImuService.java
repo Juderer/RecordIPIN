@@ -38,7 +38,6 @@ public class ImuService extends Service {
     private SensorEventListener mSensorEventListener;
     private Sensor mAccelSensor;
     private Sensor mGyroSensor;
-    private Sensor mMagSensor;
 
     private Callback callback = null;
 
@@ -47,7 +46,7 @@ public class ImuService extends Service {
     private Handler mHandler;
 
     // 设置队列, 用于写入文件
-    private Queue<String> mStrQueue = new LinkedList<>();
+    private Queue<String> mStringQueue = new LinkedList<>();
     private BlockingQueue<String> mBlockingQueue = new ArrayBlockingQueue<String>(3000, true);
     // 传感器数据写入文件子线程
     private ImuRecordThread mImuRecordThread;
@@ -87,7 +86,6 @@ public class ImuService extends Service {
         mSensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
         mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-        mMagSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
 
         mSensorEventListener = new SensorEventListener() {
             @Override
@@ -101,6 +99,7 @@ public class ImuService extends Service {
 //                    mHandler.sendMessage(msg);
 
                     mBlockingQueue.offer(ImuUtils.sensorEvent2Str(event));
+//                    mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
                 }
             }
 
@@ -129,13 +128,11 @@ public class ImuService extends Service {
 
         mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
         mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-        mSensorManager.registerListener(mSensorEventListener, mMagSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
     }
 
     private void unregisterResource() {
         mSensorManager.unregisterListener(mSensorEventListener, mAccelSensor);
         mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
-        mSensorManager.unregisterListener(mSensorEventListener, mMagSensor);
         mSensorManager.unregisterListener(mSensorEventListener);
         mSensorThread.quitSafely();
     }
@@ -157,12 +154,18 @@ public class ImuService extends Service {
 
         private void initWriter() {
             mBufferedWriter = FileUtils.initWriter(mRecordingDir, "IMU.csv");
+            try {
+                mBufferedWriter.write("sensor,sysTime,elapsedTime,x,y,z,accuracy\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
         public void run() {
             initWriter();
             Log.d(TAG, "IMU recording start");
+            int writeCount = 0;
             while (ImuService.this.getAbRunning()) {
                 try {
                     Queues.drain(mBlockingQueue, mStringList, 1500, 3000, TimeUnit.MILLISECONDS);
@@ -173,6 +176,19 @@ public class ImuService extends Service {
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
+//                if (mStringQueue.size() > 0) {
+//                    try {
+//                        mBufferedWriter.write(mStringQueue.poll());
+//                        writeCount ++;
+//                        if (writeCount > 1500) {
+//                            mBufferedWriter.flush();
+//                            Log.d(TAG, "IMU recording write");
+//                            writeCount = 0;
+//                        }
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
             }
             FileUtils.closeBufferedWriter(mBufferedWriter);
             Log.d(TAG, "IMU recording end");

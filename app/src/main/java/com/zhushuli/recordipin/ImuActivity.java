@@ -36,9 +36,6 @@ public class ImuActivity extends AppCompatActivity {
     private TextView tvGyroX;
     private TextView tvGyroY;
     private TextView tvGyroZ;
-    private TextView tvMagX;
-    private TextView tvMagY;
-    private TextView tvMagZ;
 
     private Button btnImuCollection;
 
@@ -69,11 +66,6 @@ public class ImuActivity extends AppCompatActivity {
                     tvGyroY.setText(String.format("%.4f", event.values[1]));
                     tvGyroZ.setText(String.format("%.4f", event.values[2]));
                     break;
-                case Sensor.TYPE_MAGNETIC_FIELD:
-                    tvMagX.setText(String.format("%.4f", event.values[0]));
-                    tvMagY.setText(String.format("%.4f", event.values[1]));
-                    tvMagZ.setText(String.format("%.4f", event.values[2]));
-                    break;
                 default:
                     break;
             }
@@ -92,9 +84,6 @@ public class ImuActivity extends AppCompatActivity {
         tvGyroX = (TextView) findViewById(R.id.tvGyroX);
         tvGyroY = (TextView) findViewById(R.id.tvGyroY);
         tvGyroZ = (TextView) findViewById(R.id.tvGyroZ);
-        tvMagX = (TextView) findViewById(R.id.tvMagX);
-        tvMagY = (TextView) findViewById(R.id.tvMagY);
-        tvMagZ = (TextView) findViewById(R.id.tvMagZ);
 
         btnImuCollection = (Button) findViewById(R.id.btnImuStart);
         btnImuCollection.setOnClickListener(this::onClick);

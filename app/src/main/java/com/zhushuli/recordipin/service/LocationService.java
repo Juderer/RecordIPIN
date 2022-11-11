@@ -58,6 +58,7 @@ public class LocationService extends Service {
     // 定位时间间隔（毫秒）
     private static final int MIN_LOCATION_DURATION = 1000;
 
+    private Queue<String> mStringQueue = new LinkedList<>();
     private Queue<Location> mLocationQueue = new LinkedList<>();
 
     public class MyBinder extends Binder {
@@ -247,7 +248,8 @@ public class LocationService extends Service {
         private void initWriter() {
             mBufferWriter = FileUtils.initWriter(mRecordingDir, "GNSS.csv");
             try {
-                mBufferWriter.write("sysTime,gnssTime,longitude,latitude,accuracy,speed,speedAccuracy,bearing,bearingAccuracy\n");
+                mBufferWriter.write("sysTime,elapsedTime,gnssTime,longitude,latitude,accuracy," +
+                        "speed,speedAccuracy,bearing,bearingAccuracy\n");
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.d(TAG, "1111");

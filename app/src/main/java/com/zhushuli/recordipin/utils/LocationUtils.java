@@ -17,6 +17,14 @@ public class LocationUtils {
     private static DecimalFormat dfSpd;
     private static SimpleDateFormat formatter;
 
+//    private static long locationTimeReference;
+//    private static long myTimeReference;
+
+//    static {
+//        locationTimeReference = 0L;
+//        myTimeReference = 0L;
+//    }
+
     static {
         dfLon = new DecimalFormat("#.000000");  // (经纬度)保留小数点后六位
         dfSpd = new DecimalFormat("#0.00");  // (速度或航向)保留小数点后两位
@@ -24,9 +32,21 @@ public class LocationUtils {
     }
 
     public static String genLocationCsv(Location location) {
-        // system timestamp, GNSS timestamp, longitude, latitude, accuracy, speed, speed accuracy, bearing, bearing accuracy
-        String csvString = String.format("%d,%d,%.6f,%.6f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
-                System.currentTimeMillis(), location.getTime(),
+//        if (locationTimeReference == 0L && myTimeReference == 0L) {
+//            locationTimeReference = location.getElapsedRealtimeNanos();
+//            myTimeReference = System.currentTimeMillis();
+//        }
+//        Long elapsedTime = myTimeReference
+//                + Math.round((location.getElapsedRealtimeNanos() - locationTimeReference) / 1000000L);
+
+        TimeReferenceUtils.setTimeReference(location.getElapsedRealtimeNanos());
+        Long elapsedTime = TimeReferenceUtils.getMyTimeReference() +
+                Math.round((location.getElapsedRealtimeNanos() - TimeReferenceUtils.getElapsedTimeReference()) / 1000000L);
+
+        // system timestamp, elapsed realtime, GNSS timestamp, longitude, latitude, accuracy,
+        // speed, speed accuracy, bearing, bearing accuracy
+        String csvString = String.format("%d,%d,%d,%.6f,%.6f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+                System.currentTimeMillis(), elapsedTime, location.getTime(),
                 location.getLongitude(), location.getLatitude(), location.getAccuracy(),
                 location.getSpeed(), location.getSpeedAccuracyMetersPerSecond(),
                 location.getBearing(), location.getBearingAccuracyDegrees());

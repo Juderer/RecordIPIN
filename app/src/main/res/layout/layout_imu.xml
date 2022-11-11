@@ -114,36 +114,4 @@
             android:layout_weight="1"/>
     </TableRow>
 
-    <TableRow
-        android:divider="@drawable/line_h"
-        android:showDividers="beginning|middle|end"
-        android:orientation="horizontal">
-        <TextView
-            android:text="磁力计"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvMagX"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvMagY"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-        <TextView
-            android:id="@+id/tvMagZ"
-            android:text="0"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:layout_width="0dp"
-            android:layout_weight="1"/>
-    </TableRow>
 </TableLayout>

@@ -45,9 +45,6 @@ public class CollectionActivity extends AppCompatActivity {
     private TextView tvGyroX;
     private TextView tvGyroY;
     private TextView tvGyroZ;
-    private TextView tvMagX;
-    private TextView tvMagY;
-    private TextView tvMagZ;
     // GNSS相关控件
     private TextView tvDate;
     private TextView tvCoordinate;
@@ -112,12 +109,6 @@ public class CollectionActivity extends AppCompatActivity {
                     tvGyroY.setText(String.format("%.4f", event.values[1]));
                     tvGyroZ.setText(String.format("%.4f", event.values[2]));
                     break;
-                case Sensor.TYPE_MAGNETIC_FIELD:
-                    event = (SensorEvent) msg.obj;
-                    tvMagX.setText(String.format("%.4f", event.values[0]));
-                    tvMagY.setText(String.format("%.4f", event.values[1]));
-                    tvMagZ.setText(String.format("%.4f", event.values[2]));
-                    break;
                 default:
                     break;
             }
@@ -138,8 +129,6 @@ public class CollectionActivity extends AppCompatActivity {
         formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         mRecordingDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
-
-        initServiceConnection();
     }
 
     private void initImuView() {
@@ -149,9 +138,6 @@ public class CollectionActivity extends AppCompatActivity {
         tvGyroX = (TextView) findViewById(R.id.tvGyroX);
         tvGyroY = (TextView) findViewById(R.id.tvGyroY);
         tvGyroZ = (TextView) findViewById(R.id.tvGyroZ);
-        tvMagX = (TextView) findViewById(R.id.tvMagX);
-        tvMagY = (TextView) findViewById(R.id.tvMagY);
-        tvMagZ = (TextView) findViewById(R.id.tvMagZ);
     }
 
     private void initGnssView() {
@@ -167,6 +153,9 @@ public class CollectionActivity extends AppCompatActivity {
     }
 
     private void bindServices() {
+        // 初始化服务连接
+        initServiceConnection();
+
         // 绑定定位服务
         Intent locationIntent = new Intent(CollectionActivity.this, LocationService.class);
         bindService(locationIntent, mLocationServiceConnection, BIND_AUTO_CREATE);
@@ -183,8 +172,8 @@ public class CollectionActivity extends AppCompatActivity {
         unbindService(mImuServiceConnection);
 
         btnCollectData.setText("Collect");
-        setDefaultImuInfo();
         setDefaultGnssInfo();
+        setDefaultImuInfo();
     }
 
     private void onClick(View v) {
@@ -270,9 +259,6 @@ public class CollectionActivity extends AppCompatActivity {
                             case Sensor.TYPE_GYROSCOPE:
                                 msg.what = Sensor.TYPE_GYROSCOPE;
                                 break;
-                            case Sensor.TYPE_MAGNETIC_FIELD:
-                                msg.what = Sensor.TYPE_MAGNETIC_FIELD;
-                                break;
                             default:
                                 break;
                         }
@@ -300,9 +286,6 @@ public class CollectionActivity extends AppCompatActivity {
         tvGyroX.setText("--");
         tvGyroY.setText("--");
         tvGyroZ.setText("--");
-        tvMagX.setText("--");
-        tvMagY.setText("--");
-        tvMagZ.setText("--");
     }
 
     private void setDefaultGnssInfo() {
