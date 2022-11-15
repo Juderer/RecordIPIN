@@ -17,6 +17,8 @@ import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.zhushuli.recordipin.service.ImuService;
@@ -37,7 +39,10 @@ public class ImuActivity extends AppCompatActivity {
     private TextView tvGyroY;
     private TextView tvGyroZ;
 
+    private CheckBox cbRecord;
     private Button btnImuCollection;
+
+    private boolean bRecording = true;
 
     private DecimalFormat dfSensor = new DecimalFormat("#0.0000");  // 传感器数据显示精度
 
@@ -85,6 +90,19 @@ public class ImuActivity extends AppCompatActivity {
         tvGyroY = (TextView) findViewById(R.id.tvGyroY);
         tvGyroZ = (TextView) findViewById(R.id.tvGyroZ);
 
+        cbRecord = (CheckBox) findViewById(R.id.cbRecord);
+        cbRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    bRecording = true;
+                } else {
+                    bRecording = false;
+                }
+                Log.d(TAG, "onCheckedChanged");
+            }
+        });
+
         btnImuCollection = (Button) findViewById(R.id.btnImuStart);
         btnImuCollection.setOnClickListener(this::onClick);
 
@@ -104,8 +122,10 @@ public class ImuActivity extends AppCompatActivity {
                 mImuService = mBinder.getImuService();
 
                 // 数据存储路径
-                String recorindDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-                mImuService.startImuRecording(recorindDir);
+                if (bRecording) {
+                    String recorindDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+                    mImuService.startImuRecording(recorindDir);
+                }
 
                 mImuService.setCallback(new ImuService.Callback() {
                     @Override
@@ -145,9 +165,11 @@ public class ImuActivity extends AppCompatActivity {
                     bindService(intent, mImuServiceConnection, BIND_AUTO_CREATE);
 
                     btnImuCollection.setText("Stop");
+                    cbRecord.setEnabled(false);
                 } else {
                     unbindService(mImuServiceConnection);
                     btnImuCollection.setText("Start");
+                    cbRecord.setEnabled(true);
                 }
                 break;
             default:
@@ -164,5 +186,9 @@ public class ImuActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
+
+        if (btnImuCollection.getText().equals("Stop")) {
+            unbindService(mImuServiceConnection);
+        }
     }
 }

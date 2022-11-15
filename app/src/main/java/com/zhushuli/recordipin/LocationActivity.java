@@ -16,6 +16,8 @@ import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.zhushuli.recordipin.service.LocationService;
@@ -48,6 +50,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     private TextView tvSpeed;
     private TextView tvBearing;
     private TextView tvAltitude;
+    private CheckBox cbRecord;
     private Button btnLocServiceStart;
 
     private LocationService.MyBinder binder;
@@ -55,6 +58,8 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     // 数据存储路径
     private SimpleDateFormat formatter;
     private String mRecordingDir;
+
+    private boolean bRecording = true;
 
     private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -102,6 +107,19 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         tvSpeed = (TextView) findViewById(R.id.tvSpeed);
         tvBearing = (TextView) findViewById(R.id.tvBearing);
         tvAltitude = (TextView) findViewById(R.id.tvAltitude);
+
+        cbRecord = (CheckBox) findViewById(R.id.cbRecord);
+        cbRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    bRecording = true;
+                } else {
+                    bRecording = false;
+                }
+            }
+        });
+
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
 
@@ -116,9 +134,11 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         binder = (LocationService.MyBinder) service;
         LocationService mLocationService = binder.getLocationService();
 
-        // 数据存储路径
-        String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-        mLocationService.startLocationRecording(recordingDir);
+        if (bRecording) {
+            // 数据存储路径
+            String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+            mLocationService.startLocationRecording(recordingDir);
+        }
 
         mLocationService.setCallback(new LocationService.Callback() {
             @Override
@@ -166,11 +186,13 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                     bindService(intent, LocationActivity.this, BIND_AUTO_CREATE);
 
                     btnLocServiceStart.setText("Stop");
+                    cbRecord.setEnabled(false);
                 } else {
                     unbindService(LocationActivity.this);
                     setDefaultGnssInfo();
 
                     btnLocServiceStart.setText("Start");
+                    cbRecord.setEnabled(true);
                 }
                 break;
             default:
