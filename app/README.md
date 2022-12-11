@@ -57,3 +57,18 @@
 ## 1.14 Notification
 
 - [前台进程报错](https://blog.csdn.net/shulianghan/article/details/115529328)
+
+## 1.15 adb
+
+## 1.16 synchronized
+
+## 1.17 常用组件
+
+- Button
+- TextView
+- CheckBox
+- TableRow
+
+## 1.18 获取网络类型
+
+- [Android开发之获取网络类型(WIFI、2G、3G、4G)和运营商名称](https://blog.csdn.net/qq_16240393/article/details/72628187)

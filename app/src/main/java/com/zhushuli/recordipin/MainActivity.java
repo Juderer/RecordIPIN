@@ -30,13 +30,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE};
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.READ_SMS};
     private boolean isAllGranted = false;
 
     private TextView tvTest;
     private Button btn2LocationActivity;
     private Button btn2ImuActivity;
     private Button btn2CollActivity;
+    private Button btn2CellularAty;
     private long mExitTime;
 
     @Override
@@ -55,6 +59,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btn2CollActivity = (Button) findViewById(R.id.btn2CollActivity);
         btn2CollActivity.setOnClickListener(this);
+
+        btn2CellularAty = (Button) findViewById(R.id.btn2CellularAty);
+        btn2CellularAty.setOnClickListener(this);
 
         isAllGranted = checkPermissionAllGranted(permissions);
         if (!isAllGranted) {
@@ -99,6 +106,16 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 }
                 startActivity(new Intent(this, CollectionActivity.class));
+                break;
+            case R.id.btn2CellularAty:
+                isAllGranted = checkPermissionAllGranted(new String[]{
+                        Manifest.permission.READ_PHONE_STATE,
+                        Manifest.permission.ACCESS_NETWORK_STATE});
+                if (!isAllGranted) {
+                    Log.d(TAG, "未授权");
+                    break;
+                }
+                startActivity(new Intent(this, CellularActivity.class));
                 break;
             default:
                 break;
