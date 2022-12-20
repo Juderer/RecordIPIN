@@ -1,50 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".CollectionActivity">
 
-    <include
-        layout="@layout/layout_imu"
-        android:id="@+id/layoutImu"
+    <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_marginTop="5dp"
-        android:layout_marginLeft="3dp"
-        android:layout_marginRight="3dp"/>
+        android:layout_height="wrap_content">
 
-    <include
-        layout="@layout/layout_location"
-        android:id="@+id/layoutLocation"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@+id/layoutImu"
-        android:layout_marginTop="10dp"
-        android:layout_marginLeft="3dp"
-        android:layout_marginRight="3dp"/>
+        <include
+            layout="@layout/layout_imu"
+            android:id="@+id/layoutImu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"/>
 
-<!--    <TextView-->
-<!--        android:id="@+id/tvCollectGnss"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:gravity="left"-->
-<!--        android:layout_below="@+id/layoutImu"-->
-<!--        android:textSize="20sp"-->
-<!--        android:layout_marginTop="10dp"-->
-<!--        android:layout_marginLeft="10dp"-->
-<!--        android:text="Location" />-->
+        <include
+            layout="@layout/layout_location"
+            android:id="@+id/layoutLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/layoutImu"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"/>
 
-    <Button
-        android:id="@+id/btnCollectData"
-        android:layout_width="120dp"
-        android:layout_height="60dp"
-        android:layout_centerInParent="true"
-        android:layout_marginBottom="20dp"
-        android:layout_alignParentBottom="true"
-        android:text="Collect"
-        android:textAllCaps="false"
-        android:textSize="20sp"
-        android:typeface="serif" />
-</RelativeLayout>
+        <Button
+            android:id="@+id/btnCollectData"
+            android:layout_width="120dp"
+            android:layout_height="60dp"
+            android:text="Collect"
+            android:textAllCaps="false"
+            android:textSize="20sp"
+            android:typeface="serif"
+            android:layout_centerInParent="true"
+            android:layout_below="@+id/layoutLocation"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"/>
+    </RelativeLayout>
+</ScrollView>

@@ -17,6 +17,7 @@
 
     <include
         layout="@layout/layout_option"
+        android:id="@+id/layoutOption"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_below="@+id/layoutImu"
@@ -29,10 +30,12 @@
         android:layout_width="120dp"
         android:layout_height="60dp"
         android:layout_centerInParent="true"
-        android:layout_marginBottom="20dp"
-        android:layout_alignParentBottom="true"
         android:text="Start"
         android:textAllCaps="false"
-        android:textSize="20sp"
-        android:typeface="serif" />
+        android:textSize="24sp"
+        android:typeface="serif"
+        android:layout_below="@+id/layoutOption"
+        android:layout_marginTop="10dp"
+        android:layout_marginLeft="3dp"
+        android:layout_marginRight="3dp"/>
 </RelativeLayout>
