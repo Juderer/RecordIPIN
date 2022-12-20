@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.model;
+package com.zhushuli.recordipin.model.cellular;
 
 import android.os.Build;
 import android.telephony.CellIdentityNr;
@@ -8,17 +8,19 @@ import android.telephony.CellSignalStrengthNr;
 
 import androidx.annotation.RequiresApi;
 
-public class RecordServiceNr extends RecordService{
-    public RecordServiceNr() {
+import com.zhushuli.recordipin.utils.TimeReferenceUtils;
+
+public class CellServiceNr extends CellService {
+    public CellServiceNr() {
         super();
     }
 
-    public RecordServiceNr(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
+    public CellServiceNr(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
         super(mcc, mnc, cid, tac, earfcn, pci);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    public RecordServiceNr(CellInfo cellInfo) {
+    public CellServiceNr(CellInfo cellInfo) {
         if (cellInfo instanceof CellInfoNr && cellInfo.isRegistered()) {
             CellInfoNr cellInfoNr = (CellInfoNr) cellInfo;
             recordFromCellInfoNr(cellInfoNr);
@@ -39,5 +41,11 @@ public class RecordServiceNr extends RecordService{
 
         setRsrp(cssNr.getSsRsrp());
         setRsrq(cssNr.getSsRsrq());
+
+        // 记录时间戳
+        TimeReferenceUtils.setTimeReference(cellInfoNr.getTimeStamp());
+        long ts = TimeReferenceUtils.getMyTimeReference() +
+                Math.round((cellInfoNr.getTimeStamp() - TimeReferenceUtils.getElapsedTimeReference()) / 1000000.0);
+        setTimeStamp(ts);
     }
 }

@@ -1,17 +1,18 @@
-package com.zhushuli.recordipin.model;
+package com.zhushuli.recordipin.model.cellular;
 
-public abstract class RecordNeighbor {
+public abstract class CellNeighbor extends CellPacket {
+
     private int earfcn;
     private int pci;
     private int rsrp;
     private int rsrq;
-    private RecordService serviceCell = null;
+    private CellService serviceCell = null;
 
-    public RecordNeighbor() {
+    public CellNeighbor() {
 
     }
 
-    public RecordNeighbor(int earfcn, int pci, int rsrp, int rsrq) {
+    public CellNeighbor(int earfcn, int pci, int rsrp, int rsrq) {
         this.earfcn = earfcn;
         this.pci = pci;
         this.rsrp = rsrp;
@@ -50,9 +51,17 @@ public abstract class RecordNeighbor {
         this.rsrq = rsrq;
     }
 
-    public RecordService getServiceCell() {
+    public CellService getServiceCell() {
         return this.serviceCell;
     }
 
-    public abstract void setServiceCell(RecordService serviceCell);
+    public abstract void setServiceCell(CellService serviceCell);
+
+    @Override
+    public String toString() {
+        return getTimeStampMillis() + "," +
+                "--" + "," + "--" + "," + "--" + "," + "--" + "," +
+                earfcn + "," + pci + "," +
+                rsrp + "," + rsrq;
+    }
 }

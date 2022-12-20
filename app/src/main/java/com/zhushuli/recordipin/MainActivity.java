@@ -7,6 +7,7 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -17,6 +18,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
 
 
@@ -32,14 +34,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.READ_SMS};
+            Manifest.permission.ACCESS_NETWORK_STATE};
     private boolean isAllGranted = false;
 
     private TextView tvTest;
     private Button btn2LocationActivity;
     private Button btn2ImuActivity;
-    private Button btn2CollActivity;
+    private Button btn2CollectAty;
     private Button btn2CellularAty;
     private long mExitTime;
 
@@ -57,8 +58,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn2ImuActivity = (Button) findViewById(R.id.btn2ImuActivity);
         btn2ImuActivity.setOnClickListener(this);
 
-        btn2CollActivity = (Button) findViewById(R.id.btn2CollActivity);
-        btn2CollActivity.setOnClickListener(this);
+        btn2CollectAty = (Button) findViewById(R.id.btn2CollectAty);
+        btn2CollectAty.setOnClickListener(this);
 
         btn2CellularAty = (Button) findViewById(R.id.btn2CellularAty);
         btn2CellularAty.setOnClickListener(this);
@@ -96,7 +97,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 startActivity(new Intent(this, ImuActivity.class));
                 break;
-            case R.id.btn2CollActivity:
+            case R.id.btn2CollectAty:
                 isAllGranted = checkPermissionAllGranted(new String[]{
                         Manifest.permission.ACCESS_COARSE_LOCATION,
                         Manifest.permission.ACCESS_FINE_LOCATION});
@@ -105,6 +106,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
                     break;
                 }
+
                 startActivity(new Intent(this, CollectionActivity.class));
                 break;
             case R.id.btn2CellularAty:
@@ -113,6 +115,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Manifest.permission.ACCESS_NETWORK_STATE});
                 if (!isAllGranted) {
                     Log.d(TAG, "未授权");
+                    break;
+                }
+                if (!CellularUtils.hasSimCard(MainActivity.this)) {
+                    Toast.makeText(this, "用户未插SIM卡", Toast.LENGTH_SHORT);
                     break;
                 }
                 startActivity(new Intent(this, CellularActivity.class));

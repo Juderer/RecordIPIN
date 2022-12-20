@@ -81,7 +81,7 @@ public class ImuService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "onCreate");
+        Log.d(TAG, "onCreate" + Thread.currentThread().getId());
 
         mSensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
         mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -113,6 +113,7 @@ public class ImuService extends Service {
     }
 
     private void registerResource() {
+        // 这部分代码弃用
         mSensorThread = new HandlerThread("Sensor Thread", Thread.MAX_PRIORITY);
         mSensorThread.start();
         mHandler = new Handler(mSensorThread.getLooper()) {
@@ -125,9 +126,11 @@ public class ImuService extends Service {
                 Log.d(TAG, "event handler");
             }
         };
+//        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
+//        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
 
-        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
+        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME);
+        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME);
     }
 
     private void unregisterResource() {
@@ -191,7 +194,7 @@ public class ImuService extends Service {
 //                }
             }
             FileUtils.closeBufferedWriter(mBufferedWriter);
-            Log.d(TAG, "IMU recording end");
+            Log.d(TAG, "IMU recording end" + Thread.currentThread().getId());
         }
     }
 

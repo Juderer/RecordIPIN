@@ -123,8 +123,8 @@ public class ImuActivity extends AppCompatActivity {
 
                 // 数据存储路径
                 if (bRecording) {
-                    String recorindDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-                    mImuService.startImuRecording(recorindDir);
+                    String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+                    mImuService.startImuRecording(recordingDir);
                 }
 
                 mImuService.setCallback(new ImuService.Callback() {

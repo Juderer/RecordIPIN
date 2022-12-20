@@ -19,11 +19,31 @@
             android:layout_marginLeft="3dp"
             android:layout_marginRight="3dp" />
 
+        <include
+            layout="@layout/layout_option"
+            android:id="@+id/layoutOption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/layoutCellular"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"/>
+
+        <Button
+            android:id="@+id/btnCellularTrack"
+            android:layout_below="@+id/layoutOption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Tracking"
+            android:backgroundTint="@color/yellowgreen"
+            android:textAllCaps="false"
+            android:textSize="20sp"/>
+
         <ScrollView
             android:id="@+id/svNeighbors"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_below="@+id/layoutCellular">
+            android:layout_below="@+id/btnCellularTrack">
 
             <TableLayout
                 android:id="@+id/tabNeighborCell"

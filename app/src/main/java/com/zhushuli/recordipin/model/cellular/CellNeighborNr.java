@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.model;
+package com.zhushuli.recordipin.model.cellular;
 
 import android.os.Build;
 import android.telephony.CellIdentityNr;
@@ -8,18 +8,20 @@ import android.telephony.CellSignalStrengthNr;
 
 import androidx.annotation.RequiresApi;
 
-public class RecordNeighborNr extends RecordNeighbor{
+import com.zhushuli.recordipin.utils.TimeReferenceUtils;
 
-    public RecordNeighborNr() {
+public class CellNeighborNr extends CellNeighbor {
+
+    public CellNeighborNr() {
         super();
     }
 
-    public RecordNeighborNr(int earfcn, int pci, int rsrp, int rsrq) {
+    public CellNeighborNr(int earfcn, int pci, int rsrp, int rsrq) {
         super(earfcn, pci, rsrp, rsrq);
     }
 
     @RequiresApi(api = Build.VERSION_CODES.Q)
-    public RecordNeighborNr(CellInfo cell) {
+    public CellNeighborNr(CellInfo cell) {
         if (cell instanceof CellInfoNr && !cell.isRegistered()) {
             recordFromCellInfoNr((CellInfoNr) cell);
         }
@@ -35,10 +37,16 @@ public class RecordNeighborNr extends RecordNeighbor{
 
         setRsrp(cssNr.getSsRsrp());
         setRsrq(cssNr.getSsRsrq());
+
+        // 记录时间戳
+        TimeReferenceUtils.setTimeReference(cellInfoNr.getTimeStamp());
+        long ts = TimeReferenceUtils.getMyTimeReference() +
+                Math.round((cellInfoNr.getTimeStamp() - TimeReferenceUtils.getElapsedTimeReference()) / 1000000.0);
+        setTimeStamp(ts);
     }
 
     @Override
-    public void setServiceCell(RecordService serviceCell) {
+    public void setServiceCell(CellService serviceCell) {
         return ;
     }
 }

@@ -3,17 +3,6 @@ package com.zhushuli.recordipin.utils;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.os.Build;
-import android.telephony.CellIdentityGsm;
-import android.telephony.CellIdentityLte;
-import android.telephony.CellIdentityNr;
-import android.telephony.CellInfo;
-import android.telephony.CellInfoGsm;
-import android.telephony.CellInfoLte;
-import android.telephony.CellInfoNr;
-import android.telephony.CellSignalStrengthGsm;
-import android.telephony.CellSignalStrengthLte;
-import android.telephony.CellSignalStrengthNr;
 import android.telephony.TelephonyManager;
 
 public class CellularUtils {
@@ -24,89 +13,35 @@ public class CellularUtils {
     public static final int NETWORK_5G = 5;  // 5G
     public static final int NETWORK_MOBILE = 6;  // 手机流量
 
-    public static String printCellularInfo(CellInfo cell) {
-        StringBuffer sb = new StringBuffer();
-        if (cell instanceof CellInfoLte) {
-            CellInfoLte cellLte = (CellInfoLte) cell;
-            CellSignalStrengthLte signalStrengthLte = cellLte.getCellSignalStrength();
-            CellIdentityLte identityLte = cellLte.getCellIdentity();
-
-            sb.append(signalStrengthLte.getRsrp());
-            sb.append(",");
-            sb.append(signalStrengthLte.getRsrq());
-            sb.append(",");
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                sb.append(signalStrengthLte.getRssi());
-            }
-            sb.append(";");
-
-            // 判断是否为主基站
-            if (cellLte.isRegistered()) {
-                sb.append(identityLte.getCi());
-                sb.append(",");
-                sb.append(identityLte.getTac());
-                sb.append(",");
-            }
-            sb.append(identityLte.getEarfcn());
-            sb.append(",");
-            sb.append(identityLte.getPci());
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            if (cell instanceof CellInfoNr) {
-                CellInfoNr cellNr = (CellInfoNr) cell;
-                CellSignalStrengthNr signalStrengthNr = (CellSignalStrengthNr) cellNr.getCellSignalStrength();
-                CellIdentityNr identityNr = (CellIdentityNr) cellNr.getCellIdentity();
-
-                sb.append(signalStrengthNr.getSsRsrp());
-                sb.append(",");
-                sb.append(signalStrengthNr.getSsRsrq());
-                sb.append(",");
-                sb.append(signalStrengthNr.getSsSinr());
-                sb.append(";");
-
-                // 判断是否为主基站
-                if (cellNr.isRegistered()) {
-                    sb.append(identityNr.getNci());
-                    sb.append(",");
-                    sb.append(identityNr.getTac());
-                    sb.append(",");
-                }
-                sb.append(identityNr.getNrarfcn());
-                sb.append(",");
-                sb.append(identityNr.getPci());
-            }
-        } else if (cell instanceof CellInfoGsm) {
-            CellInfoGsm cellGsm = (CellInfoGsm) cell;
-            CellSignalStrengthGsm signalStrengthGsm = cellGsm.getCellSignalStrength();
-            CellIdentityGsm identityGsm = cellGsm.getCellIdentity();
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                sb.append(signalStrengthGsm.getRssi());
-                sb.append("\t");
-            }
-            sb.append(identityGsm.getLac());
-            sb.append(",");
-            sb.append(identityGsm.getArfcn());
-            sb.append(",");
-            sb.append(identityGsm.getMccString());
-            sb.append(",");
-            sb.append(identityGsm.getMncString());
+    public static boolean hasSimCard(Context context) {
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        int simState = telephonyManager.getSimState();
+        switch (simState) {
+            case TelephonyManager.SIM_STATE_ABSENT:
+            case TelephonyManager.SIM_STATE_UNKNOWN:
+                return false;
+            default:
+                break;
         }
-        return sb.toString();
+        return true;
     }
 
-    public static String getOperatorName(TelephonyManager telephonyManager) {
+    public static String getOperatorName(Context context) {
         /**
          * getSimOperatorName()可以直接获得运营商名称
          * getSimOperator()需要根据返回值判断，如"46000"为"中国移动"
          */
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         return telephonyManager.getSimOperatorName();
     }
 
-    public static String getMoblieCountryCode(TelephonyManager telephonyManager) {
+    public static String getMoblieCountryCode(Context context) {
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         return telephonyManager.getSimOperator().substring(0, 3);
     }
 
-    public static String getMobileNetworkCode(TelephonyManager telephonyManager) {
+    public static String getMobileNetworkCode(Context context) {
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         return telephonyManager.getSimOperator().substring(3, 5);
     }
 

@@ -10,4 +10,11 @@
     <color name='SteelBlue'>#4682B4</color>
     <color name="DarkSlateGray">#2F4F4F</color>
     <color name="Silver">#C0C0C0</color>
+    <color name="chartreuse2">#76ee00</color>
+    <color name="darkseagreen1">#c1ffc1</color>
+    <color name="limegreen">#32cd32</color>
+    <color name="darkorange">#ff8c00</color>
+    <color name="lightskyblue">#87cefa</color>
+    <color name="skyblue">#87ceeb</color>
+    <color name="yellowgreen">#9acd32</color>
 </resources>

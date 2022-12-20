@@ -19,7 +19,7 @@
         android:id="@+id/btn2CellularAty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/btn2CollActivity"
+        android:layout_above="@+id/btn2CollectAty"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
         android:text="Cellular Test"
@@ -30,7 +30,7 @@
         android:enabled="true" />
 
     <Button
-        android:id="@+id/btn2CollActivity"
+        android:id="@+id/btn2CollectAty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/btn2ImuActivity"

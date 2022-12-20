@@ -1,44 +1,40 @@
 package com.zhushuli.recordipin;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
-import android.os.Build;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.telephony.CellInfo;
-import android.telephony.CellInfoLte;
-import android.telephony.CellInfoNr;
-import android.telephony.PhoneStateListener;
-import android.telephony.SignalStrength;
-import android.telephony.TelephonyCallback;
-import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.ViewGroup;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.zhushuli.recordipin.model.RecordNeighbor;
-import com.zhushuli.recordipin.model.RecordNeighborLte;
-import com.zhushuli.recordipin.model.RecordNeighborNr;
-import com.zhushuli.recordipin.model.RecordService;
-import com.zhushuli.recordipin.model.RecordServiceLte;
-import com.zhushuli.recordipin.model.RecordServiceNr;
+import com.zhushuli.recordipin.model.cellular.CellPacket;
+import com.zhushuli.recordipin.model.cellular.CellNeighbor;
+import com.zhushuli.recordipin.model.cellular.CellService;
+import com.zhushuli.recordipin.service.CellularService;
 import com.zhushuli.recordipin.utils.CellularUtils;
-import com.zhushuli.recordipin.utils.NetworkUtils;
 
+import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CellularActivity extends AppCompatActivity {
@@ -52,10 +48,6 @@ public class CellularActivity extends AppCompatActivity {
     private static final int NEIGHBOR_CELL_INFO_LTE_CODE = 2001;
     private static final int NEIGHBOR_CELL_INFO_NR_CODE = 2002;
 
-    private TelephonyManager mTelephonyManager;
-    private MyTelephonyCallback mTelephonyCallback;
-    private MyPhoneStateListener mPhoneStateListener;
-
     private TextView tvOperatorName;
     private TextView tvNetworkTypeName;
     private TextView tvMcc;
@@ -67,6 +59,8 @@ public class CellularActivity extends AppCompatActivity {
     private TextView tvServiceRsrp;
     private TextView tvServiceRsrq;
     private TableLayout neighborTable;
+    private Button btnCellularTrack;
+    private CheckBox cbRecord;
 
     private String mOperatorName;
     private String mNetworkTypeName;
@@ -76,14 +70,23 @@ public class CellularActivity extends AppCompatActivity {
     private List<TableRow> mNgbTableHeader = new ArrayList<>();
     private AtomicBoolean abNgbHeader = new AtomicBoolean(false);
 
+    private ServiceConnection mCellularServiceConn;
+    private CellularService.MyBinder mBinder = null;
+    private CellularService mCellularService;
+
+    // 保存路径
+    private SimpleDateFormat formatter;
+    private String mRecordingDir;
+    private AtomicBoolean abRecording = new AtomicBoolean(true);
+
     private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
                 case SERVICE_CELL_INFO_CODE:
-                    if (msg.obj instanceof RecordService) {
-                        RecordService serviceCell = (RecordService) msg.obj;
+                    if (msg.obj instanceof CellService) {
+                        CellService serviceCell = (CellService) msg.obj;
                         tvCid.setText(String.valueOf(serviceCell.getCid()));
                         tvTac.setText(String.valueOf(serviceCell.getTac()));
                         tvServiceEarfcn.setText(String.valueOf(serviceCell.getEarfcn()));
@@ -97,12 +100,7 @@ public class CellularActivity extends AppCompatActivity {
                 case SERVICE_CELL_INFO_NR_CODE:
                     break;
                 case NEIGHBOR_CELL_INFO_CODE:
-                    neighborTable.removeAllViews();
-
-                    genNeighborTableHeader();
-                    for (TableRow row : mNgbTableHeader) {
-                        neighborTable.addView(row);
-                    }
+                    initNeighborTable();
 
                     List<TableRow> neighborRows = (List<TableRow>) msg.obj;
                     for (TableRow row : neighborRows) {
@@ -122,53 +120,27 @@ public class CellularActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_celluar);
+        setContentView(R.layout.activity_cellular);
         Log.d(TAG, "onCreate");
 
-        initTextView();
-
-        mTelephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            mTelephonyCallback = new MyTelephonyCallback();
-        } else {
-            Log.d(TAG, "mPhoneStateListener");
-            mPhoneStateListener = new MyPhoneStateListener();
-        }
-
-        if (!NetworkUtils.hasSimCard(mTelephonyManager)) {
-            Toast.makeText(this, "用户未插SIM卡", Toast.LENGTH_SHORT);
-            onDestroy();
-        }
-
+        initView();
+        initServiceCell();
+        initNeighborTable();
         initMobileNetworkInfo();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            Log.d(TAG, "SDK_INT, S");
-            mTelephonyManager.registerTelephonyCallback(new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    Log.d(TAG, "execute");
-                    command.run();
-                }
-            }, mTelephonyCallback);
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            Log.d(TAG, "SDK_INT, Q");
-            // TODO::发现在xiaomi手机上使用需要打开"位置信息"
-            mTelephonyManager.listen(mPhoneStateListener,
-                    PhoneStateListener.LISTEN_CELL_INFO | PhoneStateListener.LISTEN_SIGNAL_STRENGTHS);
-        } else {
-            Log.d(TAG, "pass");
-        }
+        formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+        mRecordingDir = getExternalFilesDir(
+                Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
     }
 
     @SuppressLint("MissingPermission")
     private void initMobileNetworkInfo() {
         // TODO::设置监听，捕获移动网络类型变化（主要是4G与5G的切换）
         // 暂未解决连接WiFi时的无法准确获取移动信号类型的问题
-        mOperatorName = CellularUtils.getOperatorName(mTelephonyManager);
+        mOperatorName = CellularUtils.getOperatorName(this);
         mNetworkTypeName = CellularUtils.getMobileNetworkTypeName(CellularActivity.this);
-        mMcc = CellularUtils.getMoblieCountryCode(mTelephonyManager);
-        mMnc = CellularUtils.getMobileNetworkCode(mTelephonyManager);
+        mMcc = CellularUtils.getMoblieCountryCode(this);
+        mMnc = CellularUtils.getMobileNetworkCode(this);
 
         tvOperatorName.setText(mOperatorName);
         tvNetworkTypeName.setText(mNetworkTypeName);
@@ -176,7 +148,7 @@ public class CellularActivity extends AppCompatActivity {
         tvMnc.setText(mMnc);
     }
 
-    private void initTextView() {
+    private void initView() {
         tvOperatorName = (TextView) findViewById(R.id.tvOperatorName);
         tvNetworkTypeName = (TextView) findViewById(R.id.tvMobileNetTypeName);
         tvMcc = (TextView) findViewById(R.id.tvMcc);
@@ -190,8 +162,50 @@ public class CellularActivity extends AppCompatActivity {
         tvServiceRsrq = (TextView) findViewById(R.id.tvServiceRsrq);
 
         neighborTable = (TableLayout) findViewById(R.id.tabNeighborCell);
-        genNeighborTableHeader();
-        for (TableRow row : mNgbTableHeader) {
+
+        btnCellularTrack = (Button) findViewById(R.id.btnCellularTrack);
+        btnCellularTrack.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (btnCellularTrack.getText().equals("Tracking")) {
+                    bindService();
+                    btnCellularTrack.setText("Stop");
+                    cbRecord.setEnabled(false);
+                }
+                else {
+                    unbindService();
+                    btnCellularTrack.setText("Tracking");
+                    cbRecord.setEnabled(true);
+                }
+            }
+        });
+
+        cbRecord = (CheckBox) findViewById(R.id.cbRecord);
+        cbRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    abRecording.set(true);
+                } else {
+                    abRecording.set(false);
+                }
+                Log.d(TAG, "onCheckedChanged");
+            }
+        });
+    }
+
+    private void initServiceCell() {
+        tvCid.setText("--");
+        tvTac.setText("--");
+        tvServiceEarfcn.setText("--");
+        tvServicePci.setText("--");
+        tvServiceRsrp.setText("--");
+        tvServiceRsrq.setText("--");
+    }
+
+    private void initNeighborTable() {
+        neighborTable.removeAllViews();
+        for (TableRow row : genNeighborTableHeader()) {
             neighborTable.addView(row);
         }
     }
@@ -205,7 +219,7 @@ public class CellularActivity extends AppCompatActivity {
         row.addView(tv, new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1.0f));
     }
 
-    private void genNeighborTableHeader() {
+    private List<TableRow> genNeighborTableHeader() {
         if (!abNgbHeader.getAndSet(true)) {
             TableRow titleRow = new TableRow(this);
             titleRow.setDividerDrawable(getDrawable(R.drawable.line_h));
@@ -231,25 +245,18 @@ public class CellularActivity extends AppCompatActivity {
             mNgbTableHeader.add(titleRow);
             mNgbTableHeader.add(itemRow);
         }
+        return mNgbTableHeader;
     }
 
-    private List<TableRow> genNeighborRow(List<CellInfo> cellInfos) {
+    private List<TableRow> genNeighborRow(List<CellPacket> neighborCells) {
         List<TableRow> neighborRows = new ArrayList<>();
-        for (CellInfo cell : cellInfos) {
+        for (CellPacket cell : neighborCells) {
             TableRow row = new TableRow(this);
             row.setDividerDrawable(getDrawable(R.drawable.line_h));
             row.setShowDividers(TableRow.SHOW_DIVIDER_BEGINNING | TableRow.SHOW_DIVIDER_MIDDLE | TableRow.SHOW_DIVIDER_END);
             row.setOrientation(LinearLayout.HORIZONTAL);
 
-            RecordNeighbor neighbor = null;
-            if (cell instanceof CellInfoLte) {
-                neighbor = new RecordNeighborLte(cell);
-            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                if (cell instanceof CellInfoNr) {
-                    neighbor = new RecordNeighborNr(cell);
-                }
-            }
-
+            CellNeighbor neighbor = (CellNeighbor) cell;
             if (neighbor != null) {
                 addValueToRow(row, String.valueOf(neighbor.getEarfcn()));
                 addValueToRow(row, String.valueOf(neighbor.getPci()));
@@ -262,136 +269,79 @@ public class CellularActivity extends AppCompatActivity {
         return neighborRows;
     }
 
-//    @SuppressLint("ResourceType")
-//    private void initNeighborTable() {
-//        final Context context = getBaseContext();
-//        final TableRow tbRow = new TableRow(context);
-////        tbRow.setDividerDrawable(getResources().getDrawable(R.drawable.line_h, null));
-////        tbRow.setOrientation(TableRow.HORIZONTAL);
-////        tbRow.setShowDividers(TableRow.SHOW_DIVIDER_BEGINNING | TableRow.SHOW_DIVIDER_MIDDLE | TableRow.SHOW_DIVIDER_END);
-////        tbRow.removeAllViews();
-//        final TextView tvNgbEarfcn = new TextView(CellularActivity.this);
-//        tvNgbEarfcn.setText("EARFCN");
-//        tvNgbEarfcn.setTextSize(16);
-//        tvNgbEarfcn.setGravity(Gravity.CENTER);
-//        tvNgbEarfcn.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-//        tbRow.addView(tvNgbEarfcn);
-//        TextView tvNgbPci = new TextView(CellularActivity.this);
-//        tvNgbPci.setText("PCI");
-//        tvNgbPci.setTextSize(16);
-//        tvNgbPci.setGravity(Gravity.CENTER);
-//        tvNgbPci.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-////        tbRow.addView(tvNgbPci);
-//        TextView tvNgbRsrp = new TextView(CellularActivity.this);
-//        tvNgbRsrp.setText("RSRP");
-//        tvNgbRsrp.setTextSize(16);
-//        tvNgbRsrp.setGravity(Gravity.CENTER);
-//        tvNgbRsrp.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-////        tbRow.addView(tvNgbRsrp);
-//        TextView tvNgbRsrq = new TextView(CellularActivity.this);
-//        tvNgbRsrq.setText("RSRQ");
-//        tvNgbRsrq.setTextSize(16);
-//        tvNgbRsrq.setGravity(Gravity.CENTER);
-//        tvNgbRsrq.setLayoutParams(new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-////        tbRow.addView(tvNgbRsrq);
-//        tlNeighborCell.removeAllViews();
-//        tlNeighborCell.addView(tvNgbRsrp);
-//        tlNeighborCell.addView(tvNgbRsrq);
-//        tlNeighborCell.addView(tbRow);
-//    }
+    private void bindService() {
+        // 初始化服务连接
+        initServiceConnection();
 
-    @RequiresApi(api = Build.VERSION_CODES.S)
-    private class MyTelephonyCallback extends TelephonyCallback implements TelephonyCallback.CellInfoListener {
-        private Message mMsg;
-        private List<CellInfo> neighborCells = new ArrayList<>();
-
-        public void onCellInfoChanged(@NonNull List<CellInfo> cellInfo) {
-            Log.d(TAG, "onCellInfoChanged" + cellInfo.size());
-
-            neighborCells.clear();
-            for (CellInfo cell : cellInfo) {
-                if (cell.isRegistered()) {
-                    mMsg = Message.obtain();
-                    mMsg.what = SERVICE_CELL_INFO_CODE;
-
-                    if (cell instanceof CellInfoLte) {
-                        mMsg.obj = new RecordServiceLte(cell);
-                    }
-                    else if (cell instanceof CellInfoNr) {
-                        mMsg.obj = new RecordServiceNr(cell);
-                    }
-                    else {
-                        mMsg.obj = null;
-                    }
-                    mMainHandler.sendMessage(mMsg);
-                } else {
-                    neighborCells.add(cell);
-                }
-            }
-
-            mMsg = Message.obtain();
-            mMsg.obj = genNeighborRow(neighborCells);
-            mMsg.what = NEIGHBOR_CELL_INFO_CODE;
-            mMainHandler.sendMessage(mMsg);
-        }
+        // 绑定蜂窝网络服务
+        Intent cellularIntent = new Intent(CellularActivity.this, CellularService.class);
+        bindService(cellularIntent, mCellularServiceConn, BIND_AUTO_CREATE);
     }
 
-    @SuppressLint("MissingPermission")
-    private class MyPhoneStateListener extends PhoneStateListener {
-        private Message mMsg;
-        private List<CellInfo> neighborCells = new ArrayList<>();
+    private void unbindService() {
+        // 解绑服务
+        unbindService(mCellularServiceConn);
 
-        @Override
-        @RequiresApi(api = Build.VERSION_CODES.Q)
-        public void onCellInfoChanged(List<CellInfo> cellInfo) {
-            super.onCellInfoChanged(cellInfo);
-            Log.d(TAG, "onCellInfoChanged" + cellInfo.size());
+        initServiceCell();
+        initNeighborTable();
+    }
 
-            neighborCells.clear();
-            for (CellInfo cell : cellInfo) {
-                if (cell.isRegistered()) {
-                    mMsg = Message.obtain();
-                    mMsg.what = SERVICE_CELL_INFO_CODE;
+    private void initServiceConnection() {
+        Log.d(TAG, "initServiceConnection");
 
-                    if (cell instanceof CellInfoLte) {
-                        mMsg.obj = new RecordServiceLte(cell);
-                    }
-                    else if (cell instanceof CellInfoNr) {
-                        mMsg.obj = new RecordServiceNr(cell);
-                    }
-                    else {
-                        mMsg.obj = null;
-                    }
-                    mMainHandler.sendMessage(mMsg);
-                } else {
-                    neighborCells.add(cell);
+        mCellularServiceConn = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.d(TAG, "onServiceConnected");
+                mBinder = (CellularService.MyBinder) service;
+                mCellularService = mBinder.getCellularService();
+
+                if (abRecording.get()) {
+                    String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+                    mCellularService.startCellularRecording(recordingDir);
                 }
+
+                mCellularService.setCallback(new CellularService.Callback() {
+                    @Override
+                    public void onCellInfoChanged(List<CellPacket> recordCells) {
+                        Log.d(TAG, "onCellInfoChanged" + recordCells.size());
+
+                        List<CellPacket> neighborCells = new ArrayList<>();
+                        Message msg;
+
+                        for (CellPacket record : recordCells) {
+                            if (record instanceof CellService) {
+                                msg = Message.obtain();
+                                msg.what = SERVICE_CELL_INFO_CODE;
+                                msg.obj = record;
+                                mMainHandler.sendMessage(msg);
+                            } else {
+                                neighborCells.add(record);
+                            }
+                        }
+
+                        msg = Message.obtain();
+                        msg.obj = genNeighborRow(neighborCells);
+                        msg.what = NEIGHBOR_CELL_INFO_CODE;
+                        mMainHandler.sendMessage(msg);
+                    }
+                });
             }
 
-            mMsg = Message.obtain();
-            mMsg.obj = genNeighborRow(neighborCells);
-            mMsg.what = NEIGHBOR_CELL_INFO_CODE;
-            mMainHandler.sendMessage(mMsg);
-        }
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
 
-        @Override
-        public void onSignalStrengthsChanged(SignalStrength signalStrength) {
-            super.onSignalStrengthsChanged(signalStrength);
-        }
+            }
+        };
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-        if (mTelephonyManager instanceof TelephonyManager) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                mTelephonyManager.unregisterTelephonyCallback(mTelephonyCallback);
-                Log.d(TAG, ">=S unregister");
-            } else {
-                mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
-                Log.d(TAG, "<S unregister");
-            }
+
+        if (btnCellularTrack.getText().equals("Stop")) {
+            unbindService();
         }
     }
 }

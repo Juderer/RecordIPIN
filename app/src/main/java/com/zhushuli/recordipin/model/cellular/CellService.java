@@ -1,6 +1,7 @@
-package com.zhushuli.recordipin.model;
+package com.zhushuli.recordipin.model.cellular;
 
-public abstract class RecordService {
+public abstract class CellService extends CellPacket {
+
     private String mcc;
     private String mnc;
     private long cid;
@@ -10,11 +11,11 @@ public abstract class RecordService {
     private int rsrp;
     private int rsrq;
 
-    public RecordService() {
+    public CellService() {
 
     }
 
-    public RecordService(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
+    public CellService(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
         this.mcc = mcc;
         this.mnc = mnc;
         this.cid = cid;
@@ -85,5 +86,13 @@ public abstract class RecordService {
 
     public void setRsrq(int rsrq) {
         this.rsrq = rsrq;
+    }
+
+    @Override
+    public String toString() {
+        return getTimeStampMillis() + "," +
+                mcc + "," + mnc + "," + cid + "," + tac + "," +
+                earfcn + "," + pci + "," +
+                rsrp + "," + rsrq;
     }
 }

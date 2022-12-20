@@ -1,21 +1,25 @@
-package com.zhushuli.recordipin.model;
+package com.zhushuli.recordipin.model.cellular;
 
+import android.os.Build;
+import android.os.SystemClock;
 import android.telephony.CellIdentityLte;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
 
-public class RecordServiceLte extends RecordService {
+import com.zhushuli.recordipin.utils.TimeReferenceUtils;
 
-    public RecordServiceLte() {
-        super();
+public class CellServiceLte extends CellService {
+
+    public CellServiceLte() {
+
     }
 
-    public RecordServiceLte(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
+    public CellServiceLte(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
         super(mcc, mnc, cid, tac, earfcn, pci);
     }
 
-    public RecordServiceLte(CellInfo cellInfo) {
+    public CellServiceLte(CellInfo cellInfo) {
         if (cellInfo instanceof CellInfoLte && cellInfo.isRegistered()) {
             CellInfoLte cellInfoLte = (CellInfoLte) cellInfo;
             recordFromCellInfoLte(cellInfoLte);
@@ -35,5 +39,15 @@ public class RecordServiceLte extends RecordService {
 
         setRsrp(cssLte.getRsrp());
         setRsrq(cssLte.getRsrq());
+
+        // 记录时间戳
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            setTimeStamp(System.currentTimeMillis() + (cellInfoLte.getTimestampMillis() - SystemClock.elapsedRealtime()));
+        }
+        else {
+            long ts = System.currentTimeMillis() +
+                    Math.round((cellInfoLte.getTimeStamp() - SystemClock.elapsedRealtimeNanos()) / 1000000.0);
+            setTimeStamp(ts);
+        }
     }
 }
