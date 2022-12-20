@@ -7,8 +7,6 @@ import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
 
-import com.zhushuli.recordipin.utils.TimeReferenceUtils;
-
 public class CellNeighborLte extends CellNeighbor {
 
     public CellNeighborLte() {

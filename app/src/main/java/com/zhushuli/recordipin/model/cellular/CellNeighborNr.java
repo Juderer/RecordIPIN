@@ -1,14 +1,13 @@
 package com.zhushuli.recordipin.model.cellular;
 
 import android.os.Build;
+import android.os.SystemClock;
 import android.telephony.CellIdentityNr;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoNr;
 import android.telephony.CellSignalStrengthNr;
 
 import androidx.annotation.RequiresApi;
-
-import com.zhushuli.recordipin.utils.TimeReferenceUtils;
 
 public class CellNeighborNr extends CellNeighbor {
 
@@ -39,10 +38,14 @@ public class CellNeighborNr extends CellNeighbor {
         setRsrq(cssNr.getSsRsrq());
 
         // 记录时间戳
-        TimeReferenceUtils.setTimeReference(cellInfoNr.getTimeStamp());
-        long ts = TimeReferenceUtils.getMyTimeReference() +
-                Math.round((cellInfoNr.getTimeStamp() - TimeReferenceUtils.getElapsedTimeReference()) / 1000000.0);
-        setTimeStamp(ts);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            setTimeStamp(System.currentTimeMillis() + (cellInfoNr.getTimestampMillis() - SystemClock.elapsedRealtime()));
+        }
+        else {
+            long ts = System.currentTimeMillis() +
+                    Math.round((cellInfoNr.getTimeStamp() - SystemClock.elapsedRealtimeNanos()) / 1000000.0);
+            setTimeStamp(ts);
+        }
     }
 
     @Override

@@ -13,11 +13,8 @@ import android.os.Message;
 import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellInfoNr;
-import android.telephony.CellLocation;
-import android.telephony.CellSignalStrength;
 import android.telephony.CellSignalStrengthLte;
 import android.telephony.PhoneStateListener;
-import android.telephony.SignalStrength;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
 import android.util.Log;
@@ -72,6 +69,7 @@ public class CellularService extends Service {
     public interface Callback {
 //        void onCellInfoChanged(List<CellInfo> cellInfo);
         void onCellInfoChanged(List<CellPacket> cellInfo);
+        void onDataConnectionStateChanged(int state, int networkType);
     }
 
     @Override
@@ -167,7 +165,7 @@ public class CellularService extends Service {
 
     @RequiresApi(api = Build.VERSION_CODES.S)
     private class MyTelephonyCallback extends TelephonyCallback implements TelephonyCallback.CellInfoListener,
-            TelephonyCallback.CellLocationListener {
+            TelephonyCallback.DataConnectionStateListener {
         @Override
         public void onCellInfoChanged(@NonNull List<CellInfo> cellInfo) {
             Log.d(TAG, "onCellInfoChanged" + cellInfo.size());
@@ -196,8 +194,15 @@ public class CellularService extends Service {
         }
 
         @Override
-        public void onCellLocationChanged(@NonNull CellLocation location) {
-            Log.d(TAG, "onCellLocationChanged");
+        public void onDataConnectionStateChanged(int state, int networkType) {
+            // 监听网络变化（如4G/5G切换）
+            Log.d(TAG, "onDataConnectionStateChanged" + state + ";" + networkType);
+            while (callback == null) {
+                ThreadUtils.threadSleep(10);
+            }
+            if (callback != null) {
+                callback.onDataConnectionStateChanged(state, networkType);
+            }
         }
     }
 
@@ -234,6 +239,14 @@ public class CellularService extends Service {
                     msg.obj = records;
                     mCellRecordThread.getHandler().sendMessage(msg);
                 }
+            }
+        }
+
+        @Override
+        public void onDataConnectionStateChanged(int state, int networkType) {
+            Log.d(TAG, "onDataConnectionStateChanged");
+            if (callback != null) {
+                callback.onDataConnectionStateChanged(state, networkType);
             }
         }
     }

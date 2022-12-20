@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
@@ -24,9 +25,12 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.zhushuli.recordipin.model.cellular.CellNeighborNr;
 import com.zhushuli.recordipin.model.cellular.CellPacket;
 import com.zhushuli.recordipin.model.cellular.CellNeighbor;
 import com.zhushuli.recordipin.model.cellular.CellService;
+import com.zhushuli.recordipin.model.cellular.CellServiceLte;
+import com.zhushuli.recordipin.model.cellular.CellServiceNr;
 import com.zhushuli.recordipin.service.CellularService;
 import com.zhushuli.recordipin.utils.CellularUtils;
 
@@ -47,6 +51,7 @@ public class CellularActivity extends AppCompatActivity {
     private static final int NEIGHBOR_CELL_INFO_CODE = 2000;
     private static final int NEIGHBOR_CELL_INFO_LTE_CODE = 2001;
     private static final int NEIGHBOR_CELL_INFO_NR_CODE = 2002;
+    private static final int NETWORK_TYPE_UPDATE_CODE = 3000;
 
     private TextView tvOperatorName;
     private TextView tvNetworkTypeName;
@@ -94,6 +99,15 @@ public class CellularActivity extends AppCompatActivity {
                         tvServiceRsrp.setText(String.valueOf(serviceCell.getRsrp()));
                         tvServiceRsrq.setText(String.valueOf(serviceCell.getRsrq()));
                     }
+                    if (msg.obj instanceof CellServiceLte) {
+                        tvNetworkTypeName.setText("LTE");
+                    }
+                    else if (msg.obj instanceof CellServiceNr) {
+                        tvNetworkTypeName.setText("NR");
+                    }
+                    else {
+                        tvNetworkTypeName.setText("UNKNOWN");
+                    }
                     break;
                 case SERVICE_CELL_INFO_LTE_CODE:
                     break;
@@ -110,6 +124,21 @@ public class CellularActivity extends AppCompatActivity {
                 case NEIGHBOR_CELL_INFO_LTE_CODE:
                     break;
                 case NEIGHBOR_CELL_INFO_NR_CODE:
+                    break;
+                case NETWORK_TYPE_UPDATE_CODE:
+                    int networkType = (int) msg.obj;
+                    switch (networkType) {
+                        case TelephonyManager.NETWORK_TYPE_NR:
+                            tvNetworkTypeName.setText("NR");
+                            break;
+                        case TelephonyManager.NETWORK_TYPE_LTE:
+                            tvNetworkTypeName.setText("LTE");
+                            break;
+                        default:
+//                            tvNetworkTypeName.setText("UNKNOWN");
+                            tvNetworkTypeName.setText(CellularUtils.getMobileNetworkTypeName(CellularActivity.this));
+                            break;
+                    }
                     break;
                 default:
                     break;
@@ -138,12 +167,12 @@ public class CellularActivity extends AppCompatActivity {
         // TODO::设置监听，捕获移动网络类型变化（主要是4G与5G的切换）
         // 暂未解决连接WiFi时的无法准确获取移动信号类型的问题
         mOperatorName = CellularUtils.getOperatorName(this);
-        mNetworkTypeName = CellularUtils.getMobileNetworkTypeName(CellularActivity.this);
+//        mNetworkTypeName = CellularUtils.getMobileNetworkTypeName(CellularActivity.this);
         mMcc = CellularUtils.getMoblieCountryCode(this);
         mMnc = CellularUtils.getMobileNetworkCode(this);
 
         tvOperatorName.setText(mOperatorName);
-        tvNetworkTypeName.setText(mNetworkTypeName);
+//        tvNetworkTypeName.setText(mNetworkTypeName);
         tvMcc.setText(mMcc);
         tvMnc.setText(mMnc);
     }
@@ -195,6 +224,7 @@ public class CellularActivity extends AppCompatActivity {
     }
 
     private void initServiceCell() {
+        tvNetworkTypeName.setText("--");
         tvCid.setText("--");
         tvTac.setText("--");
         tvServiceEarfcn.setText("--");
@@ -323,6 +353,17 @@ public class CellularActivity extends AppCompatActivity {
                         msg = Message.obtain();
                         msg.obj = genNeighborRow(neighborCells);
                         msg.what = NEIGHBOR_CELL_INFO_CODE;
+                        mMainHandler.sendMessage(msg);
+                    }
+
+                    @Override
+                    public void onDataConnectionStateChanged(int state, int networkType) {
+                        Log.d(TAG, "onDataConnectionStateChanged");
+                        Log.d(TAG, CellularUtils.getMobileNetworkTypeName(CellularActivity.this));
+
+                        Message msg = Message.obtain();
+                        msg.what = NETWORK_TYPE_UPDATE_CODE;
+                        msg.obj = networkType;
                         mMainHandler.sendMessage(msg);
                     }
                 });
