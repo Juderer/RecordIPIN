@@ -8,6 +8,7 @@ import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
 
 public class CellServiceLte extends CellService {
+    private int ta;
 
     public CellServiceLte() {
 
@@ -28,6 +29,7 @@ public class CellServiceLte extends CellService {
         CellIdentityLte identityLte = cellInfoLte.getCellIdentity();
         CellSignalStrengthLte cssLte = cellInfoLte.getCellSignalStrength();
 
+        setTa(cssLte.getTimingAdvance());
         setMcc(identityLte.getMccString());
         setMnc(identityLte.getMncString());
         setCid(identityLte.getCi());
@@ -46,6 +48,17 @@ public class CellServiceLte extends CellService {
             long ts = System.currentTimeMillis() +
                     Math.round((cellInfoLte.getTimeStamp() - SystemClock.elapsedRealtimeNanos()) / 1000000.0);
             setTimeStamp(ts);
+        }
+    }
+
+    public int getTa() {
+        return ta;
+    }
+
+    public void setTa(int ta) {
+        this.ta = ta;
+        if (ta == CellInfo.UNAVAILABLE) {
+            this.ta = -1;
         }
     }
 }

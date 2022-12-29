@@ -69,6 +69,7 @@ public class CellularActivity extends AppCompatActivity {
     private TextView tvTac;
     private TextView tvServiceEarfcn;
     private TextView tvServicePci;
+    private TextView tvServiceTa;
     private TextView tvServiceRsrp;
     private TextView tvServiceRsrq;
     private TableLayout neighborTable;
@@ -111,6 +112,9 @@ public class CellularActivity extends AppCompatActivity {
                         tvTac.setText(String.valueOf(serviceCell.getTac()));
                         tvServiceEarfcn.setText(String.valueOf(serviceCell.getEarfcn()));
                         tvServicePci.setText(String.valueOf(serviceCell.getPci()));
+                        if (serviceCell instanceof CellServiceLte) {
+                            tvServiceTa.setText(String.valueOf(((CellServiceLte) serviceCell).getTa()));
+                        }
                         tvServiceRsrp.setText(String.valueOf(serviceCell.getRsrp()));
                         tvServiceRsrq.setText(String.valueOf(serviceCell.getRsrq()));
 
@@ -203,6 +207,7 @@ public class CellularActivity extends AppCompatActivity {
         tvTac = (TextView) findViewById(R.id.tvTac);
         tvServiceEarfcn = (TextView) findViewById(R.id.tvServiceEarfcn);
         tvServicePci = (TextView) findViewById(R.id.tvServicePci);
+        tvServiceTa = (TextView) findViewById(R.id.tvTimingAdvance);
         tvServiceRsrp = (TextView) findViewById(R.id.tvServiceRsrp);
         tvServiceRsrq = (TextView) findViewById(R.id.tvServiceRsrq);
 
@@ -241,6 +246,7 @@ public class CellularActivity extends AppCompatActivity {
         tvTac.setText("--");
         tvServiceEarfcn.setText("--");
         tvServicePci.setText("--");
+        tvServiceTa.setText("--");
         tvServiceRsrp.setText("--");
         tvServiceRsrq.setText("--");
     }
