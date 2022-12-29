@@ -14,6 +14,7 @@ import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellInfoNr;
 import android.telephony.CellSignalStrengthLte;
+import android.telephony.NetworkScanRequest;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
@@ -35,6 +36,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class CellularService extends Service {
@@ -49,6 +52,9 @@ public class CellularService extends Service {
     private TelephonyManager mTelephonyManager;
     private MyTelephonyCallback mTelephonyCallback;
     private MyPhoneStateListener mPhoneStateListener;
+    private MyCellInfoCallback mCellInfoCallback;
+
+    private ExecutorService mExecutorService;
 
     // 蜂窝网络数据写入文件子线程
     private RecordThread mCellRecordThread;
@@ -57,7 +63,8 @@ public class CellularService extends Service {
     private Callback callback = null;
 
     public CellularService() {
-
+        Log.d(TAG, "CellularService");  // 先于onCreate调用！
+        mExecutorService = Executors.newFixedThreadPool(4);
     }
 
     public class MyBinder extends Binder {
@@ -91,31 +98,23 @@ public class CellularService extends Service {
         Log.d(TAG, "onCreate" + Thread.currentThread().getId());
 
         // 注意！需要打开手机打开"位置信息"！
-        // 重大发现！当手机启动了位置服务时（手机状态栏出现位置角标），基站的刷新频率会显著加快！
+        // 重大发现？当手机启动了位置服务时（手机状态栏出现位置角标），基站的刷新频率会显著加快？
         mTelephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             Log.d(TAG, "TelephonyCallback");
             mTelephonyCallback = new MyTelephonyCallback();
             // 开启子线程
-            mTelephonyManager.registerTelephonyCallback(new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    Log.d(TAG, "execute");
-                    command.run();
-                }
-            }, mTelephonyCallback);
+            mTelephonyManager.registerTelephonyCallback(mExecutorService, mTelephonyCallback);
         }
         else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
         {
             Log.d(TAG, "PhoneStateListener");
+
+            mCellInfoCallback = new MyCellInfoCallback();
+//            mTelephonyManager.requestCellInfoUpdate(mExecutorService, mCellInfoCallback);
+
             // 需要加入Executor！否则在同一线程中，callback初始化会造成阻塞！
-            mPhoneStateListener = new MyPhoneStateListener(new Executor() {
-                @Override
-                public void execute(Runnable command) {
-                    Log.d(TAG, "execute");
-                    command.run();
-                }
-            });
+            mPhoneStateListener = new MyPhoneStateListener(mExecutorService);
             mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CELL_INFO);
         }
     }
@@ -251,6 +250,20 @@ public class CellularService extends Service {
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.Q)
+    private class MyCellInfoCallback extends TelephonyManager.CellInfoCallback {
+
+        @Override
+        public void onCellInfo(@NonNull List<CellInfo> cellInfo) {
+            Log.d(TAG, "onCellInfo" + cellInfo.size());
+
+            List<CellPacket> records = transDataFormat(cellInfo);
+            for (CellPacket record : records) {
+                Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
+            }
+        }
+    }
+
     public void startCellularRecording(String recordingDir) {
         mCellRecordThread = new RecordThread(recordingDir);
         // TODO::Java/Android启动线程run与start的区别
@@ -344,6 +357,7 @@ public class CellularService extends Service {
             else
             {
                 mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+                mExecutorService.shutdown();
                 Log.d(TAG, "<S unregister");
             }
         }

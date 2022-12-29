@@ -81,6 +81,56 @@
         android:showDividers="beginning|end"
         android:orientation="horizontal">
         <TextView
+            android:text="GNSS"
+            android:layout_width="match_parent"
+            android:textSize="16sp"
+            android:gravity="left"
+            android:layout_weight="1"/>
+    </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|middle|end"
+        android:orientation="horizontal">
+        <TextView
+            android:text="Location"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/tvLocation"
+            android:text="--"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="3"/>
+    </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|middle|end"
+        android:orientation="horizontal">
+        <TextView
+            android:text="Accuracy"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="1"/>
+        <TextView
+            android:id="@+id/tvLocationAcc"
+            android:text="--"
+            android:textSize="16sp"
+            android:gravity="center"
+            android:layout_width="0dp"
+            android:layout_weight="3"/>
+    </TableRow>
+
+    <TableRow
+        android:divider="@drawable/line_h"
+        android:showDividers="beginning|end"
+        android:orientation="horizontal">
+        <TextView
             android:text="主基站"
             android:layout_width="match_parent"
             android:textSize="16sp"

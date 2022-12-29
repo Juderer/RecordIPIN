@@ -7,6 +7,7 @@ import android.annotation.SuppressLint;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -25,13 +26,13 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import com.zhushuli.recordipin.model.cellular.CellNeighborNr;
 import com.zhushuli.recordipin.model.cellular.CellPacket;
 import com.zhushuli.recordipin.model.cellular.CellNeighbor;
 import com.zhushuli.recordipin.model.cellular.CellService;
 import com.zhushuli.recordipin.model.cellular.CellServiceLte;
 import com.zhushuli.recordipin.model.cellular.CellServiceNr;
 import com.zhushuli.recordipin.service.CellularService;
+import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.CellularUtils;
 
 import java.io.File;
@@ -53,6 +54,13 @@ public class CellularActivity extends AppCompatActivity {
     private static final int NEIGHBOR_CELL_INFO_NR_CODE = 2002;
     private static final int NETWORK_TYPE_UPDATE_CODE = 3000;
 
+    private static final int GNSS_LOCATION_UPDATE_CODE = 8402;
+    private static final int GNSS_SEARCHING_CODE = 502;
+    private static final int GNSS_PROVIDER_DISABLED_CODE = 404;
+
+    private TextView tvLocation;
+    private TextView tvLocationAcc;
+    // 蜂窝网络相关组件
     private TextView tvOperatorName;
     private TextView tvNetworkTypeName;
     private TextView tvMcc;
@@ -64,20 +72,22 @@ public class CellularActivity extends AppCompatActivity {
     private TextView tvServiceRsrp;
     private TextView tvServiceRsrq;
     private TableLayout neighborTable;
+
     private Button btnCellularTrack;
     private CheckBox cbRecord;
-
-    private String mOperatorName;
-    private String mNetworkTypeName;
-    private String mMcc;
-    private String mMnc;
 
     private List<TableRow> mNgbTableHeader = new ArrayList<>();
     private AtomicBoolean abNgbHeader = new AtomicBoolean(false);
 
+    // 蜂窝网络服务相关类
     private ServiceConnection mCellularServiceConn;
-    private CellularService.MyBinder mBinder = null;
+    private CellularService.MyBinder mCellularBinder = null;
     private CellularService mCellularService;
+
+    // 定位服务相关类
+    private ServiceConnection mLocationServiceConn;
+    private LocationService.MyBinder mLocationBinder = null;
+    private LocationService mLocationService;
 
     // 保存路径
     private SimpleDateFormat formatter;
@@ -89,6 +99,11 @@ public class CellularActivity extends AppCompatActivity {
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
             switch (msg.what) {
+                case GNSS_LOCATION_UPDATE_CODE:
+                    Location location = (Location) msg.obj;
+                    tvLocation.setText(String.format("%.6f,%.6f", location.getLongitude(), location.getLatitude()));
+                    tvLocationAcc.setText(String.format("%.2fm", location.getAccuracy()));
+                    break;
                 case SERVICE_CELL_INFO_CODE:
                     if (msg.obj instanceof CellService) {
                         CellService serviceCell = (CellService) msg.obj;
@@ -98,6 +113,9 @@ public class CellularActivity extends AppCompatActivity {
                         tvServicePci.setText(String.valueOf(serviceCell.getPci()));
                         tvServiceRsrp.setText(String.valueOf(serviceCell.getRsrp()));
                         tvServiceRsrq.setText(String.valueOf(serviceCell.getRsrq()));
+
+                        tvMcc.setText(serviceCell.getMcc());
+                        tvMnc.setText(serviceCell.getMnc());
                     }
                     if (msg.obj instanceof CellServiceLte) {
                         tvNetworkTypeName.setText("LTE");
@@ -135,8 +153,7 @@ public class CellularActivity extends AppCompatActivity {
                             tvNetworkTypeName.setText("LTE");
                             break;
                         default:
-//                            tvNetworkTypeName.setText("UNKNOWN");
-                            tvNetworkTypeName.setText(CellularUtils.getMobileNetworkTypeName(CellularActivity.this));
+                            tvNetworkTypeName.setText("UNKNOWN");
                             break;
                     }
                     break;
@@ -164,20 +181,19 @@ public class CellularActivity extends AppCompatActivity {
 
     @SuppressLint("MissingPermission")
     private void initMobileNetworkInfo() {
-        // TODO::设置监听，捕获移动网络类型变化（主要是4G与5G的切换）
-        // 暂未解决连接WiFi时的无法准确获取移动信号类型的问题
-        mOperatorName = CellularUtils.getOperatorName(this);
-//        mNetworkTypeName = CellularUtils.getMobileNetworkTypeName(CellularActivity.this);
-        mMcc = CellularUtils.getMoblieCountryCode(this);
-        mMnc = CellularUtils.getMobileNetworkCode(this);
+        String mOperatorName = CellularUtils.getOperatorName(this);
+        String mMcc = CellularUtils.getMoblieCountryCode(this);
+        String mMnc = CellularUtils.getMobileNetworkCode(this);
 
         tvOperatorName.setText(mOperatorName);
-//        tvNetworkTypeName.setText(mNetworkTypeName);
         tvMcc.setText(mMcc);
         tvMnc.setText(mMnc);
     }
 
     private void initView() {
+        tvLocation = (TextView) findViewById(R.id.tvLocation);
+        tvLocationAcc = (TextView) findViewById(R.id.tvLocationAcc);
+
         tvOperatorName = (TextView) findViewById(R.id.tvOperatorName);
         tvNetworkTypeName = (TextView) findViewById(R.id.tvMobileNetTypeName);
         tvMcc = (TextView) findViewById(R.id.tvMcc);
@@ -198,13 +214,9 @@ public class CellularActivity extends AppCompatActivity {
             public void onClick(View v) {
                 if (btnCellularTrack.getText().equals("Tracking")) {
                     bindService();
-                    btnCellularTrack.setText("Stop");
-                    cbRecord.setEnabled(false);
                 }
                 else {
                     unbindService();
-                    btnCellularTrack.setText("Tracking");
-                    cbRecord.setEnabled(true);
                 }
             }
         });
@@ -300,18 +312,33 @@ public class CellularActivity extends AppCompatActivity {
     }
 
     private void bindService() {
+        btnCellularTrack.setText("Stop");
+        cbRecord.setEnabled(false);
+
         // 初始化服务连接
         initServiceConnection();
 
         // 绑定蜂窝网络服务
+        startService(new Intent(CellularActivity.this, CellService.class));
         Intent cellularIntent = new Intent(CellularActivity.this, CellularService.class);
         bindService(cellularIntent, mCellularServiceConn, BIND_AUTO_CREATE);
+
+        // 绑定定位服务
+        Intent locationIntent = new Intent(CellularActivity.this, LocationService.class);
+        bindService(locationIntent, mLocationServiceConn, BIND_AUTO_CREATE);
     }
 
     private void unbindService() {
-        // 解绑服务
-        unbindService(mCellularServiceConn);
+        btnCellularTrack.setText("Tracking");
+        cbRecord.setEnabled(true);
 
+        // 解绑服务
+        stopService(new Intent(CellularActivity.this, CellService.class));
+        unbindService(mCellularServiceConn);
+        unbindService(mLocationServiceConn);
+
+        tvLocation.setText("--");
+        tvLocationAcc.setText("--");
         initServiceCell();
         initNeighborTable();
     }
@@ -319,15 +346,16 @@ public class CellularActivity extends AppCompatActivity {
     private void initServiceConnection() {
         Log.d(TAG, "initServiceConnection");
 
+        String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+
         mCellularServiceConn = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                Log.d(TAG, "onServiceConnected");
-                mBinder = (CellularService.MyBinder) service;
-                mCellularService = mBinder.getCellularService();
+                Log.d(TAG, "onServiceConnected, Cellular");
+                mCellularBinder = (CellularService.MyBinder) service;
+                mCellularService = mCellularBinder.getCellularService();
 
                 if (abRecording.get()) {
-                    String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
                     mCellularService.startCellularRecording(recordingDir);
                 }
 
@@ -365,6 +393,46 @@ public class CellularActivity extends AppCompatActivity {
                         msg.what = NETWORK_TYPE_UPDATE_CODE;
                         msg.obj = networkType;
                         mMainHandler.sendMessage(msg);
+                    }
+                });
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+
+            }
+        };
+
+         mLocationServiceConn = new ServiceConnection(){
+
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.d(TAG, "onServiceConnected, Location");
+                mLocationBinder = (LocationService.MyBinder) service;
+                mLocationService = mLocationBinder.getLocationService();
+
+                if (abRecording.get()) {
+                    mLocationService.startLocationRecording(recordingDir);
+                }
+
+                mLocationService.setCallback(new LocationService.Callback() {
+                    @Override
+                    public void onLocationChanged(Location location) {
+                        Log.d(TAG, "onLocationChanged");
+                        Message msg = Message.obtain();
+                        msg.what = GNSS_LOCATION_UPDATE_CODE;
+                        msg.obj = location;
+                        mMainHandler.sendMessage(msg);
+                    }
+
+                    @Override
+                    public void onLocationProvoiderDisabled() {
+                        Log.d(TAG, "onLocationProvoiderDisabled");
+                    }
+
+                    @Override
+                    public void onLocationSearching(String data) {
+//                        Log.d(TAG, "onLocationSearching");
                     }
                 });
             }
