@@ -34,7 +34,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.READ_PHONE_STATE,
-            Manifest.permission.ACCESS_NETWORK_STATE};
+            Manifest.permission.ACCESS_NETWORK_STATE,
+            Manifest.permission.CAMERA,
+            Manifest.permission.RECORD_AUDIO};
     private boolean isAllGranted = false;
 
     private TextView tvTest;
@@ -42,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btn2ImuActivity;
     private Button btn2CollectAty;
     private Button btn2CellularAty;
+    private Button btn2CameraAty;
     private long mExitTime;
 
     @Override
@@ -63,6 +66,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         btn2CellularAty = (Button) findViewById(R.id.btn2CellularAty);
         btn2CellularAty.setOnClickListener(this);
+
+        btn2CameraAty = (Button) findViewById(R.id.btn2CameraAty);
+        btn2CameraAty.setOnClickListener(this);
 
         isAllGranted = checkPermissionAllGranted(permissions);
         if (!isAllGranted) {
@@ -122,6 +128,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 }
                 startActivity(new Intent(this, CellularActivity.class));
+                break;
+            case R.id.btn2CameraAty:
+                startActivity(new Intent(this, CameraActivity.class));
                 break;
             default:
                 break;
