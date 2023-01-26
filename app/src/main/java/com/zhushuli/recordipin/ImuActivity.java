@@ -55,7 +55,7 @@ public class ImuActivity extends AppCompatActivity {
     private SimpleDateFormat formatter;
     private String mRecordingDir;
 
-    private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
@@ -73,6 +73,39 @@ public class ImuActivity extends AppCompatActivity {
                     break;
                 default:
                     break;
+            }
+        }
+    };
+
+    public interface CallBack {
+        void onSensorChanged();
+    }
+
+    private final View.OnClickListener graphListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.tvAcceX:
+                case R.id.tvAcceY:
+                case R.id.tvAcceZ:
+                    Intent acceGraphIntent = new Intent(ImuActivity.this, ImuDrawActivity.class);
+                    acceGraphIntent.putExtra("Sensor", "ACCE");
+                    startActivity(acceGraphIntent);
+                    break;
+                case R.id.tvGyroX:
+                case R.id.tvGyroY:
+                case R.id.tvGyroZ:
+                    Intent gyroGraphIntent = new Intent(ImuActivity.this, ImuDrawActivity.class);
+                    gyroGraphIntent.putExtra("Sensor", "GYRO");
+                    startActivity(gyroGraphIntent);
+                    break;
+                default:
+                    break;
+            }
+            if (btnImuCollection.getText().equals("Stop")) {
+                unbindService(mImuServiceConnection);
+                btnImuCollection.setText("Start");
+                cbRecord.setEnabled(true);
             }
         }
     };
@@ -111,7 +144,16 @@ public class ImuActivity extends AppCompatActivity {
         formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
         mRecordingDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+
+        tvAcceX.setOnClickListener(graphListener);
+        tvAcceY.setOnClickListener(graphListener);
+        tvAcceZ.setOnClickListener(graphListener);
+        tvGyroX.setOnClickListener(graphListener);
+        tvGyroY.setOnClickListener(graphListener);
+        tvGyroZ.setOnClickListener(graphListener);
     }
+
+
 
     private void initImuServiceConnection() {
         mImuServiceConnection = new ServiceConnection() {
@@ -176,7 +218,6 @@ public class ImuActivity extends AppCompatActivity {
                 break;
         }
     }
-
 
     public Handler getHandler() {
         return mMainHandler;
