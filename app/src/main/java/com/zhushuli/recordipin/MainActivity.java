@@ -7,7 +7,6 @@ import androidx.core.app.ActivityCompat;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
@@ -44,7 +43,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Button btn2ImuActivity;
     private Button btn2CollectAty;
     private Button btn2CellularAty;
-    private Button btn2CameraAty;
+    private Button btn2CameraxAty;
+    private Button btn2Camera2Aty;
+    private Button btn2DrawAty;
     private long mExitTime;
 
     @Override
@@ -67,8 +68,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btn2CellularAty = (Button) findViewById(R.id.btn2CellularAty);
         btn2CellularAty.setOnClickListener(this);
 
-        btn2CameraAty = (Button) findViewById(R.id.btn2CameraAty);
-        btn2CameraAty.setOnClickListener(this);
+        btn2CameraxAty = (Button) findViewById(R.id.btn2CameraxAty);
+        btn2CameraxAty.setOnClickListener(this);
+
+        btn2Camera2Aty = (Button) findViewById(R.id.btn2Camera2Aty);
+        btn2Camera2Aty.setOnClickListener(this);
 
         isAllGranted = checkPermissionAllGranted(permissions);
         if (!isAllGranted) {
@@ -129,8 +133,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 startActivity(new Intent(this, CellularActivity.class));
                 break;
-            case R.id.btn2CameraAty:
-                startActivity(new Intent(this, CameraActivity.class));
+            case R.id.btn2CameraxAty:
+                startActivity(new Intent(this, CameraxActivity.class));
+                break;
+            case R.id.btn2Camera2Aty:
+                startActivity(new Intent(this, Camera2Activity.class));
                 break;
             default:
                 break;

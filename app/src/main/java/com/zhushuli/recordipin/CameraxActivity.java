@@ -3,11 +3,9 @@ package com.zhushuli.recordipin;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
-import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.core.VideoCapture;
 import androidx.camera.lifecycle.ProcessCameraProvider;
@@ -16,10 +14,10 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
 import android.annotation.SuppressLint;
-import android.media.Image;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.util.Size;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -30,12 +28,11 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class CameraActivity extends AppCompatActivity implements View.OnClickListener {
-    private static final String TAG = CameraActivity.class.getSimpleName();
+public class CameraxActivity extends AppCompatActivity implements View.OnClickListener {
+    private static final String TAG = CameraxActivity.class.getSimpleName();
 
     private ListenableFuture<ProcessCameraProvider> cameraProviderFuture;
     private ImageCapture mImageCapture;
@@ -54,7 +51,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_camera);
+        setContentView(R.layout.activity_camerax);
         Log.d(TAG, "onCreate");
 
         pvTest = (PreviewView) findViewById(R.id.pvTest);
@@ -108,11 +105,14 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
         mPreview.setSurfaceProvider(pvTest.getSurfaceProvider());
 
         mImageCapture = new ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                 .setTargetRotation(pvTest.getDisplay().getRotation())
+                .setTargetResolution(new Size(1080, 1920))
                 .build();
 
         mVideoCapture = new VideoCapture.Builder()
                 .setTargetRotation(pvTest.getDisplay().getRotation())
+                .setTargetResolution(new Size(720, 1280))
                 .build();
 
         cameraProvider.bindToLifecycle((LifecycleOwner) this, mCameraSelector, mImageCapture, mPreview);
@@ -145,7 +145,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                     @Override
                     public void onError(@NonNull ImageCaptureException exception) {
                         Log.d(TAG, "onError");
-                        Toast.makeText(CameraActivity.this, "拍照失败！", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(CameraxActivity.this, "拍照失败！", Toast.LENGTH_SHORT).show();
                     }
                 });
                 break;
@@ -165,7 +165,7 @@ public class CameraActivity extends AppCompatActivity implements View.OnClickLis
                         @Override
                         public void onError(int videoCaptureError, @NonNull String message, @Nullable Throwable cause) {
                             Log.d(TAG, "onError");
-                            Toast.makeText(CameraActivity.this, "录像失败！", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(CameraxActivity.this, "录像失败！", Toast.LENGTH_SHORT).show();
                         }
                     });
                 }

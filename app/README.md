@@ -72,3 +72,19 @@
 ## 1.18 获取网络类型
 
 - [Android开发之获取网络类型(WIFI、2G、3G、4G)和运营商名称](https://blog.csdn.net/qq_16240393/article/details/72628187)
+
+## 1.19 onCreate(Bundle savedInstanceState)
+
+- [官方文档：The activity lifecycle](https://developer.android.com/guide/components/activities/activity-lifecycle)
+
+## 1.20 Intent, Bundle, Executor常用类熟悉
+
+## 1.21 静态抽象内部类
+
+- 如：**GnssStatus.Callback**
+
+## 1.22 Fragment
+
+## 1.23 绘图
+
+- 动态折线图
