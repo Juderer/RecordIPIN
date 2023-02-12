@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin;
+package com.zhushuli.recordipin.learning;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,10 +10,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.zhushuli.recordipin.R;
 
 public class ThreadTestActivity extends AppCompatActivity implements View.OnClickListener {
 
