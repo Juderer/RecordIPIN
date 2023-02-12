@@ -8,4 +8,8 @@ public class ThreadUtils {
             e.printStackTrace();
         }
     }
+
+    public static long threadID() {
+        return Thread.currentThread().getId();
+    }
 }

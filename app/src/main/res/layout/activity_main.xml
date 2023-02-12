@@ -50,10 +50,10 @@
         android:layout_above="@+id/btn2CollectAty"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
-        android:text="Cellular Test"
+        android:text="Cellular"
         android:textAllCaps="false"
         android:gravity="center"
-        android:textSize="20sp"
+        android:textSize="24sp"
         android:typeface="serif"
         android:enabled="true" />
 
@@ -67,7 +67,7 @@
         android:text="Collection"
         android:textAllCaps="false"
         android:gravity="center"
-        android:textSize="25sp"
+        android:textSize="24sp"
         android:typeface="serif"/>
 
     <Button
@@ -77,10 +77,10 @@
         android:layout_above="@+id/btn2LocationActivity"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
-        android:text="IMU Test"
+        android:text="IMU"
         android:textAllCaps="false"
         android:gravity="center"
-        android:textSize="20sp"
+        android:textSize="24sp"
         android:typeface="serif"
         android:enabled="true" />
 
@@ -92,10 +92,10 @@
         android:layout_marginBottom="20dp"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
-        android:text="Location Test"
+        android:text="Location"
         android:textAllCaps="false"
         android:gravity="center"
-        android:textSize="20sp"
+        android:textSize="24sp"
         android:typeface="serif"/>
 
 </RelativeLayout>

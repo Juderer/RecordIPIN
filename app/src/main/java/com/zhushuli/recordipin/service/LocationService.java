@@ -14,6 +14,8 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
 
@@ -29,37 +31,142 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LocationService extends Service {
 
     private static final String TAG = "My" + LocationService.class.getSimpleName();
 
-    private Callback callback;
-
-    // 位置监听相关类
-    private LocationManager mLocationManager;
-    private LocationListener mLocationListener;
-    private Location mLocation;
-
-    // 卫星状态监听
-    private GnssStatus.Callback mGnssStatusCallback;
-    private int mSatelliteCount;
-    private int mBeidouSatelliteCount;
-    private int mGpsSatelliteCount;
-
-    // 子线程：位置监听与卫星状态监听信息整合
-    private LocationThread mLocationThread;
-
-    // 子线程：记录位置信息
-    private RecordThread mRecordThread;
-    private AtomicBoolean abRunning = new AtomicBoolean(false);
-
     // 定位时间间隔（毫秒）
     private static final int MIN_LOCATION_DURATION = 1000;
 
     private Queue<String> mStringQueue = new LinkedList<>();
     private Queue<Location> mLocationQueue = new LinkedList<>();
+
+    // 位置监听相关类
+    private LocationManager mLocationManager;
+
+    // 位置信息
+    private Location mLocation;
+
+    private final LocationListener mLocationListener = new LocationListener() {
+        @Override
+        public void onLocationChanged(@NonNull Location location) {
+            Log.d(TAG, "onLocationChanged:" + ThreadUtils.threadID());
+            mLocation = location;
+            if (checkRecord()) {
+                mLocationQueue.offer(location);
+            }
+        }
+
+        @Override
+        public void onProviderDisabled(@NonNull String provider) {
+            Log.d(TAG, "onProviderDisabled");
+            mLocation = null;
+        }
+
+        @Override
+        public void onProviderEnabled(@NonNull String provider) {
+            Log.d(TAG, "onProviderEnabled");
+            mLocation = null;
+        }
+    };
+
+    // 总卫星数
+    private int mSatelliteCount;
+    // 北斗卫星数
+    private int mBeidouSatelliteCount;
+    // GPS卫星数
+    private int mGpsSatelliteCount;
+
+    // 卫星状态监听
+    private final GnssStatus.Callback mGnssStatusCallback = new GnssStatus.Callback() {
+        @Override
+        public void onStopped() {
+            super.onStopped();
+            Log.d(TAG, "GnssStatus, onStopped");
+        }
+
+        @Override
+        public void onStarted() {
+            super.onStarted();
+            Log.d(TAG, "GnssStatus, onStarted");
+        }
+
+        @Override
+        public void onFirstFix(int ttffMillis) {
+            super.onFirstFix(ttffMillis);
+            Log.d(TAG, "GnssStatus, onFirstFix");
+        }
+
+        @Override
+        public void onSatelliteStatusChanged(@NonNull GnssStatus status) {
+            // 耗时操作；尤其在室内无法定位时，会严重影响主线程
+            super.onSatelliteStatusChanged(status);
+            Log.d(TAG, "onSatelliteStatusChanged:" + ThreadUtils.threadID());
+            mSatelliteCount = status.getSatelliteCount();
+            mBeidouSatelliteCount = 0;
+            mGpsSatelliteCount = 0;
+            for (int index = 0; index < mSatelliteCount; index++) {
+                switch (status.getConstellationType(index)) {
+                    case GnssStatus.CONSTELLATION_BEIDOU:
+                        mBeidouSatelliteCount++;
+                        break;
+                    case GnssStatus.CONSTELLATION_GPS:
+                        mGpsSatelliteCount++;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
+        }
+    };
+
+    // 线程池（适用API level30+），用于卫星状态、位置变化监听
+    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(2);
+
+    // 监听卫星状态变化线程
+    private final HandlerThread mGnssStatusThread = new HandlerThread("GnssStatus");
+
+    // 监听位置变化线程
+    private final HandlerThread mLocationListenerThread = new HandlerThread("LocationListener");
+
+    // 子线程：位置监听与卫星状态监听信息整合
+    private DisplayThread mDisplayThread;
+
+    // 子线程：记录位置信息，并写入文件
+    private RecordThread mRecordThread;
+    // 判断"写入文件"子线程是否继续
+    private AtomicBoolean abRecord = new AtomicBoolean(false);
+
+    public boolean checkRecord() {
+        return abRecord.get();
+    }
+
+    public void setRecord(boolean record) {
+        abRecord.set(record);
+    }
+
+    public interface Callback {
+        void onLocationChanged(Location location);
+
+        void onLocationProvoiderDisabled();
+
+        void onLocationSearching(String data);
+    }
+
+    private Callback callback;
+
+    public void setCallback(Callback callback) {
+        this.callback = callback;
+    }
+
+    public Callback getCallback() {
+        return callback;
+    }
 
     public class MyBinder extends Binder {
         public LocationService getLocationService() {
@@ -73,26 +180,37 @@ public class LocationService extends Service {
         return new MyBinder();
     }
 
-
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG, "onCreate");
+        Log.d(TAG, "onCreate:" + ThreadUtils.threadID());
 
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         requestLocationUpdates();
         registerGnssStatus();
 
-        mLocationThread = new LocationThread();
-        new Thread(mLocationThread).start();
+        mDisplayThread = new DisplayThread();
+        new Thread(mDisplayThread).start();
 
         // 启动前台服务, 确保APP长时间后台运行后返回前台无法更新定位
         Notification notification = createNotification();
         startForeground(1, notification);
     }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand");
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        super.onRebind(intent);
+        Log.d(TAG, "onRebind");
+    }
+
     private Notification createNotification() {
-        String channelID = null;
+        String channelID;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             channelID = createNotificationChannel("com.zhushuli.recordipin", "foregroundservice");
         } else {
@@ -119,81 +237,32 @@ public class LocationService extends Service {
 
     @SuppressLint("MissingPermission")
     private void requestLocationUpdates() {
-        mLocationListener = new LocationListener() {
-            @Override
-            public void onLocationChanged(@NonNull Location location) {
-                Log.d(TAG, "onLocationChanged");
-                mLocation = location;
-                mLocationQueue.offer(location);
-            }
-
-            @Override
-            public void onProviderDisabled(@NonNull String provider) {
-                Log.d(TAG, "onProviderDisabled");
-                mLocation = null;
-            }
-
-            @Override
-            public void onProviderEnabled(@NonNull String provider) {
-                Log.d(TAG, "onProviderEnabled");
-                mLocation = null;
-            }
-        };
-        mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_LOCATION_DURATION, 0, mLocationListener);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_LOCATION_DURATION, 0, mExecutorService, mLocationListener);
+        }
+        else {
+            mLocationListenerThread.start();
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_LOCATION_DURATION, 0, mLocationListener, mLocationListenerThread.getLooper());
+        }
     }
 
     @SuppressLint("MissingPermission")
     private void registerGnssStatus() {
-        mGnssStatusCallback = new GnssStatus.Callback() {
-            @Override
-            public void onStopped() {
-                super.onStopped();
-                Log.d(TAG, "GnssStatus, onStopped");
-            }
-
-            @Override
-            public void onStarted() {
-                super.onStarted();
-                Log.d(TAG, "GnssStatus, onStarted");
-            }
-
-            @Override
-            public void onFirstFix(int ttffMillis) {
-                super.onFirstFix(ttffMillis);
-                Log.d(TAG, "GnssStatus, onFirstFix");
-            }
-
-            @Override
-            public void onSatelliteStatusChanged(@NonNull GnssStatus status) {
-                // 耗时操作；尤其在室内无法定位时，会严重影响主线程
-                super.onSatelliteStatusChanged(status);
-                mSatelliteCount = status.getSatelliteCount();
-                mBeidouSatelliteCount = 0;
-                mGpsSatelliteCount = 0;
-                for (int index = 0; index < mSatelliteCount; index++) {
-                    switch (status.getConstellationType(index)) {
-                        case GnssStatus.CONSTELLATION_BEIDOU:
-                            mBeidouSatelliteCount++;
-                            break;
-                        case GnssStatus.CONSTELLATION_GPS:
-                            mGpsSatelliteCount++;
-                            break;
-                        default:
-                            break;
-                    }
-                }
-                Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
-            }
-        };
-        mLocationManager.registerGnssStatusCallback(mGnssStatusCallback);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            mLocationManager.registerGnssStatusCallback(mExecutorService, mGnssStatusCallback);
+        }
+        else {
+            mGnssStatusThread.start();
+            mLocationManager.registerGnssStatusCallback(mGnssStatusCallback, new Handler(mGnssStatusThread.getLooper()));
+        }
     }
 
     @SuppressLint("HandlerLeak")
-    private class LocationThread implements Runnable {
+    private class DisplayThread implements Runnable {
         private boolean checkGPS;
         private AtomicBoolean abConnected = new AtomicBoolean(true);
 
-        public LocationThread() {
+        public DisplayThread() {
             checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
         }
 
@@ -207,7 +276,7 @@ public class LocationService extends Service {
 
         @Override
         public void run() {
-            Log.d(TAG, "LocationThread Start");
+            Log.d(TAG, "DisplayThread Start");
             while (abConnected.get()) {
                 if (callback != null) {
                     checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -219,40 +288,39 @@ public class LocationService extends Service {
                     if (mLocation != null) {
                         callback.onLocationChanged(mLocation);
                         mLocation = null;
-                    } else {
-                        callback.onLocationSearching(mBeidouSatelliteCount + " " + "Beidou" +
-                                "," + mGpsSatelliteCount + " " + "GPS");
                     }
+                    callback.onLocationSearching(mBeidouSatelliteCount + "Beidou" + "," +
+                            mGpsSatelliteCount + "GPS");
                     ThreadUtils.threadSleep(MIN_LOCATION_DURATION);
-                    Log.d(TAG, "LocationThread Show");
+                    Log.d(TAG, "DisplayThread Show");
                 }
             }
-            Log.d(TAG, "LocationThread End");
+            Log.d(TAG, "DisplayThread End");
         }
     }
 
     public void startLocationRecording(String mRecordingDir) {
-        abRunning.set(true);
+        setRecord(true);
         mRecordThread = new RecordThread(mRecordingDir);
         new Thread(mRecordThread).start();
     }
 
     private class RecordThread implements Runnable {
-        private String mRecordingDir;
+        private String mRecordDir;
         private BufferedWriter mBufferWriter;
 
-        public RecordThread(String recordingDir) {
-            mRecordingDir = recordingDir;
+        public RecordThread(String recordDir) {
+            mRecordDir = recordDir;
         }
 
         private void initWriter() {
-            mBufferWriter = FileUtils.initWriter(mRecordingDir, "GNSS.csv");
+            mBufferWriter = FileUtils.initWriter(mRecordDir, "GNSS.csv");
             try {
                 mBufferWriter.write("sysTime,elapsedTime,gnssTime,longitude,latitude,accuracy," +
                         "speed,speedAccuracy,bearing,bearingAccuracy\n");
             } catch (IOException e) {
                 e.printStackTrace();
-                Log.d(TAG, "1111");
+                Log.d(TAG, "Record Thread Error");
             }
         }
         @Override
@@ -260,7 +328,7 @@ public class LocationService extends Service {
             initWriter();
             int writeRowCount = 0;
             Log.d(TAG, "GNSS Record Start");
-            while (LocationService.this.getAbRunning()) {
+            while (LocationService.this.checkRecord()) {
                 if (mLocationQueue.size() > 0) {
                     try {
                         mBufferWriter.write(LocationUtils.genLocationCsv(mLocationQueue.poll()));
@@ -280,32 +348,6 @@ public class LocationService extends Service {
         }
     }
 
-    public boolean getAbRunning() {
-        return abRunning.get();
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "onStartCommand");
-        return super.onStartCommand(intent, flags, startId);
-    }
-
-    public void setCallback(Callback callback) {
-        this.callback = callback;
-    }
-
-    public Callback getCallback() {
-        return callback;
-    }
-
-    public interface Callback {
-        void onLocationChanged(Location location);
-
-        void onLocationProvoiderDisabled();
-
-        void onLocationSearching(String data);
-    }
-
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnbind");
@@ -317,13 +359,18 @@ public class LocationService extends Service {
         super.onDestroy();
         Log.d(TAG, "onDestory");
 
-        if (mLocationThread.getConnected()) {
-            mLocationThread.setConnected(false);
+        if (mDisplayThread.getConnected()) {
+            mDisplayThread.setConnected(false);
         }
         mLocationManager.removeUpdates(mLocationListener);
         mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
 
         stopForeground(true);
-        abRunning.set(false);
+        setRecord(false);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            mGnssStatusThread.quitSafely();
+            mLocationListenerThread.quitSafely();
+        }
     }
 }

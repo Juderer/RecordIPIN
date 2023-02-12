@@ -15,8 +15,8 @@
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
             android:layout_marginTop="10dp"
-            android:layout_marginLeft="3dp"
-            android:layout_marginRight="3dp"/>
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"/>
 
         <include
             layout="@layout/layout_option"
@@ -25,17 +25,19 @@
             android:layout_height="wrap_content"
             android:layout_below="@+id/layoutLocation"
             android:layout_marginTop="10dp"
-            android:layout_marginLeft="3dp"
-            android:layout_marginRight="3dp"/>
+            android:layout_marginLeft="5dp"
+            android:layout_marginRight="5dp"/>
 
         <Button
             android:id="@+id/btnLocServiceStart"
-            android:layout_width="120dp"
-            android:layout_height="60dp"
+            android:layout_width="168dp"
+            android:layout_height="56dp"
             android:gravity="center"
             android:layout_below="@+id/layoutOption"
             android:layout_centerHorizontal="true"
             android:text="Start"
+            android:backgroundTint="@color/SteelBlue"
+            android:textColor="@color/black"
             android:textAllCaps="false"
             android:textSize="24sp"
             android:typeface="serif"

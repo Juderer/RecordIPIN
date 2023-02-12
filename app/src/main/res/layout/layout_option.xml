@@ -33,7 +33,7 @@
             android:id="@+id/cbRecord"
             android:text="是(Y)"
             android:textSize="16sp"
-            android:checked="true"
+            android:checked="false"
             android:gravity="center"
             android:layout_gravity="center"
             android:layout_width="0dp"

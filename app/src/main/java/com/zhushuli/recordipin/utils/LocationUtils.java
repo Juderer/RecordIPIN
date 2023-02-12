@@ -9,9 +9,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class LocationUtils {
-    /**
-     * 方法参数均包括位置信息
-     * 方法返回值均为字符串*/
 
     private static DecimalFormat dfLon;
     private static DecimalFormat dfSpd;
@@ -58,13 +55,14 @@ public class LocationUtils {
         map.put("date", formatter.format(new Date(System.currentTimeMillis())));
         map.put("time", String.valueOf(location.getTime()));
         map.put("location", String.format("%.6f,%.6f", location.getLongitude(), location.getLatitude()));
-        map.put("accuracy", String.format("%.2f", location.getAccuracy()));
+        map.put("accuracy", String.format("%.2fm", location.getAccuracy()));
         map.put("speed", String.format("%.2fm/s,%.2fkm/h", location.getSpeed(), location.getSpeed() * 3.6));
         map.put("bearing", String.format("%.2f", location.getBearing()));
         map.put("altitude", String.format("%.2fm", location.getAltitude()));
         return map;
     }
 
+    @Deprecated
     public static String printLocationMsg(Location location) {
         StringBuilder sb = new StringBuilder();
         sb.append("SysTime:\t");

@@ -24,13 +24,11 @@ import com.zhushuli.recordipin.service.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
 import com.zhushuli.recordipin.utils.LocationUtils;
 
-import org.w3c.dom.Text;
-
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
-
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LocationActivity extends AppCompatActivity implements ServiceConnection, View.OnClickListener {
 
@@ -55,13 +53,14 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
 
     private LocationService.MyBinder binder;
 
+    // 时间戳转日期
+    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
     // 数据存储路径
-    private SimpleDateFormat formatter;
-    private String mRecordingDir;
+    private String mRecordRootDir;
 
-    private boolean bRecording = true;
+    private AtomicBoolean abRecord = new AtomicBoolean(false);
 
-    private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
@@ -79,7 +78,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                     tvAltitude.setText(map.get("altitude"));
                     break;
                 case GNSS_SEARCHING_CODE:
-                    setDefaultGnssInfo();
+//                    setDefaultGnssInfo();
                     tvSatellite.setText((String) msg.obj);
                     break;
                 case GNSS_PROVIDER_DISABLED_CODE:
@@ -113,9 +112,9 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    bRecording = true;
+                    abRecord.set(true);
                 } else {
-                    bRecording = false;
+                    abRecord.set(false);
                 }
             }
         });
@@ -123,9 +122,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
 
-        formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        mRecordingDir = getExternalFilesDir(
-                Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+        mRecordRootDir = getExternalFilesDir(Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
     }
 
     @Override
@@ -134,10 +131,10 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         binder = (LocationService.MyBinder) service;
         LocationService mLocationService = binder.getLocationService();
 
-        if (bRecording) {
+        if (abRecord.get()) {
             // 数据存储路径
-            String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-            mLocationService.startLocationRecording(recordingDir);
+            String recordDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+            mLocationService.startLocationRecording(recordDir);
         }
 
         mLocationService.setCallback(new LocationService.Callback() {
@@ -164,7 +161,7 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             @Override
             public void onLocationSearching(String data) {
                 Log.d(TAG, "onLocationSearching");
-                Message msg = Message.obtain();
+                Message msg = new Message();
                 msg.what = GNSS_SEARCHING_CODE;
                 msg.obj = data;
                 mMainHandler.sendMessage(msg);
@@ -198,10 +195,6 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             default:
                 break;
         }
-    }
-
-    public Handler getMainHandler() {
-        return mMainHandler;
     }
 
     private void setDefaultGnssInfo() {
