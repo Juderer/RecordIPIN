@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.model.cellular;
+package com.zhushuli.recordipin.models.cellular;
 
 public abstract class CellNeighbor extends CellPacket {
 

@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.model.cellular;
+package com.zhushuli.recordipin.models.cellular;
 
 import android.os.Build;
 import android.os.SystemClock;

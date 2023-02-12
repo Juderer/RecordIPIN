@@ -20,7 +20,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
-import com.zhushuli.recordipin.service.LocationService;
+import com.zhushuli.recordipin.services.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
 import com.zhushuli.recordipin.utils.LocationUtils;
 

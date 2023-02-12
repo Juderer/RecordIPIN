@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.model.cellular;
+package com.zhushuli.recordipin.models.cellular;
 
 import android.os.Build;
 import android.os.SystemClock;
@@ -7,21 +7,19 @@ import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
 
-public class CellServiceLte extends CellService {
-    private int ta;
+public class CellNeighborLte extends CellNeighbor {
 
-    public CellServiceLte() {
-
+    public CellNeighborLte() {
+        super();
     }
 
-    public CellServiceLte(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
-        super(mcc, mnc, cid, tac, earfcn, pci);
+    public CellNeighborLte(int earfcn, int pci, int rsrp, int rsrq) {
+        super(earfcn, pci, rsrp, rsrq);
     }
 
-    public CellServiceLte(CellInfo cellInfo) {
-        if (cellInfo instanceof CellInfoLte && cellInfo.isRegistered()) {
-            CellInfoLte cellInfoLte = (CellInfoLte) cellInfo;
-            recordFromCellInfoLte(cellInfoLte);
+    public CellNeighborLte(CellInfo cell) {
+        if (cell instanceof CellInfoLte && !cell.isRegistered()) {
+            recordFromCellInfoLte((CellInfoLte) cell);
         }
     }
 
@@ -29,11 +27,6 @@ public class CellServiceLte extends CellService {
         CellIdentityLte identityLte = cellInfoLte.getCellIdentity();
         CellSignalStrengthLte cssLte = cellInfoLte.getCellSignalStrength();
 
-        setTa(cssLte.getTimingAdvance());
-        setMcc(identityLte.getMccString());
-        setMnc(identityLte.getMncString());
-        setCid(identityLte.getCi());
-        setTac(identityLte.getTac());
         setEarfcn(identityLte.getEarfcn());
         setPci(identityLte.getPci());
 
@@ -51,14 +44,8 @@ public class CellServiceLte extends CellService {
         }
     }
 
-    public int getTa() {
-        return ta;
-    }
-
-    public void setTa(int ta) {
-        this.ta = ta;
-        if (ta == CellInfo.UNAVAILABLE) {
-            this.ta = -1;
-        }
+    @Override
+    public void setServiceCell(CellService serviceCell) {
+        return ;
     }
 }

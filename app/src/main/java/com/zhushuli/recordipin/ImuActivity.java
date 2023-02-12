@@ -21,7 +21,7 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
-import com.zhushuli.recordipin.service.ImuService;
+import com.zhushuli.recordipin.services.ImuService;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.File;

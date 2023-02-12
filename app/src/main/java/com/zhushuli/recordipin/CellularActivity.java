@@ -26,13 +26,13 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import com.zhushuli.recordipin.model.cellular.CellPacket;
-import com.zhushuli.recordipin.model.cellular.CellNeighbor;
-import com.zhushuli.recordipin.model.cellular.CellService;
-import com.zhushuli.recordipin.model.cellular.CellServiceLte;
-import com.zhushuli.recordipin.model.cellular.CellServiceNr;
-import com.zhushuli.recordipin.service.CellularService;
-import com.zhushuli.recordipin.service.LocationService;
+import com.zhushuli.recordipin.models.cellular.CellPacket;
+import com.zhushuli.recordipin.models.cellular.CellNeighbor;
+import com.zhushuli.recordipin.models.cellular.CellService;
+import com.zhushuli.recordipin.models.cellular.CellServiceLte;
+import com.zhushuli.recordipin.models.cellular.CellServiceNr;
+import com.zhushuli.recordipin.services.CellularService;
+import com.zhushuli.recordipin.services.LocationService;
 import com.zhushuli.recordipin.utils.CellularUtils;
 
 import java.io.File;

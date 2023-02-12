@@ -20,8 +20,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.zhushuli.recordipin.service.ImuService;
-import com.zhushuli.recordipin.service.LocationService;
+import com.zhushuli.recordipin.services.ImuService;
+import com.zhushuli.recordipin.services.LocationService;
 import com.zhushuli.recordipin.utils.DialogUtils;
 import com.zhushuli.recordipin.utils.LocationUtils;
 
@@ -91,7 +91,7 @@ public class CollectionActivity extends AppCompatActivity {
                     tvAltitude.setText(map.get("altitude"));
                     break;
                 case GNSS_SEARCHING_CODE:
-                    setDefaultGnssInfo();
+//                    setDefaultGnssInfo();
                     tvSatellite.setText((String) msg.obj);
                     break;
                 case GNSS_PROVIDER_DISABLED_CODE:

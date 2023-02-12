@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.service;
+package com.zhushuli.recordipin.services;
 
 import android.annotation.SuppressLint;
 import android.app.Service;
@@ -14,7 +14,6 @@ import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellInfoNr;
 import android.telephony.CellSignalStrengthLte;
-import android.telephony.NetworkScanRequest;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
@@ -23,18 +22,20 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import com.zhushuli.recordipin.model.cellular.CellPacket;
-import com.zhushuli.recordipin.model.cellular.CellNeighborLte;
-import com.zhushuli.recordipin.model.cellular.CellNeighborNr;
-import com.zhushuli.recordipin.model.cellular.CellServiceLte;
-import com.zhushuli.recordipin.model.cellular.CellServiceNr;
+import com.zhushuli.recordipin.models.cellular.CellPacket;
+import com.zhushuli.recordipin.models.cellular.CellNeighborLte;
+import com.zhushuli.recordipin.models.cellular.CellNeighborNr;
+import com.zhushuli.recordipin.models.cellular.CellServiceLte;
+import com.zhushuli.recordipin.models.cellular.CellServiceNr;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -54,7 +55,7 @@ public class CellularService extends Service {
     private MyPhoneStateListener mPhoneStateListener;
     private MyCellInfoCallback mCellInfoCallback;
 
-    private ExecutorService mExecutorService;
+    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(2);;
 
     // 蜂窝网络数据写入文件子线程
     private RecordThread mCellRecordThread;
@@ -62,9 +63,10 @@ public class CellularService extends Service {
 
     private Callback callback = null;
 
+    private Set<CellInfo> cellInfoSet = new HashSet<>();
+
     public CellularService() {
         Log.d(TAG, "CellularService");  // 先于onCreate调用！
-        mExecutorService = Executors.newFixedThreadPool(4);
     }
 
     public class MyBinder extends Binder {
@@ -190,6 +192,7 @@ public class CellularService extends Service {
                     mCellRecordThread.getHandler().sendMessage(msg);
                 }
             }
+            cellInfoSet.addAll(cellInfo);
         }
 
         @Override

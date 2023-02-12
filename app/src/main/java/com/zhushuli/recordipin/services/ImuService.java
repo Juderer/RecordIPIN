@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.service;
+package com.zhushuli.recordipin.services;
 
 import android.app.Service;
 import android.content.Context;
@@ -13,18 +13,13 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
 import com.google.common.collect.Queues;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ImuUtils;
-import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;

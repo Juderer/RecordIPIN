@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin.model.cellular;
+package com.zhushuli.recordipin.models.cellular;
 
 import android.os.Build;
 import android.os.SystemClock;
@@ -7,19 +7,21 @@ import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
 
-public class CellNeighborLte extends CellNeighbor {
+public class CellServiceLte extends CellService {
+    private int ta;
 
-    public CellNeighborLte() {
-        super();
+    public CellServiceLte() {
+
     }
 
-    public CellNeighborLte(int earfcn, int pci, int rsrp, int rsrq) {
-        super(earfcn, pci, rsrp, rsrq);
+    public CellServiceLte(String mcc, String mnc, int cid, int tac, int earfcn, int pci) {
+        super(mcc, mnc, cid, tac, earfcn, pci);
     }
 
-    public CellNeighborLte(CellInfo cell) {
-        if (cell instanceof CellInfoLte && !cell.isRegistered()) {
-            recordFromCellInfoLte((CellInfoLte) cell);
+    public CellServiceLte(CellInfo cellInfo) {
+        if (cellInfo instanceof CellInfoLte && cellInfo.isRegistered()) {
+            CellInfoLte cellInfoLte = (CellInfoLte) cellInfo;
+            recordFromCellInfoLte(cellInfoLte);
         }
     }
 
@@ -27,6 +29,11 @@ public class CellNeighborLte extends CellNeighbor {
         CellIdentityLte identityLte = cellInfoLte.getCellIdentity();
         CellSignalStrengthLte cssLte = cellInfoLte.getCellSignalStrength();
 
+        setTa(cssLte.getTimingAdvance());
+        setMcc(identityLte.getMccString());
+        setMnc(identityLte.getMncString());
+        setCid(identityLte.getCi());
+        setTac(identityLte.getTac());
         setEarfcn(identityLte.getEarfcn());
         setPci(identityLte.getPci());
 
@@ -44,8 +51,14 @@ public class CellNeighborLte extends CellNeighbor {
         }
     }
 
-    @Override
-    public void setServiceCell(CellService serviceCell) {
-        return ;
+    public int getTa() {
+        return ta;
+    }
+
+    public void setTa(int ta) {
+        this.ta = ta;
+        if (ta == CellInfo.UNAVAILABLE) {
+            this.ta = -1;
+        }
     }
 }

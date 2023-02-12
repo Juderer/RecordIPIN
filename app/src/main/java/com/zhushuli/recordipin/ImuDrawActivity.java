@@ -11,7 +11,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.zhushuli.recordipin.service.ImuService;
+import com.zhushuli.recordipin.services.ImuService;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 import com.zhushuli.recordipin.views.ImuDynamicView;
 
