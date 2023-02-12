@@ -12,6 +12,7 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.zhushuli.recordipin.service.ImuService;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 import com.zhushuli.recordipin.views.ImuDynamicView;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -36,8 +37,8 @@ public class ImuDrawActivity extends AppCompatActivity {
             mImuService.setCallback(new ImuService.Callback() {
                 @Override
                 public void onSensorChanged(SensorEvent event) {
-                    Log.d(TAG, "onSensorChanged");
-                    if (mSensorType.equals("ACCE") && event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                    Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
+                    if (mSensorType.equals("ACCEL") && event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
                         imuView.addImuValue(event);
                     }
                     else if (mSensorType.equals("GYRO") && event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {

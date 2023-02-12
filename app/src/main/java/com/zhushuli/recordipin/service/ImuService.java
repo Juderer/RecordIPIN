@@ -11,7 +11,6 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Message;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -19,6 +18,7 @@ import androidx.annotation.NonNull;
 import com.google.common.collect.Queues;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ImuUtils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -35,22 +35,67 @@ public class ImuService extends Service {
     private static final String TAG = "My" + ImuService.class.getSimpleName();
 
     private SensorManager mSensorManager;
-    private SensorEventListener mSensorEventListener;
+
+    // 设置队列, 用于写入文件
+    private BlockingQueue<String> mBlockingQueue = new ArrayBlockingQueue<String>(3000, true);
+//    private BlockingQueue<SensorEvent> mEventQueue = new ArrayBlockingQueue<>(3000, true);
+//    private Queue<String> mStringQueue = new LinkedList<>();
+
+    // SensorEvent数据预处理
+    private final HandlerThread mListenThread = new HandlerThread("Listen");
+
+    private final SensorEventListener mSensorEventListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+//            Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
+            if (callback != null) {
+                callback.onSensorChanged(event);
+                if (checkRecord()) {
+                    mBlockingQueue.offer(ImuUtils.sensorEvent2Str(event));
+//                    mEventQueue.add(event);
+//                    mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
+                }
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            Log.d(TAG, "onAccuracyChanged");
+        }
+    };
+
+    // 加速度计
     private Sensor mAccelSensor;
+    // 陀螺仪
     private Sensor mGyroSensor;
+
+    // 传感器数据写入文件子线程
+    private RecordThread mRecordThread;
+    // 判断写入子线程是否继续
+    private AtomicBoolean abRecord = new AtomicBoolean(false);
+
+    public boolean checkRecord() {
+        return abRecord.get();
+    }
+
+    public void setRecord(boolean record) {
+        abRecord.set(record);
+    }
+
+    // 回调接口
+    public interface Callback {
+        void onSensorChanged(SensorEvent event);
+    }
 
     private Callback callback = null;
 
-    // SensorEvent数据预处理
-    private HandlerThread mSensorThread;
-    private Handler mHandler;
+    public Callback getCallback() {
+        return callback;
+    }
 
-    // 设置队列, 用于写入文件
-    private Queue<String> mStringQueue = new LinkedList<>();
-    private BlockingQueue<String> mBlockingQueue = new ArrayBlockingQueue<String>(3000, true);
-    // 传感器数据写入文件子线程
-    private ImuRecordThread mImuRecordThread;
-    private AtomicBoolean abRunning = new AtomicBoolean(false);
+    public void setCallback(Callback callback) {
+        this.callback = callback;
+    }
 
     public ImuService() {
 
@@ -62,14 +107,16 @@ public class ImuService extends Service {
         }
     }
 
-    public interface Callback {
-        void onSensorChanged(SensorEvent event);
-    }
-
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "onBind");
         return new MyBinder();
+    }
+
+    @Override
+    public void onRebind(Intent intent) {
+        super.onRebind(intent);
+        Log.d(TAG, "onRebind");
     }
 
     @Override
@@ -87,76 +134,42 @@ public class ImuService extends Service {
         mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
-        mSensorEventListener = new SensorEventListener() {
-            @Override
-            public void onSensorChanged(SensorEvent event) {
-                Log.d(TAG, "onSensorChanged");
-                if (callback != null) {
-                    callback.onSensorChanged(event);
-
-//                    Message msg = Message.obtain();
-//                    msg.obj = event;
-//                    mHandler.sendMessage(msg);
-
-                    mBlockingQueue.offer(ImuUtils.sensorEvent2Str(event));
-//                    mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
-                }
-            }
-
-            @Override
-            public void onAccuracyChanged(Sensor sensor, int accuracy) {
-                Log.d(TAG, "onAccuracyChanged");
-            }
-        };
-
         registerResource();
     }
 
     private void registerResource() {
-        // 这部分代码弃用
-        mSensorThread = new HandlerThread("Sensor Thread", Thread.MAX_PRIORITY);
-        mSensorThread.start();
-        mHandler = new Handler(mSensorThread.getLooper()) {
-            @Override
-            public void handleMessage(@NonNull Message msg) {
-                // 使用该Handler处理会造成时间戳计算出现问题
-                // 且放在主线程中处理不会造成太大时间消耗
-                SensorEvent event = (SensorEvent) msg.obj;
-                mBlockingQueue.offer(ImuUtils.sensorEvent2Str(event));
-                Log.d(TAG, "event handler");
-            }
-        };
-//        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
-//        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, mHandler);
+        mListenThread.start();
+        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
+        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
 
-        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME);
-        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME);
+//        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME);
+//        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME);
     }
 
     private void unregisterResource() {
         mSensorManager.unregisterListener(mSensorEventListener, mAccelSensor);
         mSensorManager.unregisterListener(mSensorEventListener, mGyroSensor);
         mSensorManager.unregisterListener(mSensorEventListener);
-        mSensorThread.quitSafely();
+        mListenThread.quitSafely();
     }
 
     public void startImuRecording(String mRecordingDir) {
-        abRunning.set(true);
-        mImuRecordThread = new ImuRecordThread(mRecordingDir);
-        new Thread(mImuRecordThread).start();
+        abRecord.set(true);
+        mRecordThread = new RecordThread(mRecordingDir);
+        new Thread(mRecordThread).start();
     }
 
-    private class ImuRecordThread implements Runnable {
+    private class RecordThread implements Runnable {
         private BufferedWriter mBufferedWriter;
-        private String mRecordingDir;
+        private String mRecordDir;
         private ArrayList<String> mStringList = new ArrayList<>();
 
-        public ImuRecordThread(String recordingDir) {
-            mRecordingDir = recordingDir;
+        public RecordThread(String recordDir) {
+            mRecordDir = recordDir;
         }
 
         private void initWriter() {
-            mBufferedWriter = FileUtils.initWriter(mRecordingDir, "IMU.csv");
+            mBufferedWriter = FileUtils.initWriter(mRecordDir, "IMU.csv");
             try {
                 mBufferedWriter.write("sensor,sysTime,elapsedTime,x,y,z,accuracy\n");
             } catch (IOException e) {
@@ -167,18 +180,19 @@ public class ImuService extends Service {
         @Override
         public void run() {
             initWriter();
-            Log.d(TAG, "IMU recording start");
-            int writeCount = 0;
-            while (ImuService.this.getAbRunning()) {
+            Log.d(TAG, "Record Thread Start");
+            while (ImuService.this.checkRecord() || mBlockingQueue.size() > 0) {
                 try {
                     Queues.drain(mBlockingQueue, mStringList, 1500, 3000, TimeUnit.MILLISECONDS);
                     mBufferedWriter.write(String.join("", mStringList));
                     mBufferedWriter.flush();
-                    Log.d(TAG, "IMU recording write");
+                    Log.d(TAG, "Record Thread Write");
                     mStringList.clear();
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
+
+//                int writeCount = 0;
 //                if (mStringQueue.size() > 0) {
 //                    try {
 //                        mBufferedWriter.write(mStringQueue.poll());
@@ -186,7 +200,20 @@ public class ImuService extends Service {
 //                        if (writeCount > 1500) {
 //                            mBufferedWriter.flush();
 //                            Log.d(TAG, "IMU recording write");
-//                            writeCount = 0;
+//                        }
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+
+//                int writeCount = 0;
+//                if (mEventQueue.size() > 0) {
+//                    try {
+//                        mBufferedWriter.write(ImuUtils.sensorEvent2Str(mEventQueue.poll()));
+//                        writeCount ++;
+//                        if (writeCount > 1500) {
+//                            mBufferedWriter.flush();
+//                            Log.d(TAG, "IMU Record Write");
 //                        }
 //                    } catch (IOException e) {
 //                        e.printStackTrace();
@@ -194,24 +221,8 @@ public class ImuService extends Service {
 //                }
             }
             FileUtils.closeBufferedWriter(mBufferedWriter);
-            Log.d(TAG, "IMU recording end" + Thread.currentThread().getId());
+            Log.d(TAG, "Record Thread End:" + Thread.currentThread().getId());
         }
-    }
-
-    public Callback getCallback() {
-        return callback;
-    }
-
-    public void setCallback(Callback callback) {
-        this.callback = callback;
-    }
-
-    public boolean getAbRunning() {
-        return abRunning.get();
-    }
-
-    public void setAbRunning(boolean bRunning) {
-        abRunning.set(bRunning);
     }
 
     @Override
@@ -221,6 +232,6 @@ public class ImuService extends Service {
 
         unregisterResource();
 
-        abRunning.set(false);
+        setRecord(false);
     }
 }

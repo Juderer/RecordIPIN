@@ -67,39 +67,9 @@ public class ImuDynamicView extends View {
         getScreenSize(context);
         initCoordParam();
         initPaint();
-
-//        new Thread(new Runnable() {
-//            @Override
-//            public void run() {
-//                while (true) {
-//                    try {
-//                        Thread.sleep(10);
-//                    } catch (InterruptedException e) {
-//                        e.printStackTrace();
-//                    }
-//                    if (mDatas.size() >= maxDataSize) {
-//                        mDatas.remove(0);
-//                    }
-//                    float data = (float) (-30.0 + Math.random() * 40.0);
-//                    mDatas.add(data);
-//                    if (Math.abs(data) > mAbsMax) {
-//                        mAbsMax = Math.round(Math.abs(data));
-//                    }
-//                    handler.sendEmptyMessage(0x1234);
-//                }
-//            }
-//        }).start();
     }
 
     public void addImuValue(SensorEvent event) {
-//        float[] values = event.values;
-//        if (mDatas.size() >= maxDataSize) {
-//            mDatas.remove(0);
-//        }
-//        mDatas.add(values[1]);
-//        if (Math.abs(values[1]) > mAbsMax) {
-//            mAbsMax = Math.round(Math.abs(values[1]));
-//        }
         float[] values = event.values;
         if (mSensorDatas.size() >= maxDataSize) {
             mSensorDatas.remove(0);
@@ -206,8 +176,8 @@ public class ImuDynamicView extends View {
                 yScale = yLength / mAbsMax;
             }
 
-            canvas.drawText(String.format("%.2f", mAbsMax), xStart - 24, yStart, textPaint);
-            canvas.drawText("-" + String.format("%.2f", mAbsMax), xStart - 24, yStart + yLength * 2, textPaint);
+            canvas.drawText(String.format("%.2f", mAbsMax), xStart - 32, yStart, textPaint);
+            canvas.drawText("-" + String.format("%.2f", mAbsMax), xStart - 32, yStart + yLength * 2 + 32, textPaint);
         }
     }
 

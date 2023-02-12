@@ -22,11 +22,13 @@ import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import com.zhushuli.recordipin.service.ImuService;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.File;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class ImuActivity extends AppCompatActivity {
 
@@ -42,18 +44,63 @@ public class ImuActivity extends AppCompatActivity {
     private CheckBox cbRecord;
     private Button btnImuCollection;
 
-    private boolean bRecording = true;
-
-    private DecimalFormat dfSensor = new DecimalFormat("#0.0000");  // 传感器数据显示精度
+    // 传感器数据显示精度
+    private final DecimalFormat dfSensor = new DecimalFormat("#0.0000");
 
     // IMU服务相关类
     private ImuService.MyBinder mBinder = null;
-    private ImuService mImuService;
-    private ServiceConnection mImuServiceConnection;
 
+    private ImuService mImuService;
+
+    private final ServiceConnection mImuServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "onServiceConnected");
+            mBinder = (ImuService.MyBinder) service;
+            mImuService = mBinder.getImuService();
+
+            // 数据存储路径
+            if (abRecord.get()) {
+                String recordDir = mRecordDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+                mImuService.startImuRecording(recordDir);
+            }
+
+            mImuService.setCallback(new ImuService.Callback() {
+                @Override
+                public void onSensorChanged(SensorEvent event) {
+                    Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
+                    Message msg = Message.obtain();
+                    switch (event.sensor.getType()) {
+                        case Sensor.TYPE_ACCELEROMETER:
+                            msg.what = Sensor.TYPE_ACCELEROMETER;
+                            break;
+                        case Sensor.TYPE_GYROSCOPE:
+                            msg.what = Sensor.TYPE_GYROSCOPE;
+                            break;
+                        case Sensor.TYPE_MAGNETIC_FIELD:
+                            msg.what = Sensor.TYPE_MAGNETIC_FIELD;
+                            break;
+                        default:
+                            break;
+                    }
+                    msg.obj = event;
+                    ImuActivity.this.getHandler().sendMessage(msg);
+                }
+            });
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG, "onServiceDisconnected");
+        }
+    };
+
+    // 是否存储IMU数据
+    private AtomicBoolean abRecord = new AtomicBoolean(false);
+    // 时间戳转日期
+    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
     // 数据存储路径
-    private SimpleDateFormat formatter;
-    private String mRecordingDir;
+    private String mRecordDir;
 
     private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -77,10 +124,6 @@ public class ImuActivity extends AppCompatActivity {
         }
     };
 
-    public interface CallBack {
-        void onSensorChanged();
-    }
-
     private final View.OnClickListener graphListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -89,7 +132,7 @@ public class ImuActivity extends AppCompatActivity {
                 case R.id.tvAcceY:
                 case R.id.tvAcceZ:
                     Intent acceGraphIntent = new Intent(ImuActivity.this, ImuDrawActivity.class);
-                    acceGraphIntent.putExtra("Sensor", "ACCE");
+                    acceGraphIntent.putExtra("Sensor", "ACCEL");
                     startActivity(acceGraphIntent);
                     break;
                 case R.id.tvGyroX:
@@ -128,9 +171,10 @@ public class ImuActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    bRecording = true;
-                } else {
-                    bRecording = false;
+                    abRecord.set(true);
+                }
+                else {
+                    abRecord.set(false);
                 }
                 Log.d(TAG, "onCheckedChanged");
             }
@@ -139,64 +183,16 @@ public class ImuActivity extends AppCompatActivity {
         btnImuCollection = (Button) findViewById(R.id.btnImuStart);
         btnImuCollection.setOnClickListener(this::onClick);
 
-        initImuServiceConnection();
-
-        formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        mRecordingDir = getExternalFilesDir(
+        mRecordDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
 
+        // TODO::满足在采集数据的同时可视化
         tvAcceX.setOnClickListener(graphListener);
         tvAcceY.setOnClickListener(graphListener);
         tvAcceZ.setOnClickListener(graphListener);
         tvGyroX.setOnClickListener(graphListener);
         tvGyroY.setOnClickListener(graphListener);
         tvGyroZ.setOnClickListener(graphListener);
-    }
-
-
-
-    private void initImuServiceConnection() {
-        mImuServiceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                Log.d(TAG, "onServiceConnected");
-                mBinder = (ImuService.MyBinder) service;
-                mImuService = mBinder.getImuService();
-
-                // 数据存储路径
-                if (bRecording) {
-                    String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-                    mImuService.startImuRecording(recordingDir);
-                }
-
-                mImuService.setCallback(new ImuService.Callback() {
-                    @Override
-                    public void onSensorChanged(SensorEvent event) {
-                        Message msg = Message.obtain();
-                        switch (event.sensor.getType()) {
-                            case Sensor.TYPE_ACCELEROMETER:
-                                msg.what = Sensor.TYPE_ACCELEROMETER;
-                                break;
-                            case Sensor.TYPE_GYROSCOPE:
-                                msg.what = Sensor.TYPE_GYROSCOPE;
-                                break;
-                            case Sensor.TYPE_MAGNETIC_FIELD:
-                                msg.what = Sensor.TYPE_MAGNETIC_FIELD;
-                                break;
-                            default:
-                                break;
-                        }
-                        msg.obj = event;
-                        ImuActivity.this.getHandler().sendMessage(msg);
-                    }
-                });
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-
-            }
-        };
     }
 
     public void onClick(View v) {
@@ -221,6 +217,37 @@ public class ImuActivity extends AppCompatActivity {
 
     public Handler getHandler() {
         return mMainHandler;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume");
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+        Log.d(TAG, "onRestart");
     }
 
     @Override
