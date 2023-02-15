@@ -17,14 +17,17 @@ import android.os.Message;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.zhushuli.recordipin.models.cellular.CellPacket;
 import com.zhushuli.recordipin.models.cellular.CellNeighbor;
@@ -34,8 +37,12 @@ import com.zhushuli.recordipin.models.cellular.CellServiceNr;
 import com.zhushuli.recordipin.services.CellularService;
 import com.zhushuli.recordipin.services.LocationService;
 import com.zhushuli.recordipin.utils.CellularUtils;
+import com.zhushuli.recordipin.utils.FileUtils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -46,6 +53,7 @@ public class CellularActivity extends AppCompatActivity {
 
     private static final String TAG = CellularActivity.class.getSimpleName();
 
+    // TODO::private static修改为public static，方便其他类引用
     private static final int SERVICE_CELL_INFO_CODE = 1000;
     private static final int SERVICE_CELL_INFO_LTE_CODE = 1001;
     private static final int SERVICE_CELL_INFO_NR_CODE = 1002;
@@ -77,25 +85,23 @@ public class CellularActivity extends AppCompatActivity {
     private Button btnCellularTrack;
     private CheckBox cbRecord;
 
+    // POI信息（室内采集时辅助确认真值）
+    private EditText etPoi;
+    // 保存POI信息
+    private Button btnPoiSave;
+    // POI列表
+    private List<String> pois = new ArrayList<>();
+
     private List<TableRow> mNgbTableHeader = new ArrayList<>();
     private AtomicBoolean abNgbHeader = new AtomicBoolean(false);
 
-    // 蜂窝网络服务相关类
-    private ServiceConnection mCellularServiceConn;
-    private CellularService.MyBinder mCellularBinder = null;
-    private CellularService mCellularService;
-
-    // 定位服务相关类
-    private ServiceConnection mLocationServiceConn;
-    private LocationService.MyBinder mLocationBinder = null;
-    private LocationService mLocationService;
-
     // 保存路径
-    private SimpleDateFormat formatter;
-    private String mRecordingDir;
-    private AtomicBoolean abRecording = new AtomicBoolean(true);
+    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+    private String mRecordRootDir;
+    private String mRecordAbsDir;
+    private AtomicBoolean abRecord = new AtomicBoolean(false);
 
-    private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             super.handleMessage(msg);
@@ -118,8 +124,9 @@ public class CellularActivity extends AppCompatActivity {
                         tvServiceRsrp.setText(String.valueOf(serviceCell.getRsrp()));
                         tvServiceRsrq.setText(String.valueOf(serviceCell.getRsrq()));
 
-                        tvMcc.setText(serviceCell.getMcc());
-                        tvMnc.setText(serviceCell.getMnc());
+                        // TODO::偶尔会出现不准确！？保守起见选择注释
+//                        tvMcc.setText(serviceCell.getMcc());
+//                        tvMnc.setText(serviceCell.getMnc());
                     }
                     if (msg.obj instanceof CellServiceLte) {
                         tvNetworkTypeName.setText("LTE");
@@ -167,19 +174,28 @@ public class CellularActivity extends AppCompatActivity {
         }
     };
 
+    // 蜂窝网络服务相关类
+    private CellularService.MyBinder mCellularBinder = null;
+    private CellularService mCellularService;
+    private ServiceConnection mCellularServiceConn;
+
+    // 定位服务相关类
+    private LocationService.MyBinder mLocationBinder = null;
+    private LocationService mLocationService;
+    private ServiceConnection mLocationServiceConn;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_cellular);
-        Log.d(TAG, "onCreate");
+        Log.d(TAG, "onCreate:" + ThreadUtils.threadID());
 
         initView();
         initServiceCell();
         initNeighborTable();
         initMobileNetworkInfo();
 
-        formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        mRecordingDir = getExternalFilesDir(
+        mRecordRootDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
     }
 
@@ -222,6 +238,8 @@ public class CellularActivity extends AppCompatActivity {
                 }
                 else {
                     unbindService();
+                    etPoi.setText("");
+                    etPoi.clearFocus();
                 }
             }
         });
@@ -231,11 +249,52 @@ public class CellularActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    abRecording.set(true);
+                    abRecord.set(true);
                 } else {
-                    abRecording.set(false);
+                    abRecord.set(false);
                 }
                 Log.d(TAG, "onCheckedChanged");
+            }
+        });
+
+        etPoi = (EditText) findViewById(R.id.etPoi);
+        btnPoiSave = (Button) findViewById(R.id.btnPoiSave);
+        btnPoiSave.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Log.d(TAG, "onClick:" + ThreadUtils.threadID());
+                if (!abRecord.get() || btnCellularTrack.getText() == "Tracking" || mRecordAbsDir == null) {
+                    return ;
+                }
+                if (etPoi.getText().toString().trim().length() > 1) {
+                    String poi = etPoi.getText().toString().trim();
+                    Log.d(TAG, "onClick:" + poi);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            Log.d(TAG, "run:" + ThreadUtils.threadID());
+                            boolean exists = FileUtils.checkFileExists(mRecordAbsDir + File.separator + "POI.csv");
+                            BufferedWriter writer = null;
+                            if (!exists) {
+                                writer = FileUtils.initWriter(mRecordAbsDir, "POI.csv");
+                            }
+                            else {
+                                writer = FileUtils.initAppendWriter(mRecordAbsDir, "POI.csv");
+                            }
+                            try {
+                                if (!exists) {
+                                    writer.write("sysTime,POI\n");
+                                }
+                                writer.write(String.format("%d,%s\n", System.currentTimeMillis(), poi));
+                                writer.flush();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                            FileUtils.closeBufferedWriter(writer);
+                        }
+                    }).start();
+                    Toast.makeText(CellularActivity.this, "POI记录成功", Toast.LENGTH_SHORT).show();
+                }
             }
         });
     }
@@ -352,7 +411,7 @@ public class CellularActivity extends AppCompatActivity {
     private void initServiceConnection() {
         Log.d(TAG, "initServiceConnection");
 
-        String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+        mRecordAbsDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
 
         mCellularServiceConn = new ServiceConnection() {
             @Override
@@ -361,8 +420,8 @@ public class CellularActivity extends AppCompatActivity {
                 mCellularBinder = (CellularService.MyBinder) service;
                 mCellularService = mCellularBinder.getCellularService();
 
-                if (abRecording.get()) {
-                    mCellularService.startCellularRecording(recordingDir);
+                if (abRecord.get()) {
+                    mCellularService.startCellularRecording(mRecordAbsDir);
                 }
 
                 mCellularService.setCallback(new CellularService.Callback() {
@@ -417,8 +476,8 @@ public class CellularActivity extends AppCompatActivity {
                 mLocationBinder = (LocationService.MyBinder) service;
                 mLocationService = mLocationBinder.getLocationService();
 
-                if (abRecording.get()) {
-                    mLocationService.startLocationRecording(recordingDir);
+                if (abRecord.get()) {
+                    mLocationService.startLocationRecording(mRecordAbsDir);
                 }
 
                 mLocationService.setCallback(new LocationService.Callback() {
@@ -438,14 +497,14 @@ public class CellularActivity extends AppCompatActivity {
 
                     @Override
                     public void onLocationSearching(String data) {
-//                        Log.d(TAG, "onLocationSearching");
+                        Log.d(TAG, "onLocationSearching");
                     }
                 });
             }
 
             @Override
             public void onServiceDisconnected(ComponentName name) {
-
+                Log.d(TAG, "onServiceDisconnected");
             }
         };
     }

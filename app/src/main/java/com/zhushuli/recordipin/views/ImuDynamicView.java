@@ -216,6 +216,7 @@ public class ImuDynamicView extends View {
         canvas.drawText("Z", xStart + xLength, yStart + yLength * 2 + 140, textPaint);
     }
 
+    // TODO::自定义View如何使用ScrollView
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
