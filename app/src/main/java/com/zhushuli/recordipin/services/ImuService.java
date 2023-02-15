@@ -16,6 +16,7 @@ import android.util.Log;
 import com.google.common.collect.Queues;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ImuUtils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -32,21 +33,21 @@ public class ImuService extends Service {
     private SensorManager mSensorManager;
 
     // 设置队列, 用于写入文件
-    private BlockingQueue<String> mBlockingQueue = new ArrayBlockingQueue<String>(3000, true);
+    private BlockingQueue<String> mImuBlockingStrs = new ArrayBlockingQueue<String>(3000, true);
 //    private BlockingQueue<SensorEvent> mEventQueue = new ArrayBlockingQueue<>(3000, true);
 //    private Queue<String> mStringQueue = new LinkedList<>();
 
-    // SensorEvent数据预处理
+    // SensorEvent数据预处理子线程
     private final HandlerThread mListenThread = new HandlerThread("Listen");
 
     private final SensorEventListener mSensorEventListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-//            Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
+            Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
             if (callback != null) {
                 callback.onSensorChanged(event);
-                if (checkRecord()) {
-                    mBlockingQueue.offer(ImuUtils.sensorEvent2Str(event));
+                if (checkRecording()) {
+                    mImuBlockingStrs.offer(ImuUtils.sensorEvent2Str(event));
 //                    mEventQueue.add(event);
 //                    mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
                 }
@@ -67,14 +68,14 @@ public class ImuService extends Service {
     // 传感器数据写入文件子线程
     private RecordThread mRecordThread;
     // 判断写入子线程是否继续
-    private AtomicBoolean abRecord = new AtomicBoolean(false);
+    private AtomicBoolean recording = new AtomicBoolean(false);
 
-    public boolean checkRecord() {
-        return abRecord.get();
+    public boolean checkRecording() {
+        return recording.get();
     }
 
-    public void setRecord(boolean record) {
-        abRecord.set(record);
+    public void setRecording(boolean recording) {
+        this.recording.set(recording);
     }
 
     // 回调接口
@@ -148,8 +149,8 @@ public class ImuService extends Service {
         mListenThread.quitSafely();
     }
 
-    public void startImuRecording(String mRecordingDir) {
-        abRecord.set(true);
+    public void startImuRecord(String mRecordingDir) {
+        recording.set(true);
         mRecordThread = new RecordThread(mRecordingDir);
         new Thread(mRecordThread).start();
     }
@@ -157,7 +158,7 @@ public class ImuService extends Service {
     private class RecordThread implements Runnable {
         private BufferedWriter mBufferedWriter;
         private String mRecordDir;
-        private ArrayList<String> mStringList = new ArrayList<>();
+        private ArrayList<String> mStrings = new ArrayList<>();
 
         public RecordThread(String recordDir) {
             mRecordDir = recordDir;
@@ -176,13 +177,13 @@ public class ImuService extends Service {
         public void run() {
             initWriter();
             Log.d(TAG, "Record Thread Start");
-            while (ImuService.this.checkRecord() || mBlockingQueue.size() > 0) {
+            while (ImuService.this.checkRecording() || mImuBlockingStrs.size() > 0) {
                 try {
-                    Queues.drain(mBlockingQueue, mStringList, 1500, 3000, TimeUnit.MILLISECONDS);
-                    mBufferedWriter.write(String.join("", mStringList));
+                    Queues.drain(mImuBlockingStrs, mStrings, 1500, 3000, TimeUnit.MILLISECONDS);
+                    mBufferedWriter.write(String.join("", mStrings));
                     mBufferedWriter.flush();
                     Log.d(TAG, "Record Thread Write");
-                    mStringList.clear();
+                    mStrings.clear();
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -227,6 +228,6 @@ public class ImuService extends Service {
 
         unregisterResource();
 
-        setRecord(false);
+        setRecording(false);
     }
 }

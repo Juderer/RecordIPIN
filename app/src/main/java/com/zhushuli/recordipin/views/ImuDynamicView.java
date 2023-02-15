@@ -17,13 +17,11 @@ import android.view.WindowManager;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.zhushuli.recordipin.utils.ThreadUtils;
+
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Queue;
+import java.util.concurrent.Semaphore;
 
 public class ImuDynamicView extends View {
 
@@ -40,16 +38,18 @@ public class ImuDynamicView extends View {
     private int screenHeight;
 
     private int maxDataSize;
-    private List<Float> mDatas = new ArrayList<>();
     private List<List<Float>> mSensorDatas = new ArrayList<>();
     private long addCount = 0;
     private float mAbsMax = 0;
 
+    // 用于绘制坐标系
     private Paint coordPaint;
+    // 用于绘制文字
     private Paint textPaint;
+    // 用于绘制图中数据
     private List<Paint> dataPaints = new ArrayList<>();
 
-    private final Handler handler = new Handler(Looper.myLooper()) {
+    private final Handler handler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
@@ -62,6 +62,9 @@ public class ImuDynamicView extends View {
         }
     };
 
+    // 信号量，确保主线程与子线程同步互斥
+    private final Semaphore mSemaphore = new Semaphore(1);
+
     public ImuDynamicView(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
         getScreenSize(context);
@@ -70,20 +73,30 @@ public class ImuDynamicView extends View {
     }
 
     public void addImuValue(SensorEvent event) {
+        Log.d(TAG, "addImuValue:" + ThreadUtils.threadID());
         float[] values = event.values;
-        if (mSensorDatas.size() >= maxDataSize) {
-            mSensorDatas.remove(0);
-        }
-        for (int i = 0; i < values.length; i ++) {
-            if (Math.abs(values[i]) > mAbsMax) {
-                mAbsMax = Math.abs(values[i]);
+        try {
+            mSemaphore.acquire();
+            if (mSensorDatas.size() >= maxDataSize) {
+                mSensorDatas.remove(0);
             }
+            for (int i = 0; i < values.length; i ++) {
+                if (Math.abs(values[i]) > mAbsMax) {
+                    mAbsMax = Math.abs(values[i]);
+                }
+            }
+            mSensorDatas.add(new ArrayList<Float>(){{
+                add(values[0]);
+                add(values[1]);
+                add(values[2]);
+            }});
         }
-        mSensorDatas.add(new ArrayList<Float>(){{
-            add(values[0]);
-            add(values[1]);
-            add(values[2]);
-        }});
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        finally {
+            mSemaphore.release();
+        }
         handler.sendEmptyMessage(0x1234);
         addCount ++;
 
@@ -220,16 +233,30 @@ public class ImuDynamicView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        Log.d(TAG, "onDraw:" + ThreadUtils.threadID());
+
         drawRectCoordSys(canvas);
         adaptCoordParam(canvas);
 
-        if (mSensorDatas.size() > 0) {
-            for (int i = 1; i < mSensorDatas.size(); i ++) {
-                for (int j = 0; j < mSensorDatas.get(0).size(); j ++) {
-                    canvas.drawLine(xScale * (i - 1) + xStart, yStart + yLength - yScale * mSensorDatas.get(i - 1).get(j),
-                            xScale * i + xStart, yStart + yLength - yScale * mSensorDatas.get(i).get(j), dataPaints.get(j));
+        try {
+            mSemaphore.acquire();
+            if (mSensorDatas.size() > 0) {
+                for (int i = 1; i < mSensorDatas.size(); i ++) {
+                    for (int j = 0; j < mSensorDatas.get(0).size(); j ++) {
+                        canvas.drawLine(xScale * (i - 1) + xStart,
+                                yStart + yLength - yScale * mSensorDatas.get(i - 1).get(j),
+                                xScale * i + xStart,
+                                yStart + yLength - yScale * mSensorDatas.get(i).get(j),
+                                dataPaints.get(j));
+                    }
                 }
             }
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        finally {
+            mSemaphore.release();
         }
     }
 }

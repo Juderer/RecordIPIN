@@ -60,9 +60,9 @@ public class ImuActivity extends AppCompatActivity {
             mImuService = mBinder.getImuService();
 
             // 数据存储路径
-            if (abRecord.get()) {
-                String recordDir = mRecordDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-                mImuService.startImuRecording(recordDir);
+            if (recording.get()) {
+                mRecordAbsDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+                mImuService.startImuRecord(mRecordAbsDir);
             }
 
             mImuService.setCallback(new ImuService.Callback() {
@@ -96,11 +96,13 @@ public class ImuActivity extends AppCompatActivity {
     };
 
     // 是否存储IMU数据
-    private AtomicBoolean abRecord = new AtomicBoolean(false);
+    private AtomicBoolean recording = new AtomicBoolean(false);
     // 时间戳转日期
     private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
     // 数据存储路径
-    private String mRecordDir;
+    private String mRecordRootDir;
+    // 数据存储路径
+    private String mRecordAbsDir;
 
     private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -171,10 +173,10 @@ public class ImuActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    abRecord.set(true);
+                    recording.set(true);
                 }
                 else {
-                    abRecord.set(false);
+                    recording.set(false);
                 }
                 Log.d(TAG, "onCheckedChanged");
             }
@@ -183,7 +185,7 @@ public class ImuActivity extends AppCompatActivity {
         btnImuCollection = (Button) findViewById(R.id.btnImuStart);
         btnImuCollection.setOnClickListener(this::onClick);
 
-        mRecordDir = getExternalFilesDir(
+        mRecordRootDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
 
         // TODO::满足在采集数据的同时可视化

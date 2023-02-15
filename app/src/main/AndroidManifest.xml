@@ -18,31 +18,21 @@
     <uses-permission android:name="android.permission.CAMERA" /> <!-- 录屏所需权限 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
-    <!--android:icon="@mipmap/ic_launcher"
-    android:roundIcon="@mipmap/ic_launcher_round"-->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
+        android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.RecordIPIN">
-        <activity
-            android:name=".ImuDrawActivity"
-            android:configChanges="orientation|screenSize"
-            android:exported="false"/>
+
         <activity
             android:name=".Camera2Activity"
-            android:exported="false">
-        </activity>
+            android:exported="false" />
         <activity
             android:name=".CameraxActivity"
-            android:exported="false">
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
-        </activity> <!-- configChanges: 旋转屏幕时阻止activity重建 -->
+            android:exported="false" /> <!-- configChanges: 旋转屏幕时阻止activity重建 -->
         <activity
             android:name=".CellularActivity"
             android:configChanges="orientation|screenSize"
@@ -53,6 +43,10 @@
             android:configChanges="orientation|screenSize"
             android:exported="false"
             android:label="Collection" />
+        <activity
+            android:name=".ImuDrawActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
         <activity
             android:name=".ImuActivity"
             android:configChanges="orientation|screenSize"

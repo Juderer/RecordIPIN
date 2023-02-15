@@ -88,3 +88,11 @@
 ## 1.23 绘图
 
 - 动态折线图
+
+## 1.24 Java/Android代码规范
+
+- 个人经验，布尔变量选择形容词
+- [boolean field, naming convention](https://stackoverflow.com/questions/5322648/for-a-boolean-field-what-is-the-naming-convention-for-its-getter-setter)
+
+## 1.25 Semaphore
+
