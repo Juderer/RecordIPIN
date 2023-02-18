@@ -96,3 +96,8 @@
 
 ## 1.25 Semaphore
 
+## 1.26 自定义APK名称
+
+- ["app-release.apk" how to change this default generated apk name](https://stackoverflow.com/questions/28249036/app-release-apk-how-to-change-this-default-generated-apk-name)
+- [How to change apk name by using gradle like this format?](https://stackoverflow.com/questions/33775160/how-to-change-apk-name-by-using-gradle-like-this-format)
+

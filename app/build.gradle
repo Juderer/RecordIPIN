@@ -10,9 +10,9 @@ android {
         minSdk 28
         targetSdk 32
         versionCode 1
-        versionName "0.4"
-
+        versionName "0.5"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        setProperty("archivesBaseName", "RecordIPIN-v${versionName}")  // 自定义打包名称
     }
 
     buildTypes {
@@ -24,17 +24,18 @@ android {
             minifyEnabled true
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
 
     // 自定义打包名称
-    android.applicationVariants.all { variant ->
-        variant.outputs.all {
-            outputFileName = "RecordIPIN_${buildType.name}_v${versionName}.apk"
-        }
-    }
+//    applicationVariants.all { variant ->
+//        variant.outputs.all {
+//            outputFileName = "RecordIPIN-v${variant.versionName}-${variant.name}.apk"
+//        }
+//    }
 }
 
 dependencies {
