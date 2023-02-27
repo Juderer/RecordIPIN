@@ -32,7 +32,9 @@
             android:exported="false" />
         <activity
             android:name=".CameraxActivity"
-            android:exported="false" /> <!-- configChanges: 旋转屏幕时阻止activity重建 -->
+            android:exported="false" />
+
+        <!-- configChanges: 旋转屏幕时阻止activity重建 -->
         <activity
             android:name=".CellularActivity"
             android:configChanges="orientation|screenSize"
@@ -44,11 +46,20 @@
             android:exported="false"
             android:label="Collection" />
         <activity
-            android:name=".ImuDrawActivity"
+            android:name=".activities.imu.ImuDrawActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false" />
         <activity
-            android:name=".ImuActivity"
+            android:name=".activities.imu.ImuDrawActivity2"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activities.imu.ImuActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false"
+            android:label="IMU" />
+        <activity
+            android:name=".activities.imu.ImuActivity2"
             android:configChanges="orientation|screenSize"
             android:exported="false"
             android:label="IMU" />
@@ -65,7 +76,15 @@
             android:exported="true"
             tools:ignore="Instantiatable" />
         <service
+            android:name=".services.LocationService2"
+            android:enabled="true"
+            android:exported="true" />
+        <service
             android:name=".services.ImuService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".services.ImuService2"
             android:enabled="true"
             android:exported="true" />
         <service

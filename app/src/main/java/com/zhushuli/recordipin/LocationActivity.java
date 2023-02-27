@@ -3,13 +3,16 @@ package com.zhushuli.recordipin;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
@@ -20,9 +23,10 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.TextView;
 
-import com.zhushuli.recordipin.services.LocationService;
+import com.alibaba.fastjson.JSON;
+import com.zhushuli.recordipin.services.LocationService2;
 import com.zhushuli.recordipin.utils.DialogUtils;
-import com.zhushuli.recordipin.utils.LocationUtils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -30,14 +34,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LocationActivity extends AppCompatActivity implements ServiceConnection, View.OnClickListener {
+public class LocationActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private static final String TAG = "My" + LocationActivity.class.getSimpleName();
-//    private static final String TAG = "My" + LocationActivity.class.getName();
-
-    private static final int GNSS_LOCATION_UPDATE_CODE = 8402;
-    private static final int GNSS_SEARCHING_CODE = 502;
-    private static final int GNSS_PROVIDER_DISABLED_CODE = 404;
+    private static final String TAG = LocationActivity.class.getSimpleName();
+//    private static final String TAG = LocationActivity.class.getName();
 
     private TextView tvDate;
     private TextView tvCoordinate;
@@ -51,22 +51,20 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     private CheckBox cbRecord;
     private Button btnLocServiceStart;
 
-    private LocationService.MyBinder binder;
+    private LocationService2.MyBinder binder;
 
     // 时间戳转日期
     private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
     // 数据存储路径
     private String mRecordRootDir;
 
-    private AtomicBoolean abRecord = new AtomicBoolean(false);
+    private AtomicBoolean recording = new AtomicBoolean(false);
 
     private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             switch (msg.what) {
-                case GNSS_LOCATION_UPDATE_CODE:
-                    tvSatellite.setText("--");
-
+                case LocationService2.GNSS_LOCATION_CHANGED_CODE:
                     tvCoordinate.setText("WGS84");
                     HashMap<String, String> map = (HashMap<String, String>) msg.obj;
                     tvDate.setText(map.get("date"));
@@ -77,11 +75,10 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
                     tvBearing.setText(map.get("bearing"));
                     tvAltitude.setText(map.get("altitude"));
                     break;
-                case GNSS_SEARCHING_CODE:
-//                    setDefaultGnssInfo();
+                case LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE:
                     tvSatellite.setText((String) msg.obj);
                     break;
-                case GNSS_PROVIDER_DISABLED_CODE:
+                case LocationService2.GNSS_PROVIDER_DISABLED_CODE:
                     setDefaultGnssInfo();
                     DialogUtils.showLocationSettingsAlert(LocationActivity.this);
                     break;
@@ -91,11 +88,54 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         }
     };
 
+    private final BroadcastReceiver mLocationReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive:" + ThreadUtils.threadID());
+            String action = intent.getAction();
+            Message msg = Message.obtain();
+            if (action.equals(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION)) {
+                msg.what = LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE;
+                msg.obj = intent.getStringExtra("satellite");
+                mMainHandler.sendMessage(msg);
+            } else if (action.equals(LocationService2.GNSS_LOCATION_CHANGED_ACTION)) {
+                String location = intent.getStringExtra("location");
+                msg.what = LocationService2.GNSS_LOCATION_CHANGED_CODE;
+                msg.obj = JSON.parseObject(location, HashMap.class);
+                mMainHandler.sendMessage(msg);
+            } else if (action.equals(LocationService2.GNSS_PROVIDER_DISABLED_ACTION)) {
+                mMainHandler.sendEmptyMessage(LocationService2.GNSS_PROVIDER_DISABLED_CODE);
+            }
+        }
+    };
+
+    private final HandlerThread mReceiverThread = new HandlerThread("Receive");
+
+    private final ServiceConnection mLocationServiceConn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "onServiceConnected");
+            binder = (LocationService2.MyBinder) service;
+            LocationService2 mLocationService2 = binder.getLocationService2();
+
+            if (recording.get()) {
+                // 数据存储路径
+                String recordDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+                mLocationService2.startLocationRecord(recordDir);
+            }
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG, "onServiceDisconnected");
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_location);
-        Log.d(TAG, "onCreate");
+        Log.d(TAG, "onCreate:" + ThreadUtils.threadID());
 
         tvDate = (TextView) findViewById(R.id.tvDate);
         tvCoordinate = (TextView) findViewById(R.id.tvCoordinate);
@@ -112,9 +152,9 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    abRecord.set(true);
+                    recording.set(true);
                 } else {
-                    abRecord.set(false);
+                    recording.set(false);
                 }
             }
         });
@@ -122,56 +162,9 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
 
+        mReceiverThread.start();
+
         mRecordRootDir = getExternalFilesDir(Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
-    }
-
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder service) {
-        Log.d(TAG, "onServiceConnected");
-        binder = (LocationService.MyBinder) service;
-        LocationService mLocationService = binder.getLocationService();
-
-        if (abRecord.get()) {
-            // 数据存储路径
-            String recordDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-            mLocationService.startLocationRecording(recordDir);
-        }
-
-        mLocationService.setCallback(new LocationService.Callback() {
-            @Override
-            public void onLocationChanged(Location location) {
-                Log.d(TAG, "onLocationChanged");
-                Message msg = new Message();
-                msg.what = GNSS_LOCATION_UPDATE_CODE;
-                msg.obj = LocationUtils.genLocationMap(location);
-                mMainHandler.sendMessage(msg);
-            }
-
-            @Override
-            public void onLocationProvoiderDisabled() {
-                Message msg = Message.obtain();
-                msg.what = GNSS_PROVIDER_DISABLED_CODE;
-                mMainHandler.sendMessage(msg);
-
-                unbindService(LocationActivity.this);
-                binder = null;
-                btnLocServiceStart.setText("Start");
-            }
-
-            @Override
-            public void onLocationSearching(String data) {
-                Log.d(TAG, "onLocationSearching");
-                Message msg = new Message();
-                msg.what = GNSS_SEARCHING_CODE;
-                msg.obj = data;
-                mMainHandler.sendMessage(msg);
-            }
-        });
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName name) {
-        Log.d(TAG, "onServiceDisconnected");
     }
 
     @Override
@@ -179,13 +172,13 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
         switch (v.getId()) {
             case R.id.btnLocServiceStart:
                 if (btnLocServiceStart.getText().equals("Start")) {
-                    Intent intent = new Intent(LocationActivity.this, LocationService.class);
-                    bindService(intent, LocationActivity.this, BIND_AUTO_CREATE);
+                    Intent intent = new Intent(LocationActivity.this, LocationService2.class);
+                    bindService(intent, mLocationServiceConn, BIND_AUTO_CREATE);
 
                     btnLocServiceStart.setText("Stop");
                     cbRecord.setEnabled(false);
                 } else {
-                    unbindService(LocationActivity.this);
+                    unbindService(mLocationServiceConn);
                     setDefaultGnssInfo();
 
                     btnLocServiceStart.setText("Start");
@@ -213,6 +206,12 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     protected void onStart() {
         super.onStart();
         Log.d(TAG, "onStart");
+
+        IntentFilter intent = new IntentFilter();
+        intent.addAction(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION);
+        intent.addAction(LocationService2.GNSS_LOCATION_CHANGED_ACTION);
+        intent.addAction(LocationService2.GNSS_PROVIDER_DISABLED_ACTION);
+        registerReceiver(mLocationReceiver, intent, null, new Handler(mReceiverThread.getLooper()));
     }
 
     @Override
@@ -232,6 +231,8 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     protected void onStop() {
         super.onStop();
         Log.d(TAG, "onStop");
+
+        unregisterReceiver(mLocationReceiver);
     }
 
     @Override
@@ -243,10 +244,11 @@ public class LocationActivity extends AppCompatActivity implements ServiceConnec
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestory");
+        Log.d(TAG, "onDestroy");
 
         if (btnLocServiceStart.getText().equals("Stop")) {
-            unbindService(LocationActivity.this);
+            unbindService(mLocationServiceConn);
         }
+        mReceiverThread.quitSafely();
     }
 }

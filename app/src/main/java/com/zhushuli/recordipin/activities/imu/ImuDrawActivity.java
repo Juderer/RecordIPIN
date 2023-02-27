@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin;
+package com.zhushuli.recordipin.activities.imu;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -11,6 +11,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.zhushuli.recordipin.R;
+import com.zhushuli.recordipin.models.imu.ImuInfo;
 import com.zhushuli.recordipin.services.ImuService;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 import com.zhushuli.recordipin.views.ImuDynamicView;
@@ -38,11 +40,13 @@ public class ImuDrawActivity extends AppCompatActivity {
                 @Override
                 public void onSensorChanged(SensorEvent event) {
                     Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
-                    if (mSensorType.equals("ACCEL") && event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-                        imuView.addImuValue(event);
+                    if (mSensorType.equals("ACCEL") && (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER ||
+                            event.sensor.getType() == Sensor.TYPE_ACCELEROMETER_UNCALIBRATED)) {
+                        imuView.addImuValue(new ImuInfo(event));
                     }
-                    else if (mSensorType.equals("GYRO") && event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
-                        imuView.addImuValue(event);
+                    else if (mSensorType.equals("GYRO") && (event.sensor.getType() == Sensor.TYPE_GYROSCOPE ||
+                            event.sensor.getType() == Sensor.TYPE_GYROSCOPE_UNCALIBRATED)) {
+                        imuView.addImuValue(new ImuInfo(event));
                     }
                 }
             });
@@ -54,7 +58,7 @@ public class ImuDrawActivity extends AppCompatActivity {
         }
     };
 
-    private AtomicBoolean abConn = new AtomicBoolean(false);
+    private AtomicBoolean connected = new AtomicBoolean(false);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +78,7 @@ public class ImuDrawActivity extends AppCompatActivity {
 
         Intent intent = new Intent(ImuDrawActivity.this, ImuService.class);
         bindService(intent, mImuServiceConn, BIND_AUTO_CREATE);
-        abConn.set(true);
+        connected.set(true);
     }
 
     @Override
@@ -82,7 +86,7 @@ public class ImuDrawActivity extends AppCompatActivity {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
-        if (abConn.get()) {
+        if (connected.get()) {
             unbindService(mImuServiceConn);
         }
     }

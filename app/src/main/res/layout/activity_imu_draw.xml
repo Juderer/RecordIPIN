@@ -4,7 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context=".ImuDrawActivity">
+    tools:context=".activities.imu.ImuDrawActivity">
 
     <com.zhushuli.recordipin.views.ImuDynamicView
         android:id="@+id/imuDynamicView"

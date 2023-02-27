@@ -61,4 +61,5 @@ dependencies {
 
     // 绘图第三方库
 //    implementation 'com.github.lecho:hellocharts-android:v1.5.8'
+    implementation 'com.alibaba:fastjson:2.0.24'
 }

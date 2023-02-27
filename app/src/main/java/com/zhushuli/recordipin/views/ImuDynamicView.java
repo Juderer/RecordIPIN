@@ -17,6 +17,7 @@ import android.view.WindowManager;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import com.zhushuli.recordipin.models.imu.ImuInfo;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.util.ArrayList;
@@ -72,9 +73,9 @@ public class ImuDynamicView extends View {
         initPaint();
     }
 
-    public void addImuValue(SensorEvent event) {
+    public void addImuValue(ImuInfo imuInfo) {
         Log.d(TAG, "addImuValue:" + ThreadUtils.threadID());
-        float[] values = event.values;
+        float[] values = imuInfo.getValues();
         try {
             mSemaphore.acquire();
             if (mSensorDatas.size() >= maxDataSize) {

@@ -491,7 +491,7 @@ public class CellularActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onLocationProvoiderDisabled() {
+                    public void onLocationProviderDisabled() {
                         Log.d(TAG, "onLocationProvoiderDisabled");
                     }
 

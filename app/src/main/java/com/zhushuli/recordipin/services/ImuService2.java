@@ -13,7 +13,9 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
 
+import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Queues;
+import com.zhushuli.recordipin.models.imu.ImuInfo;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ImuUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
@@ -26,9 +28,11 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class ImuService extends Service {
+public class ImuService2 extends Service {
 
-    private static final String TAG = "My" + ImuService.class.getSimpleName();
+    private static final String TAG = ImuService2.class.getSimpleName();
+
+    public static final String IMU_SENSOR_CHANGED_ACTION = "recordipin.broadcast.imu.sensorChanged";
 
     private SensorManager mSensorManager;
 
@@ -44,14 +48,22 @@ public class ImuService extends Service {
         @Override
         public void onSensorChanged(SensorEvent event) {
             Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
-            if (callback != null) {
-                if (checkRecording()) {
-                    mImuBlockingStrs.offer(ImuUtils.sensorEvent2Str(event));
-//                    mEventQueue.add(event);
-//                    mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
-                }
-                callback.onSensorChanged(event);
+            if (checkRecording()) {
+//                synchronized (new Object()) {
+//                    // TODO::考虑使用两个子线程（配上两个SensorEventListener）分别监听加速度计与陀螺仪
+//                }
+                mImuBlockingStrs.offer(ImuUtils.sensorEvent2Str(event));
+//                mEventQueue.add(event);
+//                mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
             }
+            sendBroadcast(new Intent(IMU_SENSOR_CHANGED_ACTION).putExtra("IMU",
+                    JSON.toJSONString(new ImuInfo(event))));
+            ImuInfo imuInfo = new ImuInfo(event);
+            String testStr = JSON.toJSONString(imuInfo);
+            ImuInfo test = (ImuInfo) JSON.parseObject(testStr, ImuInfo.class);
+            Log.d(TAG, imuInfo.toString());
+            Log.d(TAG, testStr);
+            Log.d(TAG, test.toString());
         }
 
         @Override
@@ -93,13 +105,13 @@ public class ImuService extends Service {
         this.callback = callback;
     }
 
-    public ImuService() {
+    public ImuService2() {
 
     }
 
     public class MyBinder extends Binder {
-        public ImuService getImuService() {
-            return ImuService.this;
+        public ImuService2 getImuService2() {
+            return ImuService2.this;
         }
     }
 
@@ -130,6 +142,7 @@ public class ImuService extends Service {
         mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
 
+        // 从参考项目（VideoIMUCapture：https://github.com/DavidGillsjo/VideoIMUCapture-Android）中了解的无校准类型
 //        mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
 //        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
 
@@ -152,10 +165,12 @@ public class ImuService extends Service {
         mListenThread.quitSafely();
     }
 
-    public void startImuRecord(String mRecordingDir) {
-        recording.set(true);
-        mRecordThread = new RecordThread(mRecordingDir);
-        new Thread(mRecordThread).start();
+    public synchronized void startImuRecord(String mRecordingDir) {
+        if (!checkRecording()) {
+            setRecording(true);
+            mRecordThread = new RecordThread(mRecordingDir);
+            new Thread(mRecordThread).start();
+        }
     }
 
     private class RecordThread implements Runnable {
@@ -180,7 +195,7 @@ public class ImuService extends Service {
         public void run() {
             initWriter();
             Log.d(TAG, "Record Thread Start");
-            while (ImuService.this.checkRecording() || mImuBlockingStrs.size() > 0) {
+            while (ImuService2.this.checkRecording() || mImuBlockingStrs.size() > 0) {
                 try {
                     Queues.drain(mImuBlockingStrs, mStrings, 1500, 3000, TimeUnit.MILLISECONDS);
                     mBufferedWriter.write(String.join("", mStrings));

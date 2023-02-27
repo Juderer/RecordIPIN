@@ -17,4 +17,8 @@
     <color name="lightskyblue">#87cefa</color>
     <color name="skyblue">#87ceeb</color>
     <color name="yellowgreen">#9acd32</color>
+    <color name="DodgerBlue">#1E90FF</color>
+    <color name="Teal">#008080</color>
+    <color name="TealGreen">#00827f</color>
+    <color name="TealBlue">#367588</color>
 </resources>

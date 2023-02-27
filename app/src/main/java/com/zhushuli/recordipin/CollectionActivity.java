@@ -214,7 +214,7 @@ public class CollectionActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onLocationProvoiderDisabled() {
+                    public void onLocationProviderDisabled() {
                         Message msg = Message.obtain();
                         msg.what = GNSS_PROVIDER_DISABLED_CODE;
                         CollectionActivity.this.getHandler().sendMessage(msg);
@@ -246,7 +246,7 @@ public class CollectionActivity extends AppCompatActivity {
                 mImuBinder = (ImuService.MyBinder) service;
                 mImuService = mImuBinder.getImuService();
 
-                mImuService.startImuRecording(recordingDir);
+                mImuService.startImuRecord(recordingDir);
 
                 mImuService.setCallback(new ImuService.Callback() {
                     @Override

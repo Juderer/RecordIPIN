@@ -17,6 +17,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.zhushuli.recordipin.activities.imu.ImuActivity;
+import com.zhushuli.recordipin.activities.imu.ImuActivity2;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
 
@@ -105,7 +107,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     Log.d(TAG, "外部存储读写权限未授权");
                     ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
                 }
-                startActivity(new Intent(this, ImuActivity.class));
+                startActivity(new Intent(this, ImuActivity2.class));
                 break;
             case R.id.btn2CollectAty:
                 isAllGranted = checkPermissionAllGranted(new String[]{
@@ -248,7 +250,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestory");
+        Log.d(TAG, "onDestroy");
     }
 
     @Override

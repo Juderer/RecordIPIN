@@ -3,8 +3,8 @@
 <!--    <style name="Theme.RecordIPIN" parent="Theme.MaterialComponents.DayNight.DarkActionBar">-->
     <style name="Theme.RecordIPIN" parent="Theme.MaterialComponents.DayNight.DarkActionBar.Bridge">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_500</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorPrimary">@color/TealGreen</item>
+        <item name="colorPrimaryVariant">@color/TealGreen</item>
         <item name="colorOnPrimary">@color/white</item>
         <!-- Secondary brand color. -->
         <item name="colorSecondary">@color/teal_200</item>
@@ -19,7 +19,8 @@
         <item name="android:preserveLegacyExternalStorage" tools:targetApi="r">true</item>
     </style>
 
-    <style name="MyAnimation">
+    <!--利用themes设置页面切换动画似乎对Android 10 Q（小米8测试）无效-->
+    <style name="MyAnimation" parent="@android:style/Animation.Activity">
         <item name="android:activityOpenExitAnimation">@anim/center_to_left</item>
         <item name="android:activityOpenEnterAnimation">@anim/right_to_center</item>
         <item name="android:activityCloseExitAnimation">@anim/center_to_right</item>

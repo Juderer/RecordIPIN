@@ -23,6 +23,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
+import com.alibaba.fastjson.JSON;
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.LocationUtils;
@@ -36,42 +37,59 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class LocationService extends Service {
+/**
+ * @author      : zhushuli
+ * @createDate  : 2023/02/26 10:30
+ * @description : 位置服务2，将callback逻辑修改为broadcast
+ */
+public class LocationService2 extends Service {
 
-    private static final String TAG = "My" + LocationService.class.getSimpleName();
+    private static final String TAG = LocationService2.class.getSimpleName();
+
+    // GNSS位置更新码
+    public static final int GNSS_LOCATION_CHANGED_CODE = 0x1001;
+    // GNSS卫星状态码
+    public static final int GNSS_SATELLITE_STATUS_CHANGED_CODE = 0x1002;
+    // GNSS位置信息不可用码
+    public static final int GNSS_PROVIDER_DISABLED_CODE = 0x1003;
+
+    // GNSS位置更新广播
+    public static final String GNSS_LOCATION_CHANGED_ACTION = "recordipin.broadcast.gnss.locationChanged";
+    // GNSS卫星状态广播
+    public static final String GNSS_PROVIDER_DISABLED_ACTION = "recordipin.broadcast.gnss.providerDisabled";
+    // GNSS位置信息不可用广播
+    public static final String GNSS_SATELLITE_STATUS_CHANGED_ACTION = "recordipin.broadcast.gnss.satelliteStatusChanged";
 
     // 定位时间间隔（毫秒）
     private static final int MIN_LOCATION_DURATION = 1000;
 
+    // 用于保存数据的队列
     private Queue<String> mStringQueue = new LinkedList<>();
     private Queue<Location> mLocationQueue = new LinkedList<>();
 
     // 位置监听相关类
     private LocationManager mLocationManager;
 
-    // 位置信息
-    private Location mLocation;
-
     private final LocationListener mLocationListener = new LocationListener() {
         @Override
         public void onLocationChanged(@NonNull Location location) {
             Log.d(TAG, "onLocationChanged:" + ThreadUtils.threadID());
-            mLocation = location;
             if (checkRecording()) {
                 mLocationQueue.offer(location);
             }
+            sendBroadcast(new Intent(GNSS_LOCATION_CHANGED_ACTION)
+                    .putExtra("location", JSON.toJSONString(LocationUtils.genLocationMap(location))));
         }
 
         @Override
         public void onProviderDisabled(@NonNull String provider) {
             Log.d(TAG, "onProviderDisabled");
-            mLocation = null;
+            sendBroadcast(new Intent(GNSS_PROVIDER_DISABLED_ACTION));
         }
 
         @Override
         public void onProviderEnabled(@NonNull String provider) {
             Log.d(TAG, "onProviderEnabled");
-            mLocation = null;
         }
     };
 
@@ -126,6 +144,8 @@ public class LocationService extends Service {
                 }
             }
             Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
+            sendBroadcast(new Intent(GNSS_SATELLITE_STATUS_CHANGED_ACTION)
+                    .putExtra("satellite", "BD" + mBeidouSatelliteCount + "," + "GPS" + mGpsSatelliteCount));
         }
     };
 
@@ -146,9 +166,6 @@ public class LocationService extends Service {
 
     // 监听位置变化线程
     private final HandlerThread mLocationListenerThread = new HandlerThread("LocationListener");
-
-    // 子线程：位置监听与卫星状态监听信息整合
-    private DisplayThread mDisplayThread;
 
     // 子线程：记录位置信息，并写入文件
     private RecordThread mRecordThread;
@@ -182,8 +199,8 @@ public class LocationService extends Service {
     }
 
     public class MyBinder extends Binder {
-        public LocationService getLocationService() {
-            return LocationService.this;
+        public LocationService2 getLocationService2() {
+            return LocationService2.this;
         }
     }
 
@@ -201,9 +218,6 @@ public class LocationService extends Service {
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         requestLocationUpdates();
         registerGnssStatus();
-
-        mDisplayThread = new DisplayThread();
-        new Thread(mDisplayThread).start();
 
         // 启动前台服务, 确保APP长时间后台运行后返回前台无法更新定位
         Notification notification = createNotification();
@@ -251,10 +265,10 @@ public class LocationService extends Service {
     @SuppressLint("MissingPermission")
     private void requestLocationUpdates() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_LOCATION_DURATION, 0, mExecutorService, mLocationListener);
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mExecutorService, mLocationListener);
         } else {
             mLocationListenerThread.start();
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, MIN_LOCATION_DURATION, 0, mLocationListener, mLocationListenerThread.getLooper());
+            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener, mLocationListenerThread.getLooper());
         }
     }
 
@@ -268,49 +282,7 @@ public class LocationService extends Service {
         }
     }
 
-    @SuppressLint("HandlerLeak")
-    private class DisplayThread implements Runnable {
-        private boolean checkGPS;
-        private AtomicBoolean abConnected = new AtomicBoolean(true);
-
-        public DisplayThread() {
-            checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        }
-
-        public boolean getConnected() {
-            return abConnected.get();
-        }
-
-        public void setConnected(boolean connected) {
-            abConnected.set(connected);
-        }
-
-        @Override
-        public void run() {
-            Log.d(TAG, "DisplayThread Start");
-            while (abConnected.get()) {
-                if (callback != null) {
-                    checkGPS = mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                    if (!checkGPS) {
-                        callback.onLocationProviderDisabled();
-                        abConnected.set(false);
-                        break;
-                    }
-                    if (mLocation != null) {
-                        callback.onLocationChanged(mLocation);
-                        mLocation = null;
-                    }
-                    callback.onLocationSearching(mBeidouSatelliteCount + "Beidou" + "," +
-                            mGpsSatelliteCount + "GPS");
-                    ThreadUtils.threadSleep(MIN_LOCATION_DURATION);
-                    Log.d(TAG, "DisplayThread Show");
-                }
-            }
-            Log.d(TAG, "DisplayThread End");
-        }
-    }
-
-    public synchronized void startLocationRecording(String recordDir) {
+    public synchronized void startLocationRecord(String recordDir) {
         if (!checkRecording()) {
             setRecording(true);
             mRecordThread = new RecordThread(recordDir);
@@ -342,7 +314,7 @@ public class LocationService extends Service {
             initWriter();
             int writeRowCount = 0;
             Log.d(TAG, "GNSS Record Start");
-            while (LocationService.this.checkRecording()) {
+            while (LocationService2.this.checkRecording()) {
                 if (mLocationQueue.size() > 0) {
                     try {
                         mBufferWriter.write(LocationUtils.genLocationCsv(mLocationQueue.poll()));
@@ -373,9 +345,6 @@ public class LocationService extends Service {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
-        if (mDisplayThread.getConnected()) {
-            mDisplayThread.setConnected(false);
-        }
         mLocationManager.removeUpdates(mLocationListener);
         mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
 

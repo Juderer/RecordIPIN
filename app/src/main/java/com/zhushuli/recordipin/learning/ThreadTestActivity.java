@@ -16,13 +16,14 @@ import android.widget.TextView;
 
 import com.zhushuli.recordipin.R;
 
+@Deprecated
 public class ThreadTestActivity extends AppCompatActivity implements View.OnClickListener {
 
-    private static final String TAG = "My" + ThreadTestActivity.class.getSimpleName();
+    private static final String TAG = ThreadTestActivity.class.getSimpleName();
     private static final int MY_THREAD_STOP_CODE = 2020;
 
     private TextView tvThreadMsg;
-    private Button btnTheardStart;
+    private Button btnThreadStart;
     private Button btnThreadStop;
 
     private MyThread myThread = null;
@@ -35,8 +36,8 @@ public class ThreadTestActivity extends AppCompatActivity implements View.OnClic
         Log.d(TAG, "onCreate");
 
         tvThreadMsg = (TextView) findViewById(R.id.tvThreadMsg);
-        btnTheardStart = (Button) findViewById(R.id.btnThreadStart);
-        btnTheardStart.setOnClickListener(this);
+        btnThreadStart = (Button) findViewById(R.id.btnThreadStart);
+        btnThreadStart.setOnClickListener(this);
         btnThreadStop = (Button) findViewById(R.id.btnThreadStop);
         btnThreadStop.setOnClickListener(this);
     }
@@ -164,7 +165,7 @@ public class ThreadTestActivity extends AppCompatActivity implements View.OnClic
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d(TAG, "onDestory");
+        Log.d(TAG, "onDestroy");
     }
 
     @Override

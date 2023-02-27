@@ -39,9 +39,11 @@ public class ImuUtils {
         String typeStr = "";
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
+            case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
                 typeStr = "ACCEL";
                 break;
             case Sensor.TYPE_GYROSCOPE:
+            case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
                 typeStr = "GYRO";
                 break;
             default:
