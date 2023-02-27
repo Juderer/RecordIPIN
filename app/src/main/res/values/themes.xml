@@ -17,6 +17,7 @@
         <item name="android:keepScreenOn">true</item>
         <item name="android:requestLegacyExternalStorage" tools:targetApi="q">true</item>
         <item name="android:preserveLegacyExternalStorage" tools:targetApi="r">true</item>
+        <item name="overlapAnchor">false</item> <!--ActionBar关闭Overlay Mode-->
     </style>
 
     <!--利用themes设置页面切换动画似乎对Android 10 Q（小米8测试）无效-->
