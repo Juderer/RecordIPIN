@@ -21,4 +21,9 @@
     <color name="Teal">#008080</color>
     <color name="TealGreen">#00827f</color>
     <color name="TealBlue">#367588</color>
+    <color name="PaleTurquoise">#AFEEEE</color>
+    <color name="WhiteSmoke">#F5F5F5</color>
+    <color name="GhostWhite">#F8F8FF</color>
+    <color name="Gray">#808080</color>
+    <color name="GlobalColor">#5BBC9F</color>
 </resources>

@@ -36,7 +36,7 @@
             android:layout_below="@+id/layoutOption"
             android:layout_centerHorizontal="true"
             android:text="Start"
-            android:backgroundTint="@color/SteelBlue"
+            android:backgroundTint="@color/GlobalColor"
             android:textColor="@color/black"
             android:textAllCaps="false"
             android:textSize="24sp"
