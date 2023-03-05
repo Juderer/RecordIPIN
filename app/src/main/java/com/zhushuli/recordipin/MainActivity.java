@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
+import android.app.ActionBar;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -202,20 +203,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 // TODO::加入RecordIPIN的开发说明(如: 设计静态文字页面)
                 Toast.makeText(this, "juderer.github.io", Toast.LENGTH_SHORT).show();
                 break;
-            case R.id.showIMU:
-                startActivity(new Intent(this, ImuActivity.class));
-                break;
-            case R.id.checkPermission:
-                isAllGranted = checkPermissionAllGranted(permissions);
-                if (!isAllGranted) {
-                    Log.d(TAG, "未授权");
-                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
-                } else {
-                    Toast.makeText(this, "权限正常", Toast.LENGTH_SHORT).show();
-                }
-                break;
+//            case R.id.showIMU:
+//                startActivity(new Intent(this, ImuActivity.class));
+//                break;
+//            case R.id.checkPermission:
+//                isAllGranted = checkPermissionAllGranted(permissions);
+//                if (!isAllGranted) {
+//                    Log.d(TAG, "未授权");
+//                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+//                } else {
+//                    Toast.makeText(this, "权限正常", Toast.LENGTH_SHORT).show();
+//                }
+//                break;
             case R.id.exit:
                 finish();
+                break;
+            case R.id.settings:
+                startActivity(new Intent(this, SettingsActivity.class));
                 break;
             default:
                 break;

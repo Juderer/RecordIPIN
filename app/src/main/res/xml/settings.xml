@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="IMU"
+        android:icon="@drawable/baseline_sensors_24">
+
+        <ListPreference
+            android:title="Sampling Frequency"
+            android:entries="@array/imuFreq"
+            android:entryValues="@array/imuFreqValues"
+            android:key="prefImuFreq"
+            android:defaultValue="1"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+        <CheckBoxPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefImuCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="GNSS"
+        android:icon="@drawable/baseline_near_me_24">
+
+        <SwitchPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefGnssCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="CAMERA"
+        android:icon="@drawable/baseline_photo_camera_24">
+
+        <SwitchPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefCameraCollected"
+            android:summaryOff="Off"
+            android:summaryOn="On"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="CELLULAR"
+        android:icon="@drawable/baseline_signal_cellular_alt_24">
+
+        <SwitchPreference
+            android:title="Sampling Frequency"
+            android:defaultValue="false"
+            android:summaryOff="Off"
+            android:summaryOn="On"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>

@@ -18,6 +18,7 @@
     <uses-permission android:name="android.permission.CAMERA" /> <!-- 录屏所需权限 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
 
+    <!-- configChanges: 旋转屏幕时阻止activity重建 -->
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -26,15 +27,16 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true"
         android:theme="@style/Theme.RecordIPIN">
-
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Settings"/>
         <activity
             android:name=".Camera2Activity"
             android:exported="false" />
         <activity
             android:name=".CameraxActivity"
             android:exported="false" />
-
-        <!-- configChanges: 旋转屏幕时阻止activity重建 -->
         <activity
             android:name=".CellularActivity"
             android:configChanges="orientation|screenSize"

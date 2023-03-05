@@ -17,7 +17,7 @@
         <item name="android:keepScreenOn">true</item>
         <item name="android:requestLegacyExternalStorage" tools:targetApi="q">true</item>
         <item name="android:preserveLegacyExternalStorage" tools:targetApi="r">true</item>
-        <item name="overlapAnchor">false</item> <!--ActionBar关闭Overlay Mode-->
+        <item name="android:overlapAnchor">false</item> <!--ActionBar关闭Overlay Mode-->
     </style>
 
 </resources>
