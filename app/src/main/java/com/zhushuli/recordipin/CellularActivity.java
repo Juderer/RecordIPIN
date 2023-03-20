@@ -4,16 +4,21 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.telephony.CellInfo;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
@@ -29,6 +34,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.alibaba.fastjson.JSON;
 import com.zhushuli.recordipin.models.cellular.CellPacket;
 import com.zhushuli.recordipin.models.cellular.CellNeighbor;
 import com.zhushuli.recordipin.models.cellular.CellService;
@@ -184,6 +190,40 @@ public class CellularActivity extends AppCompatActivity {
     private LocationService mLocationService;
     private ServiceConnection mLocationServiceConn;
 
+    private final BroadcastReceiver mCellularReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive");
+            String action = intent.getAction();
+            Message msg = Message.obtain();
+            if (action.equals(CellularService.CELLULAR_INFO_CHANGED_ACTION)) {
+                Log.d(TAG, action);
+                ArrayList<String> datas = intent.getStringArrayListExtra("CellInfo");
+                List<CellInfo> cellInfo = new ArrayList<>();
+                for (String data : datas) {
+                    cellInfo.add(JSON.parseObject(data, CellInfo.class));
+                }
+                List<CellPacket> records = CellularService.transDataFormat(cellInfo);
+
+                List<CellPacket> neighborCells = new ArrayList<>();
+                for (CellPacket record : records) {
+                    if (record instanceof CellService) {
+                        msg.what = SERVICE_CELL_INFO_CODE;
+                        msg.obj = record;
+                        mMainHandler.sendMessage(msg);
+                    } else {
+                        neighborCells.add(record);
+                    }
+                    msg.what = NEIGHBOR_CELL_INFO_CODE;
+                    msg.obj = neighborCells;
+                    mMainHandler.sendMessage(msg);
+                }
+            }
+        }
+    };
+
+    private final HandlerThread mReceiverThread = new HandlerThread("Receiver");
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -197,6 +237,8 @@ public class CellularActivity extends AppCompatActivity {
 
         mRecordRootDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+
+//        mReceiverThread.start();
     }
 
     @SuppressLint("MissingPermission")
@@ -497,7 +539,7 @@ public class CellularActivity extends AppCompatActivity {
 
                     @Override
                     public void onLocationSearching(String data) {
-                        Log.d(TAG, "onLocationSearching");
+//                        Log.d(TAG, "onLocationSearching");
                     }
                 });
             }
@@ -510,6 +552,22 @@ public class CellularActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+//        IntentFilter intent = new IntentFilter();
+//        intent.addAction(CellularService.CELLULAR_INFO_CHANGED_ACTION);
+//        registerReceiver(mCellularReceiver, intent, null, new Handler(mReceiverThread.getLooper()));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+//        unregisterReceiver(mCellularReceiver);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
@@ -517,5 +575,6 @@ public class CellularActivity extends AppCompatActivity {
         if (btnCellularTrack.getText().equals("Stop")) {
             unbindService();
         }
+//        mReceiverThread.quitSafely();
     }
 }

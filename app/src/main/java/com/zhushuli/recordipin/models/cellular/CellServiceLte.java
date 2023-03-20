@@ -8,7 +8,7 @@ import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
 
 public class CellServiceLte extends CellService {
-    private int ta;
+    public int ta;
 
     public CellServiceLte() {
 

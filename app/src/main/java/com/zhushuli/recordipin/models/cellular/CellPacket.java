@@ -4,7 +4,7 @@ public abstract class CellPacket {
 
     // Observation time stamped as type in nanoseconds since boot
     // 同CellInfo类中的属性一致
-    private long mTimeStamp;
+    public long mTimeStamp;
 
     public CellPacket() {
 

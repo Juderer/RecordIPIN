@@ -22,6 +22,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
+import com.alibaba.fastjson.JSON;
 import com.zhushuli.recordipin.models.cellular.CellPacket;
 import com.zhushuli.recordipin.models.cellular.CellNeighborLte;
 import com.zhushuli.recordipin.models.cellular.CellNeighborNr;
@@ -33,8 +34,10 @@ import com.zhushuli.recordipin.utils.ThreadUtils;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -44,6 +47,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class CellularService extends Service {
 
     private static final String TAG = CellularService.class.getSimpleName();
+
+    public static final String CELLULAR_INFO_CHANGED_ACTION = "recordipin.broadcast.cellular.cellInfoChanged";
 
     private static final int RECORD_CELL_CODE = 1000;
     private static final int RECORD_CELL_LTE_CODE = 1001;
@@ -61,10 +66,6 @@ public class CellularService extends Service {
     private RecordThread mCellRecordThread;
     private AtomicBoolean abRecording = new AtomicBoolean(false);
 
-    private Callback callback = null;
-
-    private Set<CellInfo> cellInfoSet = new HashSet<>();
-
     public CellularService() {
         Log.d(TAG, "CellularService");  // 先于onCreate调用！
     }
@@ -79,6 +80,12 @@ public class CellularService extends Service {
 //        void onCellInfoChanged(List<CellInfo> cellInfo);
         void onCellInfoChanged(List<CellPacket> cellInfo);
         void onDataConnectionStateChanged(int state, int networkType);
+    }
+
+    private Callback callback = null;
+
+    public void setCallback(Callback callback) {
+        this.callback = callback;
     }
 
     @Override
@@ -107,12 +114,14 @@ public class CellularService extends Service {
             mTelephonyCallback = new MyTelephonyCallback();
             // 开启子线程
             mTelephonyManager.registerTelephonyCallback(mExecutorService, mTelephonyCallback);
+//            mCellInfoCallback = new MyCellInfoCallback();
+//            mTelephonyManager.requestCellInfoUpdate(mExecutorService, mCellInfoCallback);
         }
         else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
         {
             Log.d(TAG, "PhoneStateListener");
 
-            mCellInfoCallback = new MyCellInfoCallback();
+//            mCellInfoCallback = new MyCellInfoCallback();
 //            mTelephonyManager.requestCellInfoUpdate(mExecutorService, mCellInfoCallback);
 
             // 需要加入Executor！否则在同一线程中，callback初始化会造成阻塞！
@@ -121,7 +130,7 @@ public class CellularService extends Service {
         }
     }
 
-    private boolean checkCellInfo(CellInfo cell) {
+    private static boolean checkCellInfo(CellInfo cell) {
         if (cell instanceof CellInfoLte) {
             CellInfoLte cellLte = (CellInfoLte) cell;
             CellSignalStrengthLte cssLte = cellLte.getCellSignalStrength();
@@ -132,7 +141,7 @@ public class CellularService extends Service {
         return true;
     }
 
-    private List<CellPacket> transDataFormat(List<CellInfo> cellInfo) {
+    public static List<CellPacket> transDataFormat(List<CellInfo> cellInfo) {
         List<CellPacket> records = new ArrayList<>();
 
         for (CellInfo cell : cellInfo) {
@@ -172,6 +181,25 @@ public class CellularService extends Service {
             Log.d(TAG, "onCellInfoChanged" + cellInfo.size());
             Log.d(TAG, "onCellInfoChanged, threadID" + Thread.currentThread().getId());
 
+//            List<CellPacket> records = transDataFormat(cellInfo);
+//            for (CellPacket record : records) {
+//                Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
+//            }
+//
+//            ArrayList<String> strRecords = new ArrayList<>();
+//            for (CellInfo cell : cellInfo) {
+//                strRecords.add(JSON.toJSONString(cell));
+//            }
+//
+//            // 写入文件
+//            if (abRecording.get()) {
+//                Message msg = Message.obtain();
+//                msg.what = RECORD_CELL_CODE;
+//                msg.obj = records;
+//                mCellRecordThread.getHandler().sendMessage(msg);
+//            }
+//            sendBroadcast(new Intent(CELLULAR_INFO_CHANGED_ACTION).putStringArrayListExtra("CellInfo", strRecords));
+
             while (callback == null) {
                 ThreadUtils.threadSleep(10);
             }
@@ -192,7 +220,6 @@ public class CellularService extends Service {
                     mCellRecordThread.getHandler().sendMessage(msg);
                 }
             }
-            cellInfoSet.addAll(cellInfo);
         }
 
         @Override
@@ -261,6 +288,7 @@ public class CellularService extends Service {
             Log.d(TAG, "onCellInfo" + cellInfo.size());
 
             List<CellPacket> records = transDataFormat(cellInfo);
+            callback.onCellInfoChanged(records);
             for (CellPacket record : records) {
                 Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
             }
@@ -341,10 +369,6 @@ public class CellularService extends Service {
         public Handler getHandler() {
             return mHandler;
         }
-    }
-
-    public void setCallback(Callback callback) {
-        this.callback = callback;
     }
 
     @Override

@@ -123,18 +123,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startActivity(new Intent(this, CollectionActivity.class));
                 break;
             case R.id.btn2CellularAty:
-                isAllGranted = checkPermissionAllGranted(new String[]{
-                        Manifest.permission.READ_PHONE_STATE,
-                        Manifest.permission.ACCESS_NETWORK_STATE});
-                if (!isAllGranted) {
-                    Log.d(TAG, "未授权");
-                    break;
-                }
-                if (!CellularUtils.hasSimCard(MainActivity.this)) {
-                    Toast.makeText(this, "用户未插SIM卡", Toast.LENGTH_SHORT);
-                    break;
-                }
-                startActivity(new Intent(this, CellularActivity.class));
+//                isAllGranted = checkPermissionAllGranted(new String[]{
+//                        Manifest.permission.READ_PHONE_STATE,
+//                        Manifest.permission.ACCESS_NETWORK_STATE});
+//                if (!isAllGranted) {
+//                    Log.d(TAG, "未授权");
+//                    break;
+//                }
+//                if (!CellularUtils.hasSimCard(MainActivity.this)) {
+//                    Toast.makeText(this, "用户未插SIM卡", Toast.LENGTH_SHORT);
+//                    break;
+//                }
+//                startActivity(new Intent(this, CellularActivity.class));
                 break;
             case R.id.btn2CameraxAty:
                 startActivity(new Intent(this, CameraxActivity.class));

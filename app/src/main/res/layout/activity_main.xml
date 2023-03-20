@@ -55,7 +55,8 @@
         android:gravity="center"
         android:textSize="24sp"
         android:typeface="serif"
-        android:enabled="true" />
+        android:enabled="true"
+        android:visibility="invisible"/>
 
     <LinearLayout
         android:id="@+id/gnss_ins"

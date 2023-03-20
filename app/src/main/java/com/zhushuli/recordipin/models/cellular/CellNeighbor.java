@@ -2,11 +2,11 @@ package com.zhushuli.recordipin.models.cellular;
 
 public abstract class CellNeighbor extends CellPacket {
 
-    private int earfcn;
-    private int pci;
-    private int rsrp;
-    private int rsrq;
-    private CellService serviceCell = null;
+    public int earfcn;
+    public int pci;
+    public int rsrp;
+    public int rsrq;
+    public CellService serviceCell = null;
 
     public CellNeighbor() {
 
