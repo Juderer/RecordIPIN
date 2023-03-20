@@ -1,27 +1,33 @@
-package com.zhushuli.recordipin;
+package com.zhushuli.recordipin.activities.cellular;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.location.Location;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.telephony.CellInfo;
+import android.telephony.CellInfoLte;
+import android.telephony.CellInfoNr;
+import android.telephony.CellSignalStrengthLte;
 import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Gravity;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TableLayout;
@@ -29,12 +35,15 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.zhushuli.recordipin.R;
+import com.zhushuli.recordipin.models.cellular.CellNeighborLte;
+import com.zhushuli.recordipin.models.cellular.CellNeighborNr;
 import com.zhushuli.recordipin.models.cellular.CellPacket;
 import com.zhushuli.recordipin.models.cellular.CellNeighbor;
 import com.zhushuli.recordipin.models.cellular.CellService;
 import com.zhushuli.recordipin.models.cellular.CellServiceLte;
 import com.zhushuli.recordipin.models.cellular.CellServiceNr;
-import com.zhushuli.recordipin.services.CellularService;
+import com.zhushuli.recordipin.services.CellularService2;
 import com.zhushuli.recordipin.services.LocationService;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.FileUtils;
@@ -53,7 +62,6 @@ public class CellularActivity extends AppCompatActivity {
 
     private static final String TAG = CellularActivity.class.getSimpleName();
 
-    // TODO::private static修改为public static，方便其他类引用
     private static final int SERVICE_CELL_INFO_CODE = 1000;
     private static final int SERVICE_CELL_INFO_LTE_CODE = 1001;
     private static final int SERVICE_CELL_INFO_NR_CODE = 1002;
@@ -83,7 +91,6 @@ public class CellularActivity extends AppCompatActivity {
     private TableLayout neighborTable;
 
     private Button btnCellularTrack;
-    private CheckBox cbRecord;
 
     // POI信息（室内采集时辅助确认真值）
     private EditText etPoi;
@@ -175,14 +182,58 @@ public class CellularActivity extends AppCompatActivity {
     };
 
     // 蜂窝网络服务相关类
-    private CellularService.MyBinder mCellularBinder = null;
-    private CellularService mCellularService;
+    private CellularService2.CellularBinder mCellularBinder = null;
+    private CellularService2 mCellularService2;
     private ServiceConnection mCellularServiceConn;
 
     // 定位服务相关类
     private LocationService.MyBinder mLocationBinder = null;
     private LocationService mLocationService;
     private ServiceConnection mLocationServiceConn;
+
+    private final BroadcastReceiver mCellularReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive");
+            String action = intent.getAction();
+            if (action.equals(CellularService2.CELLULAR_CELL_INFO_CHANGED_ACTION)) {
+                Log.d(TAG, action);
+                List<CellInfo> cellInfo = intent.getParcelableArrayListExtra("CellInfo");
+                for (CellInfo cell : cellInfo) {
+                    Log.d(TAG, cell.toString());
+                }
+
+                List<CellPacket> recordCells = transDataFormat(cellInfo);
+                for (CellPacket record : recordCells) {
+                    Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
+                }
+                for (CellPacket record : recordCells) {
+                    Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
+                }
+
+                List<CellPacket> neighborCells = new ArrayList<>();
+                Message msg;
+
+                for (CellPacket record : recordCells) {
+                    if (record instanceof CellService) {
+                        msg = Message.obtain();
+                        msg.what = SERVICE_CELL_INFO_CODE;
+                        msg.obj = record;
+                        mMainHandler.sendMessage(msg);
+                    } else {
+                        neighborCells.add(record);
+                    }
+                }
+
+                msg = Message.obtain();
+                msg.obj = genNeighborRow(neighborCells);
+                msg.what = NEIGHBOR_CELL_INFO_CODE;
+                mMainHandler.sendMessage(msg);
+            }
+        }
+    };
+
+    private final HandlerThread mReceiverThread = new HandlerThread("Cellular Receiver");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -197,11 +248,14 @@ public class CellularActivity extends AppCompatActivity {
 
         mRecordRootDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+
+        mReceiverThread.start();
     }
 
     @SuppressLint("MissingPermission")
     private void initMobileNetworkInfo() {
-        String mOperatorName = CellularUtils.getOperatorName(this);
+//        String mOperatorName = CellularUtils.getOperatorName(this);
+        String mOperatorName = CellularUtils.getOperatorEnglishName(this);
         String mMcc = CellularUtils.getMoblieCountryCode(this);
         String mMnc = CellularUtils.getMobileNetworkCode(this);
 
@@ -241,19 +295,6 @@ public class CellularActivity extends AppCompatActivity {
                     etPoi.setText("");
                     etPoi.clearFocus();
                 }
-            }
-        });
-
-        cbRecord = (CheckBox) findViewById(R.id.cbRecord);
-        cbRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    abRecord.set(true);
-                } else {
-                    abRecord.set(false);
-                }
-                Log.d(TAG, "onCheckedChanged");
             }
         });
 
@@ -334,7 +375,7 @@ public class CellularActivity extends AppCompatActivity {
             titleRow.setOrientation(LinearLayout.HORIZONTAL);
 
             TextView tv = new TextView(this);
-            tv.setText("邻基站");
+            tv.setText("Neighbors");
             tv.setTextSize(16);
             tv.setGravity(Gravity.LEFT);
             titleRow.addView(tv, new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1.0f));
@@ -378,14 +419,12 @@ public class CellularActivity extends AppCompatActivity {
 
     private void bindService() {
         btnCellularTrack.setText("Stop");
-        cbRecord.setEnabled(false);
 
         // 初始化服务连接
         initServiceConnection();
 
         // 绑定蜂窝网络服务
-        startService(new Intent(CellularActivity.this, CellService.class));
-        Intent cellularIntent = new Intent(CellularActivity.this, CellularService.class);
+        Intent cellularIntent = new Intent(CellularActivity.this, CellularService2.class);
         bindService(cellularIntent, mCellularServiceConn, BIND_AUTO_CREATE);
 
         // 绑定定位服务
@@ -395,7 +434,6 @@ public class CellularActivity extends AppCompatActivity {
 
     private void unbindService() {
         btnCellularTrack.setText("Tracking");
-        cbRecord.setEnabled(true);
 
         // 解绑服务
         stopService(new Intent(CellularActivity.this, CellService.class));
@@ -417,17 +455,21 @@ public class CellularActivity extends AppCompatActivity {
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
                 Log.d(TAG, "onServiceConnected, Cellular");
-                mCellularBinder = (CellularService.MyBinder) service;
-                mCellularService = mCellularBinder.getCellularService();
+                mCellularBinder = (CellularService2.CellularBinder) service;
+                mCellularService2 = mCellularBinder.getCellularService2();
 
-                if (abRecord.get()) {
-                    mCellularService.startCellularRecording(mRecordAbsDir);
-                }
-
-                mCellularService.setCallback(new CellularService.Callback() {
+                mCellularService2.setCallback(new CellularService2.Callback() {
                     @Override
-                    public void onCellInfoChanged(List<CellPacket> recordCells) {
-                        Log.d(TAG, "onCellInfoChanged" + recordCells.size());
+                    public void onCellInfoChanged(List<CellInfo> cellInfo) {
+                        Log.d(TAG, "onCellInfoChanged" + cellInfo.size());
+
+                        List<CellPacket> recordCells = transDataFormat(cellInfo);
+                        for (CellPacket record : recordCells) {
+                            Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
+                        }
+                        for (CellPacket record : recordCells) {
+                            Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
+                        }
 
                         List<CellPacket> neighborCells = new ArrayList<>();
                         Message msg;
@@ -449,16 +491,16 @@ public class CellularActivity extends AppCompatActivity {
                         mMainHandler.sendMessage(msg);
                     }
 
-                    @Override
-                    public void onDataConnectionStateChanged(int state, int networkType) {
-                        Log.d(TAG, "onDataConnectionStateChanged");
-                        Log.d(TAG, CellularUtils.getMobileNetworkTypeName(CellularActivity.this));
-
-                        Message msg = Message.obtain();
-                        msg.what = NETWORK_TYPE_UPDATE_CODE;
-                        msg.obj = networkType;
-                        mMainHandler.sendMessage(msg);
-                    }
+//                    @Override
+//                    public void onDataConnectionStateChanged(int state, int networkType) {
+//                        Log.d(TAG, "onDataConnectionStateChanged");
+//                        Log.d(TAG, CellularUtils.getMobileNetworkTypeName(CellularActivity.this));
+//
+//                        Message msg = Message.obtain();
+//                        msg.what = NETWORK_TYPE_UPDATE_CODE;
+//                        msg.obj = networkType;
+//                        mMainHandler.sendMessage(msg);
+//                    }
                 });
             }
 
@@ -492,12 +534,12 @@ public class CellularActivity extends AppCompatActivity {
 
                     @Override
                     public void onLocationProviderDisabled() {
-                        Log.d(TAG, "onLocationProvoiderDisabled");
+                        Log.d(TAG, "onLocationProviderDisabled");
                     }
 
                     @Override
                     public void onLocationSearching(String data) {
-                        Log.d(TAG, "onLocationSearching");
+//                        Log.d(TAG, "onLocationSearching");
                     }
                 });
             }
@@ -509,6 +551,65 @@ public class CellularActivity extends AppCompatActivity {
         };
     }
 
+    private static boolean checkCellInfo(CellInfo cell) {
+        if (cell instanceof CellInfoLte) {
+            CellInfoLte cellLte = (CellInfoLte) cell;
+            CellSignalStrengthLte cssLte = cellLte.getCellSignalStrength();
+            if (cssLte.getRsrp() == CellInfo.UNAVAILABLE || cssLte.getRsrq() == CellInfo.UNAVAILABLE) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static List<CellPacket> transDataFormat(List<CellInfo> cellInfo) {
+        List<CellPacket> records = new ArrayList<>();
+
+        for (CellInfo cell : cellInfo) {
+            if (!checkCellInfo(cell)) {
+                continue;
+            }
+            if (cell.isRegistered()) {
+                if (cell instanceof CellInfoLte) {
+                    records.add(new CellServiceLte(cell));
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    if (cell instanceof CellInfoNr) {
+                        records.add(new CellServiceNr(cell));
+                    }
+                }
+            }
+            else {
+                if (cell instanceof CellInfoLte) {
+                    records.add(new CellNeighborLte(cell));
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    if (cell instanceof CellInfoNr) {
+                        records.add(new CellNeighborNr(cell));
+                    }
+                }
+            }
+        }
+
+        return records;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+        IntentFilter intent = new IntentFilter();
+        intent.addAction(CellularService2.CELLULAR_CELL_INFO_CHANGED_ACTION);
+        registerReceiver(mCellularReceiver, intent, null, new Handler(mReceiverThread.getLooper()));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+        unregisterReceiver(mCellularReceiver);
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
@@ -517,5 +618,6 @@ public class CellularActivity extends AppCompatActivity {
         if (btnCellularTrack.getText().equals("Stop")) {
             unbindService();
         }
+        mReceiverThread.quitSafely();
     }
 }

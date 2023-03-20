@@ -5,7 +5,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
-import android.app.ActionBar;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -18,7 +17,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.zhushuli.recordipin.activities.imu.ImuActivity;
+import com.zhushuli.recordipin.activities.cellular.CellularActivity;
 import com.zhushuli.recordipin.activities.imu.ImuActivity2;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
@@ -131,7 +130,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     break;
                 }
                 if (!CellularUtils.hasSimCard(MainActivity.this)) {
-                    Toast.makeText(this, "用户未插SIM卡", Toast.LENGTH_SHORT);
+                    Log.d(TAG, "no sim card");
+                    Toast.makeText(this, "用户未插SIM卡", Toast.LENGTH_SHORT).show();
                     break;
                 }
                 startActivity(new Intent(this, CellularActivity.class));

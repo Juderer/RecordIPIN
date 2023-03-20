@@ -26,7 +26,7 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text="运营商"
+            android:text="Carrier"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"
@@ -133,7 +133,7 @@
         android:showDividers="beginning|end"
         android:orientation="horizontal">
         <TextView
-            android:text="主基站"
+            android:text="Servicing Cell"
             android:layout_width="match_parent"
             android:textSize="16sp"
             android:gravity="left"
@@ -145,7 +145,7 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text="数据网"
+            android:text="Network"
             android:textSize="16sp"
             android:gravity="center"
             android:layout_width="0dp"

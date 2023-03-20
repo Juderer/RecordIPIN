@@ -3,7 +3,20 @@ package com.zhushuli.recordipin.utils;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
+import android.telephony.CellIdentityLte;
+import android.telephony.CellIdentityNr;
+import android.telephony.CellInfo;
+import android.telephony.CellInfoLte;
+import android.telephony.CellInfoNr;
+import android.telephony.CellSignalStrengthLte;
+import android.telephony.CellSignalStrengthNr;
 import android.telephony.TelephonyManager;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class CellularUtils {
     public static final int NETWORK_NONE = 0;  // 没有网络连接
@@ -33,6 +46,16 @@ public class CellularUtils {
          */
         TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
         return telephonyManager.getSimOperatorName();
+    }
+
+    public static String getOperatorEnglishName(Context context) {
+        final Map<String, String> operatorEnglishNames = new HashMap<String, String>() {{
+            put("中国移动", "China Mobile");
+            put("中国联通", "China Unicom");
+            put("中国电信", "China Telecom");
+        }};
+        TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        return operatorEnglishNames.get(telephonyManager.getSimOperatorName());
     }
 
     public static String getMoblieCountryCode(Context context) {
@@ -100,5 +123,105 @@ public class CellularUtils {
             default:
                 return NETWORK_MOBILE;
         }
+    }
+
+    public static String transCellInfo2Str(List<CellInfo> cellInfo) {
+        List<String> strings = new ArrayList<>();
+        for (CellInfo cell : cellInfo) {
+            StringBuffer sb = new StringBuffer();
+            if (cell instanceof CellInfoLte) {
+                // 基站类型：LTE/NR
+                sb.append("LTE,");
+                CellInfoLte cellInfoLte = (CellInfoLte) cell;
+                // 是否是主基站
+                if (cellInfoLte.isRegistered()) {
+                    sb.append("1,");
+                } else {
+                    sb.append("0,");
+                }
+                // 系统时间戳
+                sb.append(String.format("%d,", System.currentTimeMillis()));
+                // 基于系统开机测算的时间戳？
+                long elapsedTime = 0L;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    TimeReferenceUtils.setTimeReference(cellInfoLte.getTimestampMillis() * 1_000_000);
+                    elapsedTime = Math.round(TimeReferenceUtils.getMyTimeReference() +
+                            (cellInfoLte.getTimestampMillis() * 1_000_000 - TimeReferenceUtils.getElapsedTimeReference()) / 1_000_000.0);
+                } else {
+                    TimeReferenceUtils.setTimeReference(cellInfoLte.getTimeStamp());
+                    elapsedTime = Math.round(TimeReferenceUtils.getMyTimeReference() +
+                            (cellInfoLte.getTimeStamp() - TimeReferenceUtils.getElapsedTimeReference()) / 1_000_000.0);
+                }
+                sb.append(String.format("%d,", elapsedTime));
+
+                CellIdentityLte identityLte = cellInfoLte.getCellIdentity();
+                // Mobile Country Code
+                sb.append(identityLte.getMccString() + ",");
+                // Mobile Network Code
+                sb.append(identityLte.getMncString() + ",");
+                // Cell Identity
+                sb.append(identityLte.getCi() + ",");
+                // Tracking Area Code
+                sb.append(identityLte.getTac() + ",");
+                // Absolute RF Channel Number
+                sb.append(identityLte.getEarfcn() + ",");
+                // Physical Cell Id
+                sb.append(identityLte.getPci() + ",");
+
+                CellSignalStrengthLte signalStrengthLte = cellInfoLte.getCellSignalStrength();
+                // Reference Signal Receiving Power
+                sb.append(signalStrengthLte.getRsrp() + ",");
+                // Reference Signal Receiving Quality
+                sb.append(signalStrengthLte.getRsrq() + "\n");
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                if (cell instanceof CellInfoNr) {
+                    // 基站类型：LTE/NR
+                    sb.append("NR,");
+                    CellInfoNr cellInfoNr = (CellInfoNr) cell;
+                    // 是否是主基站
+                    if (cellInfoNr.isRegistered()) {
+                        sb.append("1,");
+                    } else {
+                        sb.append("0,");
+                    }
+                    // 系统时间戳
+                    sb.append(String.format("%d,", System.currentTimeMillis()));
+                    // 基于系统开机测算的时间戳？
+                    long elapsedTime = 0L;
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        TimeReferenceUtils.setTimeReference(cellInfoNr.getTimestampMillis() * 1_000_000);
+                        elapsedTime = Math.round(TimeReferenceUtils.getMyTimeReference() +
+                                (cellInfoNr.getTimestampMillis() * 1_000_000 - TimeReferenceUtils.getElapsedTimeReference()) / 1_000_000.0);
+                    } else {
+                        TimeReferenceUtils.setTimeReference(cellInfoNr.getTimeStamp());
+                        elapsedTime = Math.round(TimeReferenceUtils.getMyTimeReference() +
+                                (cellInfoNr.getTimeStamp() - TimeReferenceUtils.getElapsedTimeReference()) / 1_000_000.0);
+                    }
+                    sb.append(String.format("%d,", elapsedTime));
+
+                    CellIdentityNr identityNr = (CellIdentityNr) cellInfoNr.getCellIdentity();
+                    // Mobile Country Code
+                    sb.append(identityNr.getMccString() + ",");
+                    // Mobile Network Code
+                    sb.append(identityNr.getMncString() + ",");
+                    // NR(New Radio 5G) Cell Identity
+                    sb.append(identityNr.getNci() + ",");
+                    // Tracking Area Code
+                    sb.append(identityNr.getTac() + ",");
+                    // New Radio Absolute Radio Frequency Channel Number
+                    sb.append(identityNr.getNrarfcn() + ",");
+                    // Physical Cell Id
+                    sb.append(identityNr.getPci() + ",");
+
+                    CellSignalStrengthNr signalStrengthNr = (CellSignalStrengthNr) cellInfoNr.getCellSignalStrength();
+                    // SS Reference Signal Receiving Quality
+                    sb.append(signalStrengthNr.getSsRsrp() + ",");
+                    // SS Reference Signal Signal-to-Noise Ratio
+                    sb.append(signalStrengthNr.getSsRsrq() + "\n");
+                }
+            }
+            strings.add(sb.toString());
+        }
+        return String.join("", strings);
     }
 }

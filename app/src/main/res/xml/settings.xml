@@ -48,8 +48,8 @@
             android:title="Collect or Not?"
             android:defaultValue="false"
             android:key="prefCameraCollected"
-            android:summaryOff="Off"
-            android:summaryOn="On"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
             app:iconSpaceReserved="true"/>
 
     </PreferenceCategory>
@@ -58,11 +58,21 @@
         android:title="CELLULAR"
         android:icon="@drawable/baseline_signal_cellular_alt_24">
 
+        <ListPreference
+            android:title="Refresh Frequency"
+            android:entries="@array/cellularFreq"
+            android:entryValues="@array/cellularFreqValue"
+            android:key="prefCellularFreq"
+            android:defaultValue="1"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"/>
+
         <SwitchPreference
-            android:title="Sampling Frequency"
+            android:title="Collect or Not?"
             android:defaultValue="false"
-            android:summaryOff="Off"
-            android:summaryOn="On"
+            android:key="prefCellularCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
             app:iconSpaceReserved="true"/>
 
     </PreferenceCategory>

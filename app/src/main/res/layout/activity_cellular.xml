@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".CellularActivity">
+    tools:context=".activities.cellular.CellularActivity">
 
     <RelativeLayout
         android:layout_width="match_parent"
@@ -19,22 +19,12 @@
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"/>
 
-        <include
-            layout="@layout/layout_option"
-            android:id="@+id/layoutOption"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/layoutCellular"
-            android:layout_marginTop="10dp"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"/>
-
         <LinearLayout
             android:id="@+id/POI"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_below="@+id/layoutOption"
+            android:layout_below="@+id/layoutCellular"
             android:layout_marginTop="10dp"
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp">

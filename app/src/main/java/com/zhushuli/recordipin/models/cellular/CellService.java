@@ -2,14 +2,14 @@ package com.zhushuli.recordipin.models.cellular;
 
 public abstract class CellService extends CellPacket {
 
-    private String mcc;
-    private String mnc;
-    private long cid;
-    private int tac;
-    private int earfcn;
-    private int pci;
-    private int rsrp;
-    private int rsrq;
+    public String mcc;
+    public String mnc;
+    public long cid;
+    public int tac;
+    public int earfcn;
+    public int pci;
+    public int rsrp;
+    public int rsrq;
 
     public CellService() {
 

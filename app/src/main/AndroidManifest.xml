@@ -38,10 +38,10 @@
             android:name=".CameraxActivity"
             android:exported="false" />
         <activity
-            android:name=".CellularActivity"
+            android:name=".activities.cellular.CellularActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="Cellular" />
+            android:label="LTE/NR" />
         <activity
             android:name=".CollectionActivity"
             android:configChanges="orientation|screenSize"
@@ -91,6 +91,10 @@
             android:exported="true" />
         <service
             android:name=".services.CellularService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".services.CellularService2"
             android:enabled="true"
             android:exported="true" />
 
