@@ -13,7 +13,7 @@
         <TextView
             android:text="IMU"
             android:layout_width="match_parent"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="left"
             android:layout_weight="1"
             android:textStyle="bold"
@@ -26,25 +26,25 @@
         android:orientation="horizontal">
         <TextView
             android:text=""
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
             android:text="X"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
             android:text="Y"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
             android:text="Z"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
@@ -55,30 +55,30 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text="加速度计"
-            android:textSize="16sp"
+            android:text="Accel"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"
             android:layout_height="30dp"/>
         <TextView
-            android:id="@+id/tvAcceX"
+            android:id="@+id/tvAccelX"
             android:text="0"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
-            android:id="@+id/tvAcceY"
+            android:id="@+id/tvAccelY"
             android:text="0"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
-            android:id="@+id/tvAcceZ"
+            android:id="@+id/tvAccelZ"
             android:text="0"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
@@ -89,8 +89,8 @@
         android:showDividers="beginning|middle|end"
         android:orientation="horizontal">
         <TextView
-            android:text="陀螺仪"
-            android:textSize="16sp"
+            android:text="Gyro"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"
@@ -98,21 +98,21 @@
         <TextView
             android:id="@+id/tvGyroX"
             android:text="0"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
             android:id="@+id/tvGyroY"
             android:text="0"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>
         <TextView
             android:id="@+id/tvGyroZ"
             android:text="0"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
             android:layout_weight="1"/>

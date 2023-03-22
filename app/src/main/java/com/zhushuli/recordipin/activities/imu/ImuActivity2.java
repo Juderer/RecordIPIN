@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.os.Bundle;
 import android.os.Environment;
@@ -45,21 +46,21 @@ public class ImuActivity2 extends AppCompatActivity {
 
     private static final String TAG = ImuActivity2.class.getSimpleName();
 
-    private TextView tvAcceX;
-    private TextView tvAcceY;
-    private TextView tvAcceZ;
+    private TextView tvAccelX;
+    private TextView tvAccelY;
+    private TextView tvAccelZ;
+
     private TextView tvGyroX;
     private TextView tvGyroY;
     private TextView tvGyroZ;
 
-    private CheckBox cbRecord;
     private Button btnImuCollection;
 
     // 传感器数据显示精度
     private final DecimalFormat dfSensor = new DecimalFormat("#0.0000");
 
     // IMU服务相关类
-    private ImuService2.MyBinder mBinder = null;
+    private ImuService2.ImuBinder mBinder = null;
 
     private ImuService2 mImuService2;
 
@@ -67,14 +68,11 @@ public class ImuActivity2 extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(TAG, "onServiceConnected");
-            mBinder = (ImuService2.MyBinder) service;
+            mBinder = (ImuService2.ImuBinder) service;
             mImuService2 = mBinder.getImuService2();
 
-            // 数据存储路径
-            if (recording.get()) {
-                mRecordAbsDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-                mImuService2.startImuRecord(mRecordAbsDir);
-            }
+            mRecordAbsDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+            mImuService2.startImuRecord(mRecordAbsDir);
         }
 
         @Override
@@ -83,8 +81,6 @@ public class ImuActivity2 extends AppCompatActivity {
         }
     };
 
-    // 是否存储IMU数据
-    private AtomicBoolean recording = new AtomicBoolean(false);
     // 时间戳转日期
     private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
     // 数据存储路径
@@ -100,9 +96,9 @@ public class ImuActivity2 extends AppCompatActivity {
             switch (msg.what) {
                 case Sensor.TYPE_ACCELEROMETER:
                 case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
-                    tvAcceX.setText(dfSensor.format(imuInfo.values[0]));
-                    tvAcceY.setText(dfSensor.format(imuInfo.values[1]));
-                    tvAcceZ.setText(dfSensor.format(imuInfo.values[2]));
+                    tvAccelX.setText(dfSensor.format(imuInfo.values[0]));
+                    tvAccelY.setText(dfSensor.format(imuInfo.values[1]));
+                    tvAccelZ.setText(dfSensor.format(imuInfo.values[2]));
                     break;
                 case Sensor.TYPE_GYROSCOPE:
                 case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
@@ -124,9 +120,9 @@ public class ImuActivity2 extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             switch (v.getId()) {
-                case R.id.tvAcceX:
-                case R.id.tvAcceY:
-                case R.id.tvAcceZ:
+                case R.id.tvAccelX:
+                case R.id.tvAccelY:
+                case R.id.tvAccelZ:
                     Intent accelGraphIntent = new Intent(ImuActivity2.this, ImuDrawActivity2.class);
                     accelGraphIntent.putExtra("Sensor", "ACCEL");
                     startActivity(accelGraphIntent);
@@ -171,26 +167,12 @@ public class ImuActivity2 extends AppCompatActivity {
         setContentView(R.layout.activity_imu);
         Log.d(TAG, "onCreate:" + ThreadUtils.threadID());
 
-        tvAcceX = (TextView) findViewById(R.id.tvAcceX);
-        tvAcceY = (TextView) findViewById(R.id.tvAcceY);
-        tvAcceZ = (TextView) findViewById(R.id.tvAcceZ);
+        tvAccelX = (TextView) findViewById(R.id.tvAccelX);
+        tvAccelY = (TextView) findViewById(R.id.tvAccelY);
+        tvAccelZ = (TextView) findViewById(R.id.tvAccelZ);
         tvGyroX = (TextView) findViewById(R.id.tvGyroX);
         tvGyroY = (TextView) findViewById(R.id.tvGyroY);
         tvGyroZ = (TextView) findViewById(R.id.tvGyroZ);
-
-        cbRecord = (CheckBox) findViewById(R.id.cbRecord);
-        cbRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    recording.set(true);
-                }
-                else {
-                    recording.set(false);
-                }
-                Log.d(TAG, "onCheckedChanged");
-            }
-        });
 
         btnImuCollection = (Button) findViewById(R.id.btnImuStart);
         btnImuCollection.setOnClickListener(this::onClick);
@@ -199,9 +181,9 @@ public class ImuActivity2 extends AppCompatActivity {
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
 
         // TODO::满足在采集数据的同时可视化
-        tvAcceX.setOnClickListener(graphListener);
-        tvAcceY.setOnClickListener(graphListener);
-        tvAcceZ.setOnClickListener(graphListener);
+        tvAccelX.setOnClickListener(graphListener);
+        tvAccelY.setOnClickListener(graphListener);
+        tvAccelZ.setOnClickListener(graphListener);
         tvGyroX.setOnClickListener(graphListener);
         tvGyroY.setOnClickListener(graphListener);
         tvGyroZ.setOnClickListener(graphListener);
@@ -217,11 +199,9 @@ public class ImuActivity2 extends AppCompatActivity {
                     bindService(intent, mImuServiceConnection, BIND_AUTO_CREATE);
 
                     btnImuCollection.setText("Stop");
-                    cbRecord.setEnabled(false);
                 } else {
                     unbindService(mImuServiceConnection);
                     btnImuCollection.setText("Start");
-                    cbRecord.setEnabled(true);
                 }
                 break;
             default:

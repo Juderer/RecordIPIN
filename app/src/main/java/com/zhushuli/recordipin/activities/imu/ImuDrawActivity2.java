@@ -42,7 +42,7 @@ public class ImuDrawActivity2 extends AppCompatActivity {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(TAG, "onServiceConnected");
-            ImuService2.MyBinder mBinder = (ImuService2.MyBinder) service;
+            ImuService2.ImuBinder mBinder = (ImuService2.ImuBinder) service;
             mImuService2 = mBinder.getImuService2();
         }
 

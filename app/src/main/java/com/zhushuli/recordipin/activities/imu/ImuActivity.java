@@ -35,9 +35,10 @@ public class ImuActivity extends AppCompatActivity {
 
     private static final String TAG = "My" + ImuActivity.class.getSimpleName();
 
-    private TextView tvAcceX;
-    private TextView tvAcceY;
-    private TextView tvAcceZ;
+    private TextView tvAccelX;
+    private TextView tvAccelY;
+    private TextView tvAccelZ;
+
     private TextView tvGyroX;
     private TextView tvGyroY;
     private TextView tvGyroZ;
@@ -119,9 +120,9 @@ public class ImuActivity extends AppCompatActivity {
             switch (msg.what) {
                 case Sensor.TYPE_ACCELEROMETER:
                 case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
-                    tvAcceX.setText(dfSensor.format(event.values[0]));
-                    tvAcceY.setText(dfSensor.format(event.values[1]));
-                    tvAcceZ.setText(dfSensor.format(event.values[2]));
+                    tvAccelX.setText(dfSensor.format(event.values[0]));
+                    tvAccelY.setText(dfSensor.format(event.values[1]));
+                    tvAccelZ.setText(dfSensor.format(event.values[2]));
                     break;
                 case Sensor.TYPE_GYROSCOPE:
                 case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
@@ -139,9 +140,9 @@ public class ImuActivity extends AppCompatActivity {
         @Override
         public void onClick(View v) {
             switch (v.getId()) {
-                case R.id.tvAcceX:
-                case R.id.tvAcceY:
-                case R.id.tvAcceZ:
+                case R.id.tvAccelX:
+                case R.id.tvAccelY:
+                case R.id.tvAccelZ:
                     Intent accelGraphIntent = new Intent(ImuActivity.this, ImuDrawActivity.class);
                     accelGraphIntent.putExtra("Sensor", "ACCEL");
                     startActivity(accelGraphIntent);
@@ -170,9 +171,9 @@ public class ImuActivity extends AppCompatActivity {
         setContentView(R.layout.activity_imu);
         Log.d(TAG, "onCreate");
 
-        tvAcceX = (TextView) findViewById(R.id.tvAcceX);
-        tvAcceY = (TextView) findViewById(R.id.tvAcceY);
-        tvAcceZ = (TextView) findViewById(R.id.tvAcceZ);
+        tvAccelX = (TextView) findViewById(R.id.tvAccelX);
+        tvAccelY = (TextView) findViewById(R.id.tvAccelY);
+        tvAccelZ = (TextView) findViewById(R.id.tvAccelZ);
         tvGyroX = (TextView) findViewById(R.id.tvGyroX);
         tvGyroY = (TextView) findViewById(R.id.tvGyroY);
         tvGyroZ = (TextView) findViewById(R.id.tvGyroZ);
@@ -198,9 +199,9 @@ public class ImuActivity extends AppCompatActivity {
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
 
         // TODO::满足在采集数据的同时可视化
-        tvAcceX.setOnClickListener(graphListener);
-        tvAcceY.setOnClickListener(graphListener);
-        tvAcceZ.setOnClickListener(graphListener);
+        tvAccelX.setOnClickListener(graphListener);
+        tvAccelY.setOnClickListener(graphListener);
+        tvAccelZ.setOnClickListener(graphListener);
         tvGyroX.setOnClickListener(graphListener);
         tvGyroY.setOnClickListener(graphListener);
         tvGyroZ.setOnClickListener(graphListener);

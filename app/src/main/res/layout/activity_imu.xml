@@ -18,20 +18,10 @@
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"/>
 
-        <include
-            layout="@layout/layout_option"
-            android:id="@+id/layoutOption"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_below="@+id/layoutImu"
-            android:layout_marginTop="10dp"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp"/>
-
         <Button
             android:id="@+id/btnImuStart"
-            android:layout_width="168dp"
-            android:layout_height="56dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_centerInParent="true"
             android:text="Start"
             android:textAllCaps="false"
@@ -39,7 +29,7 @@
             android:typeface="serif"
             android:backgroundTint="@color/GlobalColor"
             android:textColor="@color/black"
-            android:layout_below="@+id/layoutOption"
+            android:layout_below="@+id/layoutImu"
             android:layout_marginTop="10dp"
             android:layout_marginLeft="3dp"
             android:layout_marginRight="3dp"/>

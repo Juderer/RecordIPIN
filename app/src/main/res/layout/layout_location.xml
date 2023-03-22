@@ -13,7 +13,7 @@
         <TextView
             android:text="GNSS"
             android:layout_width="match_parent"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="left"
             android:textStyle="bold"
             android:textColor="@color/black"
@@ -26,17 +26,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Date"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvDate"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -45,17 +45,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Coordinate"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvCoordinate"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -64,18 +64,18 @@
         android:orientation="horizontal">
         <TextView
             android:text="Satellite"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvSatellite"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -84,17 +84,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Time"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvGnssTime"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -103,17 +103,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Location"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvLocation"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -122,17 +122,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Accuracy"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvLocationAcc"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -141,17 +141,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Speed"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvSpeed"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -160,17 +160,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Bearing"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvBearing"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
     <TableRow
@@ -179,17 +179,17 @@
         android:orientation="horizontal">
         <TextView
             android:text="Altitude"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="2"/>
         <TextView
             android:id="@+id/tvAltitude"
             android:text="--"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:gravity="center"
             android:layout_width="0dp"
-            android:layout_weight="3"/>
+            android:layout_weight="5"/>
     </TableRow>
 
 </TableLayout>

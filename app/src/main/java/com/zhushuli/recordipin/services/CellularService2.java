@@ -199,7 +199,7 @@ public class CellularService2 extends Service {
             mRecordThread = new RecordThread(mRecordAbsDir);
             new Thread(mRecordThread).start();
         } else {
-            Log.d(TAG, "Record thread has been already running!");
+            Log.d(TAG, "Cellular record thread has been already RUNNING or cellular record is NOT allowed.");
         }
     }
 

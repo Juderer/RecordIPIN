@@ -42,6 +42,7 @@ public class CollectionActivity extends AppCompatActivity {
     private TextView tvAccelX;
     private TextView tvAccelY;
     private TextView tvAccelZ;
+
     private TextView tvGyroX;
     private TextView tvGyroY;
     private TextView tvGyroZ;
@@ -132,9 +133,9 @@ public class CollectionActivity extends AppCompatActivity {
     }
 
     private void initImuView() {
-        tvAccelX = (TextView) findViewById(R.id.tvAcceX);
-        tvAccelY = (TextView) findViewById(R.id.tvAcceY);
-        tvAccelZ = (TextView) findViewById(R.id.tvAcceZ);
+        tvAccelX = (TextView) findViewById(R.id.tvAccelX);
+        tvAccelY = (TextView) findViewById(R.id.tvAccelY);
+        tvAccelZ = (TextView) findViewById(R.id.tvAccelZ);
         tvGyroX = (TextView) findViewById(R.id.tvGyroX);
         tvGyroY = (TextView) findViewById(R.id.tvGyroY);
         tvGyroZ = (TextView) findViewById(R.id.tvGyroZ);

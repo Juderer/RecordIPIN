@@ -3,6 +3,7 @@ package com.zhushuli.recordipin.services;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -12,6 +13,8 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.util.Log;
+
+import androidx.preference.PreferenceManager;
 
 import com.alibaba.fastjson.JSON;
 import com.google.common.collect.Queues;
@@ -58,12 +61,6 @@ public class ImuService2 extends Service {
             }
             sendBroadcast(new Intent(IMU_SENSOR_CHANGED_ACTION).putExtra("IMU",
                     JSON.toJSONString(new ImuInfo(event))));
-            ImuInfo imuInfo = new ImuInfo(event);
-            String testStr = JSON.toJSONString(imuInfo);
-            ImuInfo test = (ImuInfo) JSON.parseObject(testStr, ImuInfo.class);
-            Log.d(TAG, imuInfo.toString());
-            Log.d(TAG, testStr);
-            Log.d(TAG, test.toString());
         }
 
         @Override
@@ -105,11 +102,13 @@ public class ImuService2 extends Service {
         this.callback = callback;
     }
 
+    private SharedPreferences mSharedPreferences;
+
     public ImuService2() {
 
     }
 
-    public class MyBinder extends Binder {
+    public class ImuBinder extends Binder {
         public ImuService2 getImuService2() {
             return ImuService2.this;
         }
@@ -118,7 +117,7 @@ public class ImuService2 extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "onBind");
-        return new MyBinder();
+        return new ImuBinder();
     }
 
     @Override
@@ -146,13 +145,27 @@ public class ImuService2 extends Service {
 //        mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
 //        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
 
+        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        setRecording(mSharedPreferences.getBoolean("prefImuCollected", false));
+        Log.d(TAG, String.valueOf(checkRecording()));
         registerResource();
     }
 
     private void registerResource() {
         mListenThread.start();
-        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
-        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
+        mSensorManager.registerListener(
+                mSensorEventListener,
+                mAccelSensor,
+                Integer.valueOf(mSharedPreferences.getString("prefImuFreq", "1")),
+                new Handler(mListenThread.getLooper()));
+        mSensorManager.registerListener(
+                mSensorEventListener,
+                mGyroSensor,
+                Integer.valueOf(mSharedPreferences.getString("prefImuFreq", "1")),
+                new Handler(mListenThread.getLooper()));
+
+//        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
+//        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
 
 //        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME);
 //        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME);
@@ -166,10 +179,12 @@ public class ImuService2 extends Service {
     }
 
     public synchronized void startImuRecord(String mRecordingDir) {
-        if (!checkRecording()) {
-            setRecording(true);
+        if (checkRecording() && mRecordThread == null) {
+            Log.d(TAG, "startImuRecord");
             mRecordThread = new RecordThread(mRecordingDir);
             new Thread(mRecordThread).start();
+        } else {
+            Log.d(TAG, "IMU record thread has been already RUNNING or IMU record is NOT allowed.");
         }
     }
 
@@ -194,13 +209,13 @@ public class ImuService2 extends Service {
         @Override
         public void run() {
             initWriter();
-            Log.d(TAG, "Record Thread Start");
+            Log.d(TAG, "IMU Record Start");
             while (ImuService2.this.checkRecording() || mImuBlockingStrs.size() > 0) {
                 try {
                     Queues.drain(mImuBlockingStrs, mStrings, 1500, 3000, TimeUnit.MILLISECONDS);
                     mBufferedWriter.write(String.join("", mStrings));
                     mBufferedWriter.flush();
-                    Log.d(TAG, "Record Thread Write");
+                    Log.d(TAG, "IMU Record Write");
                     mStrings.clear();
                 } catch (IOException | InterruptedException e) {
                     e.printStackTrace();
@@ -213,7 +228,7 @@ public class ImuService2 extends Service {
 //                        writeCount ++;
 //                        if (writeCount > 1500) {
 //                            mBufferedWriter.flush();
-//                            Log.d(TAG, "IMU recording write");
+//                            Log.d(TAG, "IMU Record write");
 //                        }
 //                    } catch (IOException e) {
 //                        e.printStackTrace();
@@ -235,7 +250,7 @@ public class ImuService2 extends Service {
 //                }
             }
             FileUtils.closeBufferedWriter(mBufferedWriter);
-            Log.d(TAG, "Record Thread End:" + Thread.currentThread().getId());
+            Log.d(TAG, "IMU Record End:" + Thread.currentThread().getId());
         }
     }
 

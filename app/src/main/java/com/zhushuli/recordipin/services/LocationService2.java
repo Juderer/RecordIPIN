@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.location.GnssMeasurementsEvent;
 import android.location.GnssStatus;
@@ -22,6 +23,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.preference.PreferenceManager;
 
 import com.alibaba.fastjson.JSON;
 import com.zhushuli.recordipin.R;
@@ -45,6 +47,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class LocationService2 extends Service {
 
     private static final String TAG = LocationService2.class.getSimpleName();
+
+    private SharedPreferences mSharedPreferences;
 
     // GNSS位置更新码
     public static final int GNSS_LOCATION_CHANGED_CODE = 0x1001;
@@ -198,7 +202,7 @@ public class LocationService2 extends Service {
         return callback;
     }
 
-    public class MyBinder extends Binder {
+    public class LocationBinder extends Binder {
         public LocationService2 getLocationService2() {
             return LocationService2.this;
         }
@@ -207,7 +211,7 @@ public class LocationService2 extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(TAG, "onBind");
-        return new MyBinder();
+        return new LocationBinder();
     }
 
     @Override
@@ -218,6 +222,10 @@ public class LocationService2 extends Service {
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         requestLocationUpdates();
         registerGnssStatus();
+
+        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        setRecording(mSharedPreferences.getBoolean("prefGnssCollected", false));
+        Log.d(TAG, String.valueOf(checkRecording()));
 
         // 启动前台服务, 确保APP长时间后台运行后返回前台无法更新定位
         Notification notification = createNotification();
@@ -283,10 +291,12 @@ public class LocationService2 extends Service {
     }
 
     public synchronized void startLocationRecord(String recordDir) {
-        if (!checkRecording()) {
-            setRecording(true);
+        if (checkRecording() && mRecordThread == null) {
+            Log.d(TAG, "startLocationRecord");
             mRecordThread = new RecordThread(recordDir);
             new Thread(mRecordThread).start();
+        } else {
+            Log.d(TAG, "Location record thread has been already RUNNING or location record is NOT allowed.");
         }
     }
 

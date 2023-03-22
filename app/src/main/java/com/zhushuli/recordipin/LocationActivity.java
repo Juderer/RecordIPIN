@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -48,17 +49,16 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
     private TextView tvSpeed;
     private TextView tvBearing;
     private TextView tvAltitude;
-    private CheckBox cbRecord;
     private Button btnLocServiceStart;
 
-    private LocationService2.MyBinder binder;
+    private LocationService2.LocationBinder binder;
+
+    private LocationService2 mLocationService2;
 
     // 时间戳转日期
     private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
     // 数据存储路径
     private String mRecordRootDir;
-
-    private AtomicBoolean recording = new AtomicBoolean(false);
 
     private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -115,14 +115,11 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
             Log.d(TAG, "onServiceConnected");
-            binder = (LocationService2.MyBinder) service;
-            LocationService2 mLocationService2 = binder.getLocationService2();
+            binder = (LocationService2.LocationBinder) service;
+            mLocationService2 = binder.getLocationService2();
 
-            if (recording.get()) {
-                // 数据存储路径
-                String recordDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-                mLocationService2.startLocationRecord(recordDir);
-            }
+            String recordDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+            mLocationService2.startLocationRecord(recordDir);
         }
 
         @Override
@@ -147,18 +144,6 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         tvBearing = (TextView) findViewById(R.id.tvBearing);
         tvAltitude = (TextView) findViewById(R.id.tvAltitude);
 
-        cbRecord = (CheckBox) findViewById(R.id.cbRecord);
-        cbRecord.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked) {
-                    recording.set(true);
-                } else {
-                    recording.set(false);
-                }
-            }
-        });
-
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
 
@@ -176,13 +161,11 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
                     bindService(intent, mLocationServiceConn, BIND_AUTO_CREATE);
 
                     btnLocServiceStart.setText("Stop");
-                    cbRecord.setEnabled(false);
                 } else {
                     unbindService(mLocationServiceConn);
                     setDefaultGnssInfo();
 
                     btnLocServiceStart.setText("Start");
-                    cbRecord.setEnabled(true);
                 }
                 break;
             default:
