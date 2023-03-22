@@ -102,6 +102,7 @@ public class CellularService2 extends Service {
     // 用于辅助扫描线程
     private AtomicBoolean scanning = new AtomicBoolean(false);
 
+    // 基站数据扫描子线程
     private final ScanThread mScanThread = new ScanThread();
 
     // 是否将扫描到的基站数据写入文件
@@ -115,8 +116,7 @@ public class CellularService2 extends Service {
 
     private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 
-    private String mRecordRootDir;
-
+    // 写入文件的绝对路径
     private String mRecordAbsDir;
 
     // 基站数据写入子线程
@@ -144,15 +144,6 @@ public class CellularService2 extends Service {
         scanning.set(true);
         // 启动扫描子线程
         new Thread(mScanThread).start();
-
-        // 启动数据写入子线程
-        if (recording.get() && mRecordThread == null) {
-            Log.d(TAG, "record");
-            mRecordRootDir = getExternalFilesDir(Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
-            mRecordAbsDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-            mRecordThread = new RecordThread(mRecordAbsDir);
-            new Thread(mRecordThread).start();
-        }
     }
 
     private void initScanResources() {
@@ -201,6 +192,17 @@ public class CellularService2 extends Service {
         }
     }
 
+    public synchronized void startCellularRecord(String recordDir) {
+        // 启动数据写入子线程
+        if (recording.get() && mRecordThread == null) {
+            mRecordAbsDir = recordDir;
+            mRecordThread = new RecordThread(mRecordAbsDir);
+            new Thread(mRecordThread).start();
+        } else {
+            Log.d(TAG, "Record thread has been already running!");
+        }
+    }
+
     private class RecordThread implements Runnable {
 
         private Handler mRecordHandler;
@@ -240,6 +242,7 @@ public class CellularService2 extends Service {
                             try {
                                 mBufferedWriter.write(CellularUtils.transCellInfo2Str(cellInfo));
                                 mBufferedWriter.flush();
+                                Log.d(TAG, "LTE/NR Record Write");
                             } catch (IOException e) {
                                 throw new RuntimeException(e);
                             }

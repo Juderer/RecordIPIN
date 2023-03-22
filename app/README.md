@@ -38,6 +38,10 @@
 
 ## 1.8 回调接口
 
+- [[Android]Service和Activity双向通信的两种方式](https://blog.csdn.net/Gods_magic/article/details/84558169)
+- [Android中Service与多个Activity通信的三种方式](https://www.jianshu.com/p/9885acf65405)
+- [Java接口回调机制](https://www.cnblogs.com/xujian2014/p/5088072.html)
+
 ## 1.9 TableLayout
 
 - [TableLayout的基本使用方式](https://blog.csdn.net/BASIC_DU/article/details/73441167)
@@ -100,4 +104,10 @@
 
 - ["app-release.apk" how to change this default generated apk name](https://stackoverflow.com/questions/28249036/app-release-apk-how-to-change-this-default-generated-apk-name)
 - [How to change apk name by using gradle like this format?](https://stackoverflow.com/questions/33775160/how-to-change-apk-name-by-using-gradle-like-this-format)
+
+## 1.27 获取目录
+
+- [Android获取目录](https://www.jianshu.com/p/662bd5051379)
+
+## 1.28 Java IO
 

@@ -458,6 +458,8 @@ public class CellularActivity extends AppCompatActivity {
                 mCellularBinder = (CellularService2.CellularBinder) service;
                 mCellularService2 = mCellularBinder.getCellularService2();
 
+                mCellularService2.startCellularRecord(mRecordAbsDir);
+
                 mCellularService2.setCallback(new CellularService2.Callback() {
                     @Override
                     public void onCellInfoChanged(List<CellInfo> cellInfo) {
