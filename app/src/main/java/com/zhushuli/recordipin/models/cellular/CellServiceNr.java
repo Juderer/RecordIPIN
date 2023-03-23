@@ -9,6 +9,7 @@ import android.telephony.CellSignalStrengthNr;
 
 import androidx.annotation.RequiresApi;
 
+@Deprecated
 public class CellServiceNr extends CellService {
     public CellServiceNr() {
         super();

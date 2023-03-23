@@ -81,8 +81,9 @@ public class LocationService2 extends Service {
             if (checkRecording()) {
                 mLocationQueue.offer(location);
             }
-            sendBroadcast(new Intent(GNSS_LOCATION_CHANGED_ACTION)
-                    .putExtra("location", JSON.toJSONString(LocationUtils.genLocationMap(location))));
+//            sendBroadcast(new Intent(GNSS_LOCATION_CHANGED_ACTION)
+//                    .putExtra("location", JSON.toJSONString(LocationUtils.genLocationMap(location))));
+            sendBroadcast(new Intent(GNSS_LOCATION_CHANGED_ACTION).putExtra("Location", location));
         }
 
         @Override
@@ -149,7 +150,7 @@ public class LocationService2 extends Service {
             }
             Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
             sendBroadcast(new Intent(GNSS_SATELLITE_STATUS_CHANGED_ACTION)
-                    .putExtra("satellite", "BD" + mBeidouSatelliteCount + "," + "GPS" + mGpsSatelliteCount));
+                    .putExtra("Satellite", "BD" + mBeidouSatelliteCount + "," + "GPS" + mGpsSatelliteCount));
         }
     };
 

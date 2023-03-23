@@ -49,6 +49,8 @@ public class CellularService2 extends Service {
 
     public static final String CELLULAR_CELL_INFO_CHANGED_ACTION = "recordipin.broadcast.cellular.cellInfoChanged";
 
+    public static final int CELLULAR_CELL_INFO_CHANGED_CODE = 0x3001;
+
     private SharedPreferences mSharedPreferences;
 
     // 信号扫描时间间隔（单位：毫秒）

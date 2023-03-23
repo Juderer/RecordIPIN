@@ -1,5 +1,6 @@
 package com.zhushuli.recordipin.models.cellular;
 
+@Deprecated
 public abstract class CellPacket {
 
     // Observation time stamped as type in nanoseconds since boot

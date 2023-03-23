@@ -1,5 +1,6 @@
 package com.zhushuli.recordipin.models.cellular;
 
+@Deprecated
 public abstract class CellService extends CellPacket {
 
     public String mcc;

@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -56,7 +57,10 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
     private LocationService2 mLocationService2;
 
     // 时间戳转日期
-    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+    private final SimpleDateFormat storageFormatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+
+    private final SimpleDateFormat displayFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
     // 数据存储路径
     private String mRecordRootDir;
 
@@ -66,14 +70,22 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
             switch (msg.what) {
                 case LocationService2.GNSS_LOCATION_CHANGED_CODE:
                     tvCoordinate.setText("WGS84");
-                    HashMap<String, String> map = (HashMap<String, String>) msg.obj;
-                    tvDate.setText(map.get("date"));
-                    tvGnssTime.setText(map.get("time"));
-                    tvLocation.setText(map.get("location"));
-                    tvLocationAcc.setText(map.get("accuracy"));
-                    tvSpeed.setText(map.get("speed"));
-                    tvBearing.setText(map.get("bearing"));
-                    tvAltitude.setText(map.get("altitude"));
+//                    HashMap<String, String> map = (HashMap<String, String>) msg.obj;
+//                    tvDate.setText(map.get("date"));
+//                    tvGnssTime.setText(map.get("time"));
+//                    tvLocation.setText(map.get("location"));
+//                    tvLocationAcc.setText(map.get("accuracy"));
+//                    tvSpeed.setText(map.get("speed"));
+//                    tvBearing.setText(map.get("bearing"));
+//                    tvAltitude.setText(map.get("altitude"));
+                    Location location = (Location) msg.obj;
+                    tvDate.setText(displayFormatter.format(new Date(System.currentTimeMillis())));
+                    tvGnssTime.setText(String.valueOf(location.getTime()));
+                    tvLocation.setText(String.format("%.6f,%.6f", location.getLongitude(), location.getLatitude()));
+                    tvLocationAcc.setText(String.format("%.2fm", location.getAccuracy()));
+                    tvSpeed.setText(String.format("%.2fm/s,%.2fkm/h", location.getSpeed(), location.getSpeed() * 3.6));
+                    tvBearing.setText(String.valueOf(location.getBearing()));
+                    tvAltitude.setText(String.format("%.2fm", location.getAltitude()));
                     break;
                 case LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE:
                     tvSatellite.setText((String) msg.obj);
@@ -81,6 +93,8 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
                 case LocationService2.GNSS_PROVIDER_DISABLED_CODE:
                     setDefaultGnssInfo();
                     DialogUtils.showLocationSettingsAlert(LocationActivity.this);
+                    unbindService(mLocationServiceConn);
+                    btnLocServiceStart.setText("Start");
                     break;
                 default:
                     break;
@@ -93,15 +107,13 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         public void onReceive(Context context, Intent intent) {
             Log.d(TAG, "onReceive:" + ThreadUtils.threadID());
             String action = intent.getAction();
+            Log.d(TAG, action);
+
             Message msg = Message.obtain();
-            if (action.equals(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION)) {
-                msg.what = LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE;
-                msg.obj = intent.getStringExtra("satellite");
-                mMainHandler.sendMessage(msg);
-            } else if (action.equals(LocationService2.GNSS_LOCATION_CHANGED_ACTION)) {
-                String location = intent.getStringExtra("location");
+            if (action.equals(LocationService2.GNSS_LOCATION_CHANGED_ACTION)) {
+                Location location = intent.getParcelableExtra("Location");
                 msg.what = LocationService2.GNSS_LOCATION_CHANGED_CODE;
-                msg.obj = JSON.parseObject(location, HashMap.class);
+                msg.obj = location;
                 mMainHandler.sendMessage(msg);
             } else if (action.equals(LocationService2.GNSS_PROVIDER_DISABLED_ACTION)) {
                 mMainHandler.sendEmptyMessage(LocationService2.GNSS_PROVIDER_DISABLED_CODE);
@@ -109,7 +121,25 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         }
     };
 
-    private final HandlerThread mReceiverThread = new HandlerThread("Receive");
+    private final HandlerThread mLocationReceiverThread = new HandlerThread("Location Receiver");
+
+    private final BroadcastReceiver mSatelliteReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive Satellite");
+            String action = intent.getAction();
+            Log.d(TAG, action);
+
+            if (action.equals(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION)) {
+                Message msg = Message.obtain();
+                msg.what = LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE;
+                msg.obj = intent.getStringExtra("Satellite");
+                mMainHandler.sendMessage(msg);
+            }
+        }
+    };
+
+    private final HandlerThread mSatelliteReceiverThread = new HandlerThread("Satellite Receiver");
 
     private final ServiceConnection mLocationServiceConn = new ServiceConnection() {
         @Override
@@ -118,7 +148,7 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
             binder = (LocationService2.LocationBinder) service;
             mLocationService2 = binder.getLocationService2();
 
-            String recordDir = mRecordRootDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
+            String recordDir = mRecordRootDir + File.separator + storageFormatter.format(new Date(System.currentTimeMillis()));
             mLocationService2.startLocationRecord(recordDir);
         }
 
@@ -147,7 +177,8 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         btnLocServiceStart = (Button) findViewById(R.id.btnLocServiceStart);
         btnLocServiceStart.setOnClickListener(this);
 
-        mReceiverThread.start();
+        mLocationReceiverThread.start();
+        mSatelliteReceiverThread.start();
 
         mRecordRootDir = getExternalFilesDir(Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
     }
@@ -190,18 +221,20 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         super.onStart();
         Log.d(TAG, "onStart");
 
-        IntentFilter intent = new IntentFilter();
-        intent.addAction(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION);
-        intent.addAction(LocationService2.GNSS_LOCATION_CHANGED_ACTION);
-        intent.addAction(LocationService2.GNSS_PROVIDER_DISABLED_ACTION);
-        registerReceiver(mLocationReceiver, intent, null, new Handler(mReceiverThread.getLooper()));
+        IntentFilter locationIntent = new IntentFilter();
+        locationIntent.addAction(LocationService2.GNSS_LOCATION_CHANGED_ACTION);
+        locationIntent.addAction(LocationService2.GNSS_PROVIDER_DISABLED_ACTION);
+        registerReceiver(mLocationReceiver, locationIntent, null, new Handler(mLocationReceiverThread.getLooper()));
+
+        IntentFilter satelliteIntent = new IntentFilter();
+        satelliteIntent.addAction(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION);
+        registerReceiver(mSatelliteReceiver, satelliteIntent, null, new Handler(mSatelliteReceiverThread.getLooper()));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         Log.d(TAG, "onResume");
-
     }
 
     @Override
@@ -216,6 +249,7 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         Log.d(TAG, "onStop");
 
         unregisterReceiver(mLocationReceiver);
+        unregisterReceiver(mSatelliteReceiver);
     }
 
     @Override
@@ -232,6 +266,7 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         if (btnLocServiceStart.getText().equals("Stop")) {
             unbindService(mLocationServiceConn);
         }
-        mReceiverThread.quitSafely();
+        mLocationReceiverThread.quitSafely();
+        mSatelliteReceiverThread.quitSafely();
     }
 }

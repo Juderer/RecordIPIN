@@ -7,6 +7,7 @@ import android.telephony.CellInfo;
 import android.telephony.CellInfoLte;
 import android.telephony.CellSignalStrengthLte;
 
+@Deprecated
 public class CellServiceLte extends CellService {
     public int ta;
 
