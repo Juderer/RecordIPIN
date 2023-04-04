@@ -1,4 +1,4 @@
-package com.zhushuli.recordipin;
+package com.zhushuli.recordipin.activities.location;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
@@ -21,11 +20,9 @@ import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 
-import com.alibaba.fastjson.JSON;
+import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.services.LocationService2;
 import com.zhushuli.recordipin.utils.DialogUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
@@ -33,8 +30,6 @@ import com.zhushuli.recordipin.utils.ThreadUtils;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 public class LocationActivity extends AppCompatActivity implements View.OnClickListener {
 

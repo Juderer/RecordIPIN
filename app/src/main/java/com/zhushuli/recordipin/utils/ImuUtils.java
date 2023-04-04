@@ -3,6 +3,10 @@ package com.zhushuli.recordipin.utils;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 
+import com.zhushuli.recordipin.models.imu.ImuInfo;
+
+import java.util.Map;
+
 
 public class ImuUtils {
 
@@ -34,29 +38,64 @@ public class ImuUtils {
                 Math.round((event.timestamp - TimeReferenceUtils.getElapsedTimeReference()) / 1000000L);
     }
 
-    public static String sensorEvent2Str(SensorEvent event) {
-        calibrateSensorTime(event);
-        String typeStr = "";
+//    public static String genImuCsv(SensorEvent event) {
+////        calibrateSensorTime(event);
+//        String typeStr = "";
+//        switch (event.sensor.getType()) {
+//            case Sensor.TYPE_ACCELEROMETER:
+//            case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
+//                typeStr = "ACCEL";
+//                break;
+//            case Sensor.TYPE_GYROSCOPE:
+//            case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
+//                typeStr = "GYRO";
+//                break;
+//            default:
+//                typeStr = "unknown";
+//                break;
+//        }
+//        String valueStr = "";
+//        for (float value: event.values) {
+//            valueStr += String.format("%.4f,", value);
+//        }
+//        return typeStr + "," +
+//                String.format("%d,%d,", System.currentTimeMillis(), event.timestamp / 1_000_000L) +
+//                valueStr +
+//                String.valueOf(event.accuracy) + "\n";
+//    }
+
+    public static String genImuCsv(SensorEvent event) {
+        StringBuffer sb = new StringBuffer();
+        // 传感器类型
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
             case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
-                typeStr = "ACCEL";
+                sb.append("ACCEL");
                 break;
             case Sensor.TYPE_GYROSCOPE:
             case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
-                typeStr = "GYRO";
+                sb.append("GYRO");
                 break;
             default:
-                typeStr = "unknown";
+                sb.append("unknown");
                 break;
         }
-        String valueStr = "";
+        sb.append(",");
+
+        // 时间戳
+        sb.append(System.currentTimeMillis());
+        sb.append(",");
+        sb.append(event.timestamp / 1_000_000L);
+        sb.append(",");
+
+        // 传感器数值
         for (float value: event.values) {
-            valueStr += String.format("%.4f,", value);
+            sb.append(String.format("%.4f", value));
+            sb.append(",");
         }
-        return typeStr + "," +
-                String.format("%d,%d,", System.currentTimeMillis(), event.timestamp) +
-                valueStr +
-                String.valueOf(event.accuracy) + "\n";
+        sb.append(event.accuracy);
+        sb.append("\n");
+
+        return sb.toString();
     }
 }

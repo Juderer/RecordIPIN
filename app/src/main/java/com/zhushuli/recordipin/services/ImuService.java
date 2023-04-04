@@ -46,7 +46,7 @@ public class ImuService extends Service {
             Log.d(TAG, "onSensorChanged:" + ThreadUtils.threadID());
             if (callback != null) {
                 if (checkRecording()) {
-                    mImuBlockingStrs.offer(ImuUtils.sensorEvent2Str(event));
+                    mImuBlockingStrs.offer(ImuUtils.genImuCsv(event));
 //                    mEventQueue.add(event);
 //                    mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
                 }

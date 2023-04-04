@@ -1,6 +1,8 @@
-package com.zhushuli.recordipin.utils;
+package com.zhushuli.recordipin.utils.location;
 
 import android.location.Location;
+
+import com.zhushuli.recordipin.utils.TimeReferenceUtils;
 
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -44,6 +46,24 @@ public class LocationUtils {
         // speed, speed accuracy, bearing, bearing accuracy
         String csvString = String.format("%d,%d,%d,%.6f,%.6f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
                 System.currentTimeMillis(), elapsedTime, location.getTime(),
+                location.getLongitude(), location.getLatitude(), location.getAccuracy(),
+                location.getSpeed(), location.getSpeedAccuracyMetersPerSecond(),
+                location.getBearing(), location.getBearingAccuracyDegrees());
+        return csvString;
+    }
+
+    public static String transPair2String(Map.Entry<Long, Location> pair) {
+        long sysTimeMillis = pair.getKey();
+        Location location = pair.getValue();
+
+//        TimeReferenceUtils.setTimeReference(location.getElapsedRealtimeNanos());
+//        Long elapsedTime = TimeReferenceUtils.getMyTimeReference() +
+//                Math.round((location.getElapsedRealtimeNanos() - TimeReferenceUtils.getElapsedTimeReference()) / 1000000L);
+
+        // system timestamp, elapsed realtime, GNSS timestamp, longitude, latitude, accuracy,
+        // speed, speed accuracy, bearing, bearing accuracy
+        String csvString = String.format("%d,%d,%d,%.6f,%.6f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+                sysTimeMillis, location.getElapsedRealtimeNanos() / 1_000_000L, location.getTime(),
                 location.getLongitude(), location.getLatitude(), location.getAccuracy(),
                 location.getSpeed(), location.getSpeedAccuracyMetersPerSecond(),
                 location.getBearing(), location.getBearingAccuracyDegrees());

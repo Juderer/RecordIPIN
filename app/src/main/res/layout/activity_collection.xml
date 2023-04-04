@@ -31,11 +31,13 @@
 
         <Button
             android:id="@+id/btnCollectData"
-            android:layout_width="120dp"
-            android:layout_height="60dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="Collect"
             android:textAllCaps="false"
-            android:textSize="20sp"
+            android:backgroundTint="@color/SteelBlue"
+            android:textColor="@color/black"
+            android:textSize="24sp"
             android:typeface="serif"
             android:layout_centerInParent="true"
             android:layout_below="@+id/layoutLocation"

@@ -109,6 +109,7 @@ public class ImuDrawActivity2 extends AppCompatActivity {
         IntentFilter intent = new IntentFilter();
         intent.addAction(ImuService2.IMU_SENSOR_CHANGED_ACTION);
         registerReceiver(mImuReceiver, intent, null, new Handler(mReceiverThread.getLooper()));
+        imuView.clearImuValue();
     }
 
     @Override

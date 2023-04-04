@@ -3,8 +3,11 @@ package com.zhushuli.recordipin;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -12,6 +15,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
@@ -20,10 +24,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.alibaba.fastjson.JSON;
+import com.zhushuli.recordipin.models.imu.ImuInfo;
 import com.zhushuli.recordipin.services.ImuService;
+import com.zhushuli.recordipin.services.ImuService2;
 import com.zhushuli.recordipin.services.LocationService;
+import com.zhushuli.recordipin.services.LocationService2;
 import com.zhushuli.recordipin.utils.DialogUtils;
-import com.zhushuli.recordipin.utils.LocationUtils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
+import com.zhushuli.recordipin.utils.location.LocationUtils;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -32,11 +41,7 @@ import java.util.HashMap;
 
 public class CollectionActivity extends AppCompatActivity {
 
-    private static final String TAG = "My" + CollectionActivity.class.getSimpleName();
-
-    private static final int GNSS_LOCATION_UPDATE_CODE = 8402;
-    private static final int GNSS_SEARCHING_CODE = 502;
-    private static final int GNSS_PROVIDER_DISABLED_CODE = 404;
+    private static final String TAG = CollectionActivity.class.getSimpleName();
 
     // IMU相关控件
     private TextView tvAccelX;
@@ -46,6 +51,7 @@ public class CollectionActivity extends AppCompatActivity {
     private TextView tvGyroX;
     private TextView tvGyroY;
     private TextView tvGyroZ;
+
     // GNSS相关控件
     private TextView tvDate;
     private TextView tvCoordinate;
@@ -60,55 +66,148 @@ public class CollectionActivity extends AppCompatActivity {
     private Button btnCollectData;
 
     // 定位服务相关类
-    private LocationService.MyBinder mLocationBinder;
-    private LocationService mLocationService;
-    private ServiceConnection mLocationServiceConnection;
+    private LocationService2.LocationBinder mLocationBinder;
+
+    private LocationService2 mLocationService2;
+
+    private final ServiceConnection mLocationServiceConn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "onServiceConnected Location");
+            mLocationBinder = (LocationService2.LocationBinder) service;
+            mLocationService2 = mLocationBinder.getLocationService2();
+
+            mLocationService2.startLocationRecord(mRecordAbsDir);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG, "onServiceDisconnected Location");
+        }
+    };
 
     // IMU服务相关类
-    private ImuService.MyBinder mImuBinder;
-    private ImuService mImuService;
-    private ServiceConnection mImuServiceConnection;
+    private ImuService2.ImuBinder mImuBinder;
+
+    private ImuService2 mImuService2;
+
+    private final ServiceConnection mImuServiceConn = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(TAG, "onServiceConnected IMU");
+            mImuBinder = (ImuService2.ImuBinder) service;
+            mImuService2 = mImuBinder.getImuService2();
+
+            mImuService2.startImuRecord(mRecordAbsDir);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.d(TAG, "onServiceDisconnected IMU");
+        }
+    };
+
+    private final BroadcastReceiver mLocationReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive Location:" + ThreadUtils.threadID());
+
+            String action = intent.getAction();
+            if (action.equals(LocationService2.GNSS_LOCATION_CHANGED_ACTION)) {
+                Location location = intent.getParcelableExtra("Location");
+                Message msg = Message.obtain();
+                msg.what = LocationService2.GNSS_LOCATION_CHANGED_CODE;
+                msg.obj = location;
+                mMainHandler.sendMessage(msg);
+            } else if (action.equals(LocationService2.GNSS_PROVIDER_DISABLED_ACTION)) {
+                mMainHandler.sendEmptyMessage(LocationService2.GNSS_PROVIDER_DISABLED_CODE);
+            }
+        }
+    };
+
+    private final HandlerThread mLocationReceiveThread = new HandlerThread("Location Receiver");
+
+    private final BroadcastReceiver mSatelliteReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive Satellite:" + ThreadUtils.threadID());
+
+            String action = intent.getAction();
+            if (action.equals(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION)) {
+                Message msg = Message.obtain();
+                msg.what = LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE;
+                msg.obj = intent.getStringExtra("Satellite");
+                mMainHandler.sendMessage(msg);
+            }
+        }
+    };
+
+    private final HandlerThread mSatelliteReceiverThread = new HandlerThread("Satellite Receiver");
+
+    private final BroadcastReceiver mImuReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            Log.d(TAG, "onReceive IMU:" + ThreadUtils.threadID());
+
+            String action = intent.getAction();
+            if (action.equals(ImuService2.IMU_SENSOR_CHANGED_ACTION)) {
+                ImuInfo imuInfo = JSON.parseObject(intent.getStringExtra("IMU"), ImuInfo.class);
+                Message msg = Message.obtain();
+                msg.what = imuInfo.getType();
+                msg.obj = imuInfo;
+                mMainHandler.sendMessage(msg);
+            }
+        }
+    };
+
+    private final HandlerThread mImuReceiverThread = new HandlerThread("IMU Receiver");
 
     // 数据存储路径
-    private SimpleDateFormat formatter;
-    private String mRecordingDir;
+    private final SimpleDateFormat storageFormatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
 
-    private Handler mMainHandler = new Handler(Looper.getMainLooper()) {
+    private final SimpleDateFormat displayFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+    private String mRecordRootDir;
+
+    private String mRecordAbsDir;
+
+    private final Handler mMainHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(@NonNull Message msg) {
             SensorEvent event = null;
             switch (msg.what) {
-                case GNSS_LOCATION_UPDATE_CODE:
-                    tvSatellite.setText("--");
-
+                case LocationService2.GNSS_LOCATION_CHANGED_CODE:
                     tvCoordinate.setText("WGS84");
-                    HashMap<String, String> map = (HashMap<String, String>) msg.obj;
-                    tvDate.setText(map.get("date"));
-                    tvGnssTime.setText(map.get("time"));
-                    tvLocation.setText(map.get("location"));
-                    tvLocationAcc.setText(map.get("accuracy"));
-                    tvSpeed.setText(map.get("speed"));
-                    tvBearing.setText(map.get("bearing"));
-                    tvAltitude.setText(map.get("altitude"));
+                    Location location = (Location) msg.obj;
+                    tvDate.setText(displayFormatter.format(new Date(System.currentTimeMillis())));
+                    tvGnssTime.setText(String.valueOf(location.getTime()));
+                    tvLocation.setText(String.format("%.6f,%.6f", location.getLongitude(), location.getLatitude()));
+                    tvLocationAcc.setText(String.format("%.2fm", location.getAccuracy()));
+                    tvSpeed.setText(String.format("%.2fm/s,%.2fkm/h", location.getSpeed(), location.getSpeed() * 3.6));
+                    tvBearing.setText(String.valueOf(location.getBearing()));
+                    tvAltitude.setText(String.format("%.2fm", location.getAltitude()));
                     break;
-                case GNSS_SEARCHING_CODE:
-//                    setDefaultGnssInfo();
+                case LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE:
                     tvSatellite.setText((String) msg.obj);
                     break;
-                case GNSS_PROVIDER_DISABLED_CODE:
+                case LocationService2.GNSS_PROVIDER_DISABLED_CODE:
                     DialogUtils.showLocationSettingsAlert(CollectionActivity.this);
+                    unbindServices();
+                    setDefaultGnssInfo();
+                    setDefaultImuInfo();
+                    btnCollectData.setText("Collect");
                     break;
                 case Sensor.TYPE_ACCELEROMETER:
-                    event = (SensorEvent) msg.obj;
-                    tvAccelX.setText(String.format("%.4f", event.values[0]));
-                    tvAccelY.setText(String.format("%.4f", event.values[1]));
-                    tvAccelZ.setText(String.format("%.4f", event.values[2]));
+                    ImuInfo accelInfo = (ImuInfo) msg.obj;
+                    tvAccelX.setText(String.format("%.4f", accelInfo.values[0]));
+                    tvAccelY.setText(String.format("%.4f", accelInfo.values[1]));
+                    tvAccelZ.setText(String.format("%.4f", accelInfo.values[2]));
                     break;
                 case Sensor.TYPE_GYROSCOPE:
-                    event = (SensorEvent) msg.obj;
-                    tvGyroX.setText(String.format("%.4f", event.values[0]));
-                    tvGyroY.setText(String.format("%.4f", event.values[1]));
-                    tvGyroZ.setText(String.format("%.4f", event.values[2]));
+                    ImuInfo gyroInfo = (ImuInfo) msg.obj;
+                    tvGyroX.setText(String.format("%.4f", gyroInfo.values[0]));
+                    tvGyroY.setText(String.format("%.4f", gyroInfo.values[1]));
+                    tvGyroZ.setText(String.format("%.4f", gyroInfo.values[2]));
                     break;
                 default:
                     break;
@@ -127,9 +226,12 @@ public class CollectionActivity extends AppCompatActivity {
         btnCollectData = (Button) findViewById(R.id.btnCollectData);
         btnCollectData.setOnClickListener(this::onClick);
 
-        formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
-        mRecordingDir = getExternalFilesDir(
+        mRecordRootDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+
+        mLocationReceiveThread.start();
+        mSatelliteReceiverThread.start();
+        mImuReceiverThread.start();
     }
 
     private void initImuView() {
@@ -154,23 +256,20 @@ public class CollectionActivity extends AppCompatActivity {
     }
 
     private void bindServices() {
-        // 初始化服务连接
-        initServiceConnection();
-
         // 绑定定位服务
-        Intent locationIntent = new Intent(CollectionActivity.this, LocationService.class);
-        bindService(locationIntent, mLocationServiceConnection, BIND_AUTO_CREATE);
+        Intent locationIntent = new Intent(CollectionActivity.this, LocationService2.class);
+        bindService(locationIntent, mLocationServiceConn, BIND_AUTO_CREATE);
         // 绑定IMU服务
-        Intent imuIntent = new Intent(CollectionActivity.this, ImuService.class);
-        bindService(imuIntent, mImuServiceConnection, BIND_AUTO_CREATE);
+        Intent imuIntent = new Intent(CollectionActivity.this, ImuService2.class);
+        bindService(imuIntent, mImuServiceConn, BIND_AUTO_CREATE);
 
         btnCollectData.setText("Stop");
     }
 
     private void unbindServices() {
         // 服务解绑
-        unbindService(mLocationServiceConnection);
-        unbindService(mImuServiceConnection);
+        unbindService(mLocationServiceConn);
+        unbindService(mImuServiceConn);
 
         btnCollectData.setText("Collect");
         setDefaultGnssInfo();
@@ -181,6 +280,7 @@ public class CollectionActivity extends AppCompatActivity {
         switch (v.getId()) {
             case R.id.btnCollectData:
                 if (btnCollectData.getText().equals("Collect")) {
+                    mRecordAbsDir = mRecordRootDir + File.separator + storageFormatter.format(new Date(System.currentTimeMillis()));
                     bindServices();
                 } else {
                     unbindServices();
@@ -189,91 +289,6 @@ public class CollectionActivity extends AppCompatActivity {
             default:
                 break;
         }
-    }
-
-    private void initServiceConnection() {
-        // 数据存储路径
-        String recordingDir = mRecordingDir + File.separator + formatter.format(new Date(System.currentTimeMillis()));
-
-        mLocationServiceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                Log.d(TAG, "onServiceConnected location");
-                mLocationBinder = (LocationService.MyBinder) service;
-                mLocationService = mLocationBinder.getLocationService();
-
-                mLocationService.startLocationRecording(recordingDir);
-
-                mLocationService.setCallback(new LocationService.Callback() {
-                    @Override
-                    public void onLocationChanged(Location location) {
-                        Log.d(TAG, "onLocationChanged");
-                        Message msg = new Message();
-                        msg.what = GNSS_LOCATION_UPDATE_CODE;
-                        msg.obj = LocationUtils.genLocationMap(location);
-                        CollectionActivity.this.getHandler().sendMessage(msg);
-                    }
-
-                    @Override
-                    public void onLocationProviderDisabled() {
-                        Message msg = Message.obtain();
-                        msg.what = GNSS_PROVIDER_DISABLED_CODE;
-                        CollectionActivity.this.getHandler().sendMessage(msg);
-
-                        unbindServices();
-                    }
-
-                    @Override
-                    public void onLocationSearching(String data) {
-                        Log.d(TAG, "onLocationSearching");
-                        Message msg = Message.obtain();
-                        msg.what = GNSS_SEARCHING_CODE;
-                        msg.obj = data;
-                        CollectionActivity.this.getHandler().sendMessage(msg);
-                    }
-                });
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-
-            }
-        };
-
-        mImuServiceConnection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                Log.d(TAG, "onServiceConnected IMU");
-                mImuBinder = (ImuService.MyBinder) service;
-                mImuService = mImuBinder.getImuService();
-
-                mImuService.startImuRecord(recordingDir);
-
-                mImuService.setCallback(new ImuService.Callback() {
-                    @Override
-                    public void onSensorChanged(SensorEvent event) {
-                        Message msg = Message.obtain();
-                        switch (event.sensor.getType()) {
-                            case Sensor.TYPE_ACCELEROMETER:
-                                msg.what = Sensor.TYPE_ACCELEROMETER;
-                                break;
-                            case Sensor.TYPE_GYROSCOPE:
-                                msg.what = Sensor.TYPE_GYROSCOPE;
-                                break;
-                            default:
-                                break;
-                        }
-                        msg.obj = event;
-                        CollectionActivity.this.getHandler().sendMessage(msg);
-                    }
-                });
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
-
-            }
-        };
     }
 
     public Handler getHandler() {
@@ -302,6 +317,35 @@ public class CollectionActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onStart() {
+        super.onStart();
+        Log.d(TAG, "onStart");
+
+        IntentFilter locationIntent = new IntentFilter();
+        locationIntent.addAction(LocationService2.GNSS_LOCATION_CHANGED_ACTION);
+        locationIntent.addAction(LocationService2.GNSS_PROVIDER_DISABLED_ACTION);
+        registerReceiver(mLocationReceiver, locationIntent, null, new Handler(mLocationReceiveThread.getLooper()));
+
+        IntentFilter satelliteIntent = new IntentFilter();
+        satelliteIntent.addAction(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION);
+        registerReceiver(mSatelliteReceiver, satelliteIntent, null, new Handler(mSatelliteReceiverThread.getLooper()));
+
+        IntentFilter imuIntent = new IntentFilter();
+        imuIntent.addAction(ImuService2.IMU_SENSOR_CHANGED_ACTION);
+        registerReceiver(mImuReceiver, imuIntent, null, new Handler(mImuReceiverThread.getLooper()));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+
+        unregisterReceiver(mLocationReceiver);
+        unregisterReceiver(mSatelliteReceiver);
+        unregisterReceiver(mImuReceiver);
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
@@ -309,5 +353,9 @@ public class CollectionActivity extends AppCompatActivity {
         if (btnCollectData.getText().equals("Stop")) {
             unbindServices();
         }
+
+        ThreadUtils.interrupt(mLocationReceiveThread);
+        ThreadUtils.interrupt(mSatelliteReceiverThread);
+        ThreadUtils.interrupt(mImuReceiverThread);
     }
 }

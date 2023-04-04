@@ -9,6 +9,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
+import android.location.GnssClock;
+import android.location.GnssMeasurementRequest;
 import android.location.GnssMeasurementsEvent;
 import android.location.GnssStatus;
 import android.location.Location;
@@ -25,15 +27,18 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
 
-import com.alibaba.fastjson.JSON;
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.utils.FileUtils;
-import com.zhushuli.recordipin.utils.LocationUtils;
+import com.zhushuli.recordipin.utils.location.LocationUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
+import com.zhushuli.recordipin.utils.location.GnssClockUtils;
 
 import java.io.BufferedWriter;
+import java.io.File;
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,7 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * @author      : zhushuli
  * @createDate  : 2023/02/26 10:30
- * @description : 位置服务2，将callback逻辑修改为broadcast
+ * @description : 位置服务2，将callback逻辑修改为broadcast；加入GNSS毫秒级时间戳
  */
 public class LocationService2 extends Service {
 
@@ -67,10 +72,6 @@ public class LocationService2 extends Service {
     // 定位时间间隔（毫秒）
     private static final int MIN_LOCATION_DURATION = 1000;
 
-    // 用于保存数据的队列
-    private Queue<String> mStringQueue = new LinkedList<>();
-    private Queue<Location> mLocationQueue = new LinkedList<>();
-
     // 位置监听相关类
     private LocationManager mLocationManager;
 
@@ -79,10 +80,8 @@ public class LocationService2 extends Service {
         public void onLocationChanged(@NonNull Location location) {
             Log.d(TAG, "onLocationChanged:" + ThreadUtils.threadID());
             if (checkRecording()) {
-                mLocationQueue.offer(location);
+                mLocations.offer(new AbstractMap.SimpleEntry<>(System.currentTimeMillis(), location));
             }
-//            sendBroadcast(new Intent(GNSS_LOCATION_CHANGED_ACTION)
-//                    .putExtra("location", JSON.toJSONString(LocationUtils.genLocationMap(location))));
             sendBroadcast(new Intent(GNSS_LOCATION_CHANGED_ACTION).putExtra("Location", location));
         }
 
@@ -154,14 +153,25 @@ public class LocationService2 extends Service {
         }
     };
 
-    // TODO::捕获GNSS原始测量值
     private final GnssMeasurementsEvent.Callback mGnssMeasureEventCallback = new GnssMeasurementsEvent.Callback() {
         @Override
         public void onGnssMeasurementsReceived(GnssMeasurementsEvent eventArgs) {
-            super.onGnssMeasurementsReceived(eventArgs);
-        }
+            Log.d(TAG, "onGnssMeasurementsReceived:" + ThreadUtils.threadID());
 
+            GnssClock clock = eventArgs.getClock();
+            if (checkRecording()) {
+                mGnssClocks.add(new AbstractMap.SimpleEntry<>(System.currentTimeMillis(), clock));
+            }
+
+            long utcTimeNanos = GnssClockUtils.calcUtcTimeNanos(clock);
+            long utcTimeMillis = GnssClockUtils.calcUtcTimeMillis(clock);
+
+            Log.d(TAG, "GPS UTC: " + utcTimeNanos + "\t" + "SYS UTC: " + System.currentTimeMillis() * 1_000_000);
+            Log.d(TAG, "GPS UTC: " + utcTimeMillis + "\t" + "SYS UTC: " + System.currentTimeMillis());
+        }
     };
+
+    private GnssMeasurementRequest mGnssMeasurementRequest;
 
     // 线程池（适用API level30+），用于卫星状态、位置变化监听
     private final ExecutorService mExecutorService = Executors.newFixedThreadPool(2);
@@ -172,8 +182,18 @@ public class LocationService2 extends Service {
     // 监听位置变化线程
     private final HandlerThread mLocationListenerThread = new HandlerThread("LocationListener");
 
+    private final HandlerThread mGnssMeasurementsThread = new HandlerThread("GnssMeasurements");
+
+    // 用于保存数据的队列
+    private Queue<Map.Entry<Long, Location>> mLocations = new LinkedList<>();
+
+    private Queue<Map.Entry<Long, GnssClock>> mGnssClocks = new LinkedList<>();
+
     // 子线程：记录位置信息，并写入文件
     private RecordThread mRecordThread;
+
+    private GnssClockRecordThread mGnssClockRecordThread;
+
     // 判断"写入文件"子线程是否继续
     private AtomicBoolean recording = new AtomicBoolean(false);
 
@@ -223,6 +243,7 @@ public class LocationService2 extends Service {
         mLocationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
         requestLocationUpdates();
         registerGnssStatus();
+        registerGnssMeasurements();
 
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         setRecording(mSharedPreferences.getBoolean("prefGnssCollected", false));
@@ -230,7 +251,7 @@ public class LocationService2 extends Service {
 
         // 启动前台服务, 确保APP长时间后台运行后返回前台无法更新定位
         Notification notification = createNotification();
-        startForeground(1, notification);
+        startForeground(0x1000, notification);
     }
 
     @Override
@@ -257,7 +278,7 @@ public class LocationService2 extends Service {
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle("RecordIPIN")
                 .setContentText("正在使用定位服务")
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+                .setPriority(NotificationCompat.PRIORITY_HIGH);
         Notification notification = builder.build();
         return notification;
     }
@@ -265,7 +286,7 @@ public class LocationService2 extends Service {
     private String createNotificationChannel(String channelID, String channelName) {
         NotificationChannel channel = new NotificationChannel(channelID, channelName, NotificationManager.IMPORTANCE_HIGH);
         channel.setLightColor(Color.BLUE);
-        channel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+        channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         manager.createNotificationChannel(channel);
         return channelID;
@@ -291,28 +312,45 @@ public class LocationService2 extends Service {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private void registerGnssMeasurements() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            mGnssMeasurementRequest = new GnssMeasurementRequest.Builder()
+                    .setFullTracking(true)
+                    .build();
+            mLocationManager.registerGnssMeasurementsCallback(mGnssMeasurementRequest, mExecutorService, mGnssMeasureEventCallback);
+        } else {
+            mGnssMeasurementsThread.start();
+            mLocationManager.registerGnssMeasurementsCallback(mGnssMeasureEventCallback, new Handler(mGnssMeasurementsThread.getLooper()));
+        }
+    }
+
     public synchronized void startLocationRecord(String recordDir) {
         if (checkRecording() && mRecordThread == null) {
             Log.d(TAG, "startLocationRecord");
             mRecordThread = new RecordThread(recordDir);
             new Thread(mRecordThread).start();
+            mGnssClockRecordThread = new GnssClockRecordThread(recordDir);
+            new Thread(mGnssClockRecordThread).start();
         } else {
             Log.d(TAG, "Location record thread has been already RUNNING or location record is NOT allowed.");
         }
     }
 
     private class RecordThread implements Runnable {
+
         private String mRecordDir;
-        private BufferedWriter mBufferWriter;
+
+        private BufferedWriter mBufferedWriter;
 
         public RecordThread(String recordDir) {
             mRecordDir = recordDir;
         }
 
         private void initWriter() {
-            mBufferWriter = FileUtils.initWriter(mRecordDir, "GNSS.csv");
+            mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "GNSS", "GNSS.csv");
             try {
-                mBufferWriter.write("sysTime,elapsedTime,gnssTime,longitude,latitude,accuracy," +
+                mBufferedWriter.write("sysTime,elapsedTime,gnssTime,longitude,latitude,accuracy," +
                         "speed,speedAccuracy,bearing,bearingAccuracy\n");
             } catch (IOException e) {
                 e.printStackTrace();
@@ -325,13 +363,13 @@ public class LocationService2 extends Service {
             initWriter();
             int writeRowCount = 0;
             Log.d(TAG, "GNSS Record Start");
-            while (LocationService2.this.checkRecording()) {
-                if (mLocationQueue.size() > 0) {
+            while (LocationService2.this.checkRecording() || mLocations.size() > 0) {
+                if (mLocations.size() > 0) {
                     try {
-                        mBufferWriter.write(LocationUtils.genLocationCsv(mLocationQueue.poll()));
+                        mBufferedWriter.write(LocationUtils.transPair2String(mLocations.poll()));
                         writeRowCount++;
                         if (writeRowCount > 10) {
-                            mBufferWriter.flush();
+                            mBufferedWriter.flush();
                             writeRowCount = 0;
                             Log.d(TAG, "GNSS Record Write");
                         }
@@ -340,8 +378,65 @@ public class LocationService2 extends Service {
                     }
                 }
             }
-            FileUtils.closeBufferedWriter(mBufferWriter);
+//            if (mLocations.size() > 0) {
+//                try {
+//                    for (int i = mLocations.size(); i > 0; i--) {
+//                        mBufferedWriter.write(LocationUtils.transPair2String(mLocations.poll()));
+//                    }
+//                    mBufferedWriter.flush();
+//                    Log.d(TAG, "GNSS Record Write Last");
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+            FileUtils.closeBufferedWriter(mBufferedWriter);
             Log.d(TAG, "GNSS Record End");
+        }
+    }
+
+    private class GnssClockRecordThread implements Runnable {
+
+        private String mRecordDir;
+
+        private BufferedWriter mBufferedWriter;
+
+        public GnssClockRecordThread(String recordDir) {
+            mRecordDir = recordDir;
+        }
+
+        private void initWriter() {
+            mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "GNSS", "GnssClock.csv");
+            try {
+                mBufferedWriter.write("sysTime,utcTime\n");
+                mBufferedWriter.flush();
+            } catch (IOException e) {
+                Log.d(TAG, "GnssClock Record Thread Error");
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void run() {
+            Log.d(TAG, "GnssClock Record Start");
+            initWriter();
+            int writeCount = 0;
+            while (LocationService2.this.checkRecording() || mGnssClocks.size() > 0) {
+                if (mGnssClocks.size() > 0) {
+                    try {
+                        mBufferedWriter.write(GnssClockUtils.transPair2String(mGnssClocks.poll()));
+                        writeCount += 1;
+                        if (writeCount > 10) {
+                            mBufferedWriter.flush();
+                            writeCount = 0;
+                            Log.d(TAG, "GnssClock Record Write");
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            FileUtils.closeBufferedWriter(mBufferedWriter);
+            Log.d(TAG, "GnssClock Record End");
         }
     }
 
@@ -358,13 +453,15 @@ public class LocationService2 extends Service {
 
         mLocationManager.removeUpdates(mLocationListener);
         mLocationManager.unregisterGnssStatusCallback(mGnssStatusCallback);
+        mLocationManager.unregisterGnssMeasurementsCallback(mGnssMeasureEventCallback);
 
         stopForeground(true);
         setRecording(false);
 
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-            mGnssStatusThread.quitSafely();
-            mLocationListenerThread.quitSafely();
-        }
+        ThreadUtils.interrupt(mGnssStatusThread);
+        ThreadUtils.interrupt(mLocationListenerThread);
+        ThreadUtils.interrupt(mGnssMeasurementsThread);
+
+        mExecutorService.shutdown();
     }
 }

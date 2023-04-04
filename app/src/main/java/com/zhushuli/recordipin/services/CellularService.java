@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Deprecated
 public class CellularService extends Service {
 
     private static final String TAG = CellularService.class.getSimpleName();
@@ -150,7 +151,7 @@ public class CellularService extends Service {
 //            sendBroadcast(new Intent(CELLULAR_INFO_CHANGED_ACTION).putStringArrayListExtra("CellInfo", strRecords));
 
             while (callback == null) {
-                ThreadUtils.threadSleep(10);
+                ThreadUtils.sleep(10);
             }
             if (callback != null) {
                 // 页面显示
@@ -175,7 +176,7 @@ public class CellularService extends Service {
             // 监听网络变化（如4G/5G切换）
             Log.d(TAG, "onDataConnectionStateChanged" + state + ";" + networkType);
             while (callback == null) {
-                ThreadUtils.threadSleep(10);
+                ThreadUtils.sleep(10);
             }
             if (callback != null) {
                 callback.onDataConnectionStateChanged(state, networkType);
@@ -198,7 +199,7 @@ public class CellularService extends Service {
             Log.d(TAG, "onCellInfoChanged, threadID" + Thread.currentThread().getId());
 
             while (callback == null) {
-                ThreadUtils.threadSleep(10);
+                ThreadUtils.sleep(10);
             }
             if (callback != null) {
                 // 页面显示

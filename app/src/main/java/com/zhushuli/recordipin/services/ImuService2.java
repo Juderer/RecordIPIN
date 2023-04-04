@@ -1,5 +1,6 @@
 package com.zhushuli.recordipin.services;
 
+import android.app.Notification;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -21,11 +22,16 @@ import com.google.common.collect.Queues;
 import com.zhushuli.recordipin.models.imu.ImuInfo;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ImuUtils;
+import com.zhushuli.recordipin.utils.NotificationUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -55,9 +61,9 @@ public class ImuService2 extends Service {
 //                synchronized (new Object()) {
 //                    // TODO::考虑使用两个子线程（配上两个SensorEventListener）分别监听加速度计与陀螺仪
 //                }
-                mImuBlockingStrs.offer(ImuUtils.sensorEvent2Str(event));
+                mImuBlockingStrs.offer(ImuUtils.genImuCsv(event));
 //                mEventQueue.add(event);
-//                mStringQueue.offer(ImuUtils.sensorEvent2Str(event));
+//                mStringQueue.offer(ImuUtils.genImuCsv(event));
             }
             sendBroadcast(new Intent(IMU_SENSOR_CHANGED_ACTION).putExtra("IMU",
                     JSON.toJSONString(new ImuInfo(event))));
@@ -149,6 +155,16 @@ public class ImuService2 extends Service {
         setRecording(mSharedPreferences.getBoolean("prefImuCollected", false));
         Log.d(TAG, String.valueOf(checkRecording()));
         registerResource();
+
+        Notification notification = NotificationUtils.createNotification(this,
+                "com.zhushuli.recordipin.imuservice", "IMU Service");
+        startForeground(0x0001, notification);
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand");
+        return super.onStartCommand(intent, flags, startId);
     }
 
     private void registerResource() {
@@ -192,6 +208,7 @@ public class ImuService2 extends Service {
         private BufferedWriter mBufferedWriter;
         private String mRecordDir;
         private ArrayList<String> mStrings = new ArrayList<>();
+        private ArrayList<Map.Entry<Long, ImuInfo>> mPairs = new ArrayList<>();
 
         public RecordThread(String recordDir) {
             mRecordDir = recordDir;
@@ -238,7 +255,7 @@ public class ImuService2 extends Service {
 //                int writeCount = 0;
 //                if (mEventQueue.size() > 0) {
 //                    try {
-//                        mBufferedWriter.write(ImuUtils.sensorEvent2Str(mEventQueue.poll()));
+//                        mBufferedWriter.write(ImuUtils.genImuCsv(mEventQueue.poll()));
 //                        writeCount ++;
 //                        if (writeCount > 1500) {
 //                            mBufferedWriter.flush();
@@ -261,6 +278,7 @@ public class ImuService2 extends Service {
 
         unregisterResource();
 
+        stopForeground(true);
         setRecording(false);
     }
 }

@@ -25,7 +25,7 @@ import androidx.core.app.NotificationCompat;
 
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.utils.FileUtils;
-import com.zhushuli.recordipin.utils.LocationUtils;
+import com.zhushuli.recordipin.utils.location.LocationUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
@@ -36,6 +36,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Deprecated
 public class LocationService extends Service {
 
     private static final String TAG = "My" + LocationService.class.getSimpleName();
@@ -302,7 +303,7 @@ public class LocationService extends Service {
                     }
                     callback.onLocationSearching(mBeidouSatelliteCount + "Beidou" + "," +
                             mGpsSatelliteCount + "GPS");
-                    ThreadUtils.threadSleep(MIN_LOCATION_DURATION);
+                    ThreadUtils.sleep(MIN_LOCATION_DURATION);
                     Log.d(TAG, "DisplayThread Show");
                 }
             }

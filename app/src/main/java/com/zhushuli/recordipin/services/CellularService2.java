@@ -169,7 +169,7 @@ public class CellularService2 extends Service {
                             .putParcelableArrayListExtra("CellInfo", (ArrayList<? extends Parcelable>) cellInfo));
                     // 或使用回调接口实现与Activity通信
 //                    while (callback == null) {
-//                        ThreadUtils.threadSleep(10);
+//                        ThreadUtils.sleep(10);
 //                    }
 //                    if (callback != null) {
 //                        callback.onCellInfoChanged(cellInfo);
@@ -189,7 +189,7 @@ public class CellularService2 extends Service {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                     telephonyManager.requestCellInfoUpdate(mExecutorService, mCellInfoCallback);
                 }
-                ThreadUtils.threadSleep(SCAN_INTERVAL);
+                ThreadUtils.sleep(SCAN_INTERVAL);
             }
         }
     }

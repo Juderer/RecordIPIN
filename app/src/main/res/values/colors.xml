@@ -26,4 +26,5 @@
     <color name="GhostWhite">#F8F8FF</color>
     <color name="Gray">#808080</color>
     <color name="GlobalColor">#5BBC9F</color>
+    <color name="Gainsboro">#DCDCDC</color>
 </resources>

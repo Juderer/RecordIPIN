@@ -115,6 +115,17 @@ public class ImuDynamicView extends View {
         }
     }
 
+    public void clearImuValue() {
+        try {
+            mSemaphore.acquire();
+            mSensorDatas.clear();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            mSemaphore.release();
+        }
+    }
+
     private void getScreenSize(Context context) {
         WindowManager windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics outMetrics = new DisplayMetrics();

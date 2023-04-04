@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import com.zhushuli.recordipin.activities.cellular.CellularActivity;
 import com.zhushuli.recordipin.activities.imu.ImuActivity2;
+import com.zhushuli.recordipin.activities.location.LocationActivity;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
 

@@ -1,5 +1,6 @@
 package com.zhushuli.recordipin.models.imu;
 
+import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 
 import androidx.annotation.NonNull;
@@ -13,8 +14,15 @@ import androidx.annotation.NonNull;
 public class ImuInfo {
     // 传感器类型：加速度计或陀螺仪
     public int type;
+
+    public long timestamp;
+
+    public long timeMillis;
+
     // 传感器三轴示数
     public float[] values;
+
+    public int accuracy;
 
     public ImuInfo(int type) {
         this.type = type;
@@ -27,7 +35,10 @@ public class ImuInfo {
 
     public ImuInfo(SensorEvent event) {
         this.type = event.sensor.getType();
+        this.timestamp = event.timestamp;
+        this.timeMillis = event.timestamp / 1_000_000L;
         this.values = event.values;
+        this.accuracy = event.accuracy;
     }
 
     public ImuInfo() {}
@@ -40,6 +51,22 @@ public class ImuInfo {
         this.type = type;
     }
 
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public long getTimeMillis() {
+        return timeMillis;
+    }
+
+    public void setTimeMillis(long timeMillis) {
+        this.timeMillis = timeMillis;
+    }
+
     public float[] getValues() {
         return values;
     }
@@ -48,15 +75,45 @@ public class ImuInfo {
         this.values = values;
     }
 
+    public int getAccuracy() {
+        return accuracy;
+    }
+
+    public void setAccuracy(int accuracy) {
+        this.accuracy = accuracy;
+    }
+
     @NonNull
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
-        sb.append(getType());
-        for (float value : values) {
-            sb.append(',');
-            sb.append(String.format("%.4f", value));
+
+        switch (this.type) {
+            case Sensor.TYPE_ACCELEROMETER:
+            case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
+                sb.append("ACCEL");
+                break;
+            case Sensor.TYPE_GYROSCOPE:
+            case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
+                sb.append("GYRO");
+                break;
+            default:
+                sb.append("unknown");
+                break;
         }
+        sb.append(",");
+
+        sb.append(this.timeMillis);
+        sb.append(",");
+
+        for (float value : values) {
+            sb.append(String.format("%.4f", value));
+            sb.append(",");
+        }
+
+        sb.append(accuracy);
+        sb.append("\n");
+
         return sb.toString();
     }
 }

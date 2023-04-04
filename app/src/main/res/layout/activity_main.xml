@@ -118,8 +118,10 @@
                 android:text="Collection"
                 android:textStyle="normal"
                 android:textAllCaps="false"
-                android:textSize="24sp"
                 android:typeface="normal"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="10sp"
+                android:autoSizeMaxTextSize="24sp"
                 android:backgroundTint="@color/GlobalColor"/>
         </LinearLayout>
 
