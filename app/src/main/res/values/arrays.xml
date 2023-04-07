@@ -1,15 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="imuFreq">
+        <item>Delay Fastest</item>
         <item>Delay Game</item>
         <item>Delay UI</item>
         <item>Delay Normal</item>
+        <item>(Custom) Delay 4ms</item>
+        <item>(Custom) Delay 5ms</item>
+        <item>(Custom) Delay 10ms</item>
+        <item>(Custom) Delay 20ms</item>
     </string-array>
 
     <string-array name="imuFreqValues">
+        <item>0</item>
         <item>1</item>
         <item>2</item>
         <item>3</item>
+        <item>4000</item>
+        <item>5000</item>
+        <item>10000</item>
+        <item>20000</item>
     </string-array>
 
     <string-array name="gnssFreq">
@@ -32,7 +42,7 @@
         <item>30 seconds</item>
     </string-array>
 
-    <string-array name="cellularFreqValue">
+    <string-array name="cellularFreqValues">
         <item>1</item>
         <item>3</item>
         <item>5</item>

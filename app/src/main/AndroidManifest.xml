@@ -17,6 +17,7 @@
     <uses-permission android:name="android.permission.READ_SMS" /> <!-- 摄像头权限 -->
     <uses-permission android:name="android.permission.CAMERA" /> <!-- 录屏所需权限 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" /> <!--提升IMU采样频率-->
 
     <!-- configChanges: 旋转屏幕时阻止activity重建 -->
     <application

@@ -58,10 +58,11 @@
         android:title="CELLULAR"
         android:icon="@drawable/baseline_signal_cellular_alt_24">
 
+        <!--defaultValue似乎没用-->
         <ListPreference
             android:title="Refresh Frequency"
             android:entries="@array/cellularFreq"
-            android:entryValues="@array/cellularFreqValue"
+            android:entryValues="@array/cellularFreqValues"
             android:key="prefCellularFreq"
             android:defaultValue="1"
             app:useSimpleSummaryProvider="true"
