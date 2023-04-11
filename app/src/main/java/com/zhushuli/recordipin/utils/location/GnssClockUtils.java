@@ -1,6 +1,8 @@
 package com.zhushuli.recordipin.utils.location;
 
 import android.location.GnssClock;
+import android.os.Build;
+import android.os.SystemClock;
 
 import java.util.Map;
 
@@ -56,6 +58,25 @@ public class GnssClockUtils {
         long gpsUtcTimeMillis = calcGpsUtcTimeMillis(clock);
         long utcTimeMillis = gpsUtcTimeMillis + 315964800_000L;
         return utcTimeMillis;
+    }
+
+    public static String genGnssClockCsv(GnssClock clock) {
+        long sysClockTimeNanos = SystemClock.elapsedRealtimeNanos();
+        long sysTimeMillis = System.currentTimeMillis();
+        long elapsedRealtimeNanos = -1L;
+        double elapsedRealtimeUncertaintyNanos = -1.0D;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (clock.hasElapsedRealtimeNanos()) {
+                elapsedRealtimeNanos = clock.getElapsedRealtimeNanos();
+            }
+            if (clock.hasElapsedRealtimeUncertaintyNanos()) {
+                elapsedRealtimeUncertaintyNanos = clock.getElapsedRealtimeUncertaintyNanos();
+            }
+        }
+        long utcTimeMillis = calcUtcTimeMillis(clock);
+
+        return String.format("%d,%d,%d,%f,%d\n",
+                sysClockTimeNanos, sysTimeMillis, elapsedRealtimeNanos, elapsedRealtimeUncertaintyNanos, utcTimeMillis);
     }
 
     public static String transPair2String(Map.Entry<Long, GnssClock> pair) {

@@ -1,6 +1,8 @@
 package com.zhushuli.recordipin.utils.location;
 
 import android.location.Location;
+import android.os.Build;
+import android.os.SystemClock;
 
 import com.zhushuli.recordipin.utils.TimeReferenceUtils;
 
@@ -30,26 +32,54 @@ public class LocationUtils {
         formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     }
 
-    public static String genLocationCsv(Location location) {
-//        if (locationTimeReference == 0L && myTimeReference == 0L) {
-//            locationTimeReference = location.getElapsedRealtimeNanos();
-//            myTimeReference = System.currentTimeMillis();
-//        }
-//        Long elapsedTime = myTimeReference
-//                + Math.round((location.getElapsedRealtimeNanos() - locationTimeReference) / 1000000L);
+//    public static String genLocationCsv(Location location) {
+////        if (locationTimeReference == 0L && myTimeReference == 0L) {
+////            locationTimeReference = location.getElapsedRealtimeNanos();
+////            myTimeReference = System.currentTimeMillis();
+////        }
+////        Long elapsedTime = myTimeReference
+////                + Math.round((location.getElapsedRealtimeNanos() - locationTimeReference) / 1000000L);
+//
+//        TimeReferenceUtils.setTimeReference(location.getElapsedRealtimeNanos());
+//        Long elapsedTime = TimeReferenceUtils.getMyTimeReference() +
+//                Math.round((location.getElapsedRealtimeNanos() - TimeReferenceUtils.getElapsedTimeReference()) / 1000000L);
+//
+//        // system timestamp, elapsed realtime, GNSS timestamp, longitude, latitude, accuracy,
+//        // speed, speed accuracy, bearing, bearing accuracy
+//        String csvString = String.format("%d,%d,%d,%.6f,%.6f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
+//                System.currentTimeMillis(), elapsedTime, location.getTime(),
+//                location.getLongitude(), location.getLatitude(), location.getAccuracy(),
+//                location.getSpeed(), location.getSpeedAccuracyMetersPerSecond(),
+//                location.getBearing(), location.getBearingAccuracyDegrees());
+//        return csvString;
+//    }
 
-        TimeReferenceUtils.setTimeReference(location.getElapsedRealtimeNanos());
-        Long elapsedTime = TimeReferenceUtils.getMyTimeReference() +
-                Math.round((location.getElapsedRealtimeNanos() - TimeReferenceUtils.getElapsedTimeReference()) / 1000000L);
+    public static synchronized String genLocationCsv(Location location) {
+        long sysClockTimeNanos = SystemClock.elapsedRealtimeNanos();
+        long sysTimeMillis = System.currentTimeMillis();
 
-        // system timestamp, elapsed realtime, GNSS timestamp, longitude, latitude, accuracy,
-        // speed, speed accuracy, bearing, bearing accuracy
-        String csvString = String.format("%d,%d,%d,%.6f,%.6f,%.2f,%.2f,%.2f,%.2f,%.2f\n",
-                System.currentTimeMillis(), elapsedTime, location.getTime(),
-                location.getLongitude(), location.getLatitude(), location.getAccuracy(),
-                location.getSpeed(), location.getSpeedAccuracyMetersPerSecond(),
-                location.getBearing(), location.getBearingAccuracyDegrees());
-        return csvString;
+        StringBuilder sb = new StringBuilder();
+        sb.append(sysClockTimeNanos).append(",");
+        sb.append(sysTimeMillis).append(",");
+        sb.append(location.getElapsedRealtimeNanos()).append(",");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            if (location.hasElapsedRealtimeUncertaintyNanos()) {
+                sb.append(location.getElapsedRealtimeUncertaintyNanos()).append(",");
+            } else {
+                sb.append(-1.0D).append(",");
+            }
+        } else {
+            sb.append(-1.0D).append(",");
+        }
+        sb.append(location.getTime()).append(",");
+        sb.append(location.getLongitude()).append(",");
+        sb.append(location.getLatitude()).append(",");
+        sb.append(location.getAccuracy()).append(",");
+        sb.append(location.getSpeed()).append(",");
+        sb.append(location.getSpeedAccuracyMetersPerSecond()).append(",");
+        sb.append(location.getBearing()).append(",");
+        sb.append(location.getBearingAccuracyDegrees()).append("\n");
+        return sb.toString();
     }
 
     public static String transPair2String(Map.Entry<Long, Location> pair) {

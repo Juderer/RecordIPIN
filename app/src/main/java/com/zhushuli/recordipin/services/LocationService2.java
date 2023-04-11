@@ -47,7 +47,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * @author      : zhushuli
  * @createDate  : 2023/02/26 10:30
- * @description : 位置服务2，将callback逻辑修改为broadcast；加入GNSS毫秒级时间戳
+ * @description : 位置服务2，将callback逻辑修改为broadcast；加入GnssClock
  */
 public class LocationService2 extends Service {
 
@@ -80,7 +80,7 @@ public class LocationService2 extends Service {
         public void onLocationChanged(@NonNull Location location) {
             Log.d(TAG, "onLocationChanged:" + ThreadUtils.threadID());
             if (checkRecording()) {
-                mLocations.offer(new AbstractMap.SimpleEntry<>(System.currentTimeMillis(), location));
+                mLocations.offer(LocationUtils.genLocationCsv(location));
             }
             sendBroadcast(new Intent(GNSS_LOCATION_CHANGED_ACTION).putExtra("Location", location));
         }
@@ -99,8 +99,10 @@ public class LocationService2 extends Service {
 
     // 总卫星数
     private int mSatelliteCount;
+
     // 北斗卫星数
     private int mBeidouSatelliteCount;
+
     // GPS卫星数
     private int mGpsSatelliteCount;
 
@@ -160,7 +162,7 @@ public class LocationService2 extends Service {
 
             GnssClock clock = eventArgs.getClock();
             if (checkRecording()) {
-                mGnssClocks.add(new AbstractMap.SimpleEntry<>(System.currentTimeMillis(), clock));
+                mGnssClocks.add(GnssClockUtils.genGnssClockCsv(clock));
             }
 
             long utcTimeNanos = GnssClockUtils.calcUtcTimeNanos(clock);
@@ -185,9 +187,9 @@ public class LocationService2 extends Service {
     private final HandlerThread mGnssMeasurementsThread = new HandlerThread("GnssMeasurements");
 
     // 用于保存数据的队列
-    private Queue<Map.Entry<Long, Location>> mLocations = new LinkedList<>();
+    private Queue<String> mLocations = new LinkedList<>();
 
-    private Queue<Map.Entry<Long, GnssClock>> mGnssClocks = new LinkedList<>();
+    private Queue<String> mGnssClocks = new LinkedList<>();
 
     // 子线程：记录位置信息，并写入文件
     private RecordThread mRecordThread;
@@ -350,8 +352,8 @@ public class LocationService2 extends Service {
         private void initWriter() {
             mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "GNSS", "GNSS.csv");
             try {
-                mBufferedWriter.write("sysTime,elapsedTime,gnssTime,longitude,latitude,accuracy," +
-                        "speed,speedAccuracy,bearing,bearingAccuracy\n");
+                mBufferedWriter.write("sysClockTimeNanos,sysTimeMillis,elapsedRealtimeNanos,elapsedRealtimeUncertaintyNanos" +
+                        ",gnssTimeMillis,longitude,latitude,accuracy,speed,speedAccuracy,bearing,bearingAccuracy\n");
             } catch (IOException e) {
                 e.printStackTrace();
                 Log.d(TAG, "Record Thread Error");
@@ -366,7 +368,7 @@ public class LocationService2 extends Service {
             while (LocationService2.this.checkRecording() || mLocations.size() > 0) {
                 if (mLocations.size() > 0) {
                     try {
-                        mBufferedWriter.write(LocationUtils.transPair2String(mLocations.poll()));
+                        mBufferedWriter.write(mLocations.poll());
                         writeRowCount++;
                         if (writeRowCount > 10) {
                             mBufferedWriter.flush();
@@ -378,17 +380,6 @@ public class LocationService2 extends Service {
                     }
                 }
             }
-//            if (mLocations.size() > 0) {
-//                try {
-//                    for (int i = mLocations.size(); i > 0; i--) {
-//                        mBufferedWriter.write(LocationUtils.transPair2String(mLocations.poll()));
-//                    }
-//                    mBufferedWriter.flush();
-//                    Log.d(TAG, "GNSS Record Write Last");
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
             FileUtils.closeBufferedWriter(mBufferedWriter);
             Log.d(TAG, "GNSS Record End");
         }
@@ -407,7 +398,7 @@ public class LocationService2 extends Service {
         private void initWriter() {
             mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "GNSS", "GnssClock.csv");
             try {
-                mBufferedWriter.write("sysTime,utcTime\n");
+                mBufferedWriter.write("sysClockTimeNanos,sysTimeMillis,elapsedRealtimeNanos,elapsedRealtimeUncertaintyNanos,utcTimeMillis\n");
                 mBufferedWriter.flush();
             } catch (IOException e) {
                 Log.d(TAG, "GnssClock Record Thread Error");
@@ -423,7 +414,7 @@ public class LocationService2 extends Service {
             while (LocationService2.this.checkRecording() || mGnssClocks.size() > 0) {
                 if (mGnssClocks.size() > 0) {
                     try {
-                        mBufferedWriter.write(GnssClockUtils.transPair2String(mGnssClocks.poll()));
+                        mBufferedWriter.write(mGnssClocks.poll());
                         writeCount += 1;
                         if (writeCount > 10) {
                             mBufferedWriter.flush();

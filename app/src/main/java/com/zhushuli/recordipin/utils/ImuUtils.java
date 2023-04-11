@@ -2,6 +2,7 @@ package com.zhushuli.recordipin.utils;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
+import android.os.SystemClock;
 
 import com.zhushuli.recordipin.models.imu.ImuInfo;
 
@@ -96,6 +97,21 @@ public class ImuUtils {
         sb.append(event.accuracy);
         sb.append("\n");
 
+        return sb.toString();
+    }
+
+    public static String genImuCsvV2(SensorEvent event) {
+        long sysClockTimeNanos = SystemClock.elapsedRealtimeNanos();
+        long sysTimeMillis = System.currentTimeMillis();
+
+        StringBuilder sb = new StringBuilder();
+        sb.append(sysClockTimeNanos).append(",");
+        sb.append(sysTimeMillis).append(",");
+        sb.append(event.timestamp).append(",");
+        for (float value : event.values) {
+            sb.append(value).append(",");
+        }
+        sb.append(event.accuracy).append("\n");
         return sb.toString();
     }
 }
