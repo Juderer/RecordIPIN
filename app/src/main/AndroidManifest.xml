@@ -34,7 +34,8 @@
             android:label="Settings"/>
         <activity
             android:name=".Camera2Activity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar"/>
         <activity
             android:name=".CameraxActivity"
             android:exported="false" />

@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.RecordIPIN.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/GlobalColor</item>
+        <item name="colorPrimaryVariant">@color/GlobalColor</item>
+        <item name="colorOnPrimary">@color/black</item>
+
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="l">true</item>
+        <!-- Customize your theme here. -->
+    </style>
+
     <!--利用themes设置页面切换动画似乎对Android 10 Q（小米8测试）无效-->
     <style name="MyAnimation" parent="@android:style/Animation.Activity">
         <item name="android:activityOpenExitAnimation">@anim/center_to_left</item>
@@ -29,5 +40,15 @@
         <item name="android:taskToFrontExitAnimation">@null</item>
         <item name="android:taskToBackEnterAnimation">@null</item>
         <item name="android:taskToBackExitAnimation">@null</item>
+    </style>
+
+    <style name="MyTheme.CustomActionBarStyle" parent="@android:style/Widget.ActionBar">
+        <item name="android:background">@color/skyblue</item><!-- ActionBar背景颜色 -->
+        <item name="android:titleTextStyle">@style/MyTheme.ActionBarTitleStyle</item><!-- ActionBar文字样式 -->
+    </style>
+
+    <style name="MyTheme.ActionBarTitleStyle" parent="@android:style/Widget.Holo.Light">
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">20sp</item>
     </style>
 </resources>

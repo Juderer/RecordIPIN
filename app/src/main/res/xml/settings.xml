@@ -52,6 +52,13 @@
             android:summaryOn="Yes"
             app:iconSpaceReserved="true"/>
 
+        <ListPreference
+            android:title="Frame Size"
+            android:key="prefCameraSizeRaw"
+            android:defaultValue="1"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
     </PreferenceCategory>
 
     <PreferenceCategory

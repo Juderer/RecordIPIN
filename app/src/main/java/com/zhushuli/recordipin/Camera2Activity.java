@@ -3,10 +3,15 @@ package com.zhushuli.recordipin;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.impl.utils.CompareSizesByArea;
+import androidx.preference.PreferenceManager;
 
 import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.ImageFormat;
+import android.graphics.Point;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -26,10 +31,16 @@ import android.os.HandlerThread;
 import android.util.Log;
 import android.util.Range;
 import android.util.Size;
+import android.util.SparseIntArray;
+import android.view.OrientationEventListener;
 import android.view.Surface;
 import android.view.TextureView;
 
+import com.zhushuli.recordipin.utils.Camera2Utils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 import com.zhushuli.recordipin.views.AutoFitTextureView;
+
+import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,25 +48,49 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 public class Camera2Activity extends AppCompatActivity {
     private static final String TAG = Camera2Activity.class.getSimpleName();
 
-    // camera state
-    private static final int STATE_CLOSED = 0;
-    private static final int STATE_OPENED = 1;
-    private static final int STATE_PREVIEW = 2;
-    private static final int STATE_WAITTING_FOR_3A_CONVERGENCE = 3;
+    private SharedPreferences mSharePreferences;
+
+    private int mPreferenceWidth;
+
+    private int mPreferenceHeight;
+
+    private AutoFitTextureView mTextureView;
+
+    private CameraManager mCameraManager;
+
+    private final Object mCameraStateLock = new Object();
+
+    private final Semaphore mCameraOpenCloseLock = new Semaphore(1);
+
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 0);
+        ORIENTATIONS.append(Surface.ROTATION_90, 90);
+        ORIENTATIONS.append(Surface.ROTATION_180, 180);
+        ORIENTATIONS.append(Surface.ROTATION_270, 270);
+    }
+
+    private OrientationEventListener mOrientationListener;
 
     private final TextureView.SurfaceTextureListener mSurfaceTextureListener = new TextureView.SurfaceTextureListener() {
         @Override
         public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-
+            Log.d(TAG, "onSurfaceTextureAvailable");
+            Log.d(TAG, String.valueOf(mTextureView.isAvailable()));
+            configureTransform(width, height);
         }
 
         @Override
         public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
-
+            Log.d(TAG, "onSurfaceTextureSizeChanged");
+            configureTransform(width, height);
         }
 
         @Override
@@ -69,41 +104,44 @@ public class Camera2Activity extends AppCompatActivity {
         }
     };
 
-    private final ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
-
-    private CameraManager mCameraManager;
-    private CameraDevice mCameraDevice;
     private String mCameraId;
-    private ImageReader mPreviewReader;
 
-    private HandlerThread mImageReaderThread;
-    private HandlerThread mSessionThread;
+    private CameraCaptureSession mCaptureSession;
 
-    private AutoFitTextureView ttvCamera;
+    private CameraDevice mCameraDevice;
 
-    private Size previewSize;
-    private Range<Integer>[] fpsRanges;
+    private Size mPreviewSize;
+
+    private CameraCharacteristics mCharacteristics;
 
     private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(@NonNull CameraDevice camera) {
             Log.d(TAG, "onOpened");
-            mCameraDevice = camera;
-            createPreviewSession();
+            synchronized (mCameraStateLock) {
+                mCameraOpenCloseLock.release();
+                mCameraDevice = camera;
+
+                if (mPreviewSize != null && mTextureView.isAvailable()) {
+                    createCameraPreviewSessionLocked();
+                }
+            }
         }
 
         @Override
         public void onDisconnected(@NonNull CameraDevice camera) {
             Log.d(TAG, "onDisconnected");
-            releaseCamera();
         }
 
         @Override
         public void onError(@NonNull CameraDevice camera, int error) {
-            Log.d(TAG, "onError");
-            releaseCamera();
+            Log.e(TAG, "onError");
         }
     };
+
+    private HandlerThread mBackgroundThread;
+
+    private Handler mBackgroundHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -111,10 +149,207 @@ public class Camera2Activity extends AppCompatActivity {
         setContentView(R.layout.activity_camera2);
         Log.d(TAG, "onCreate");
 
-        ttvCamera = (AutoFitTextureView) findViewById(R.id.ttvCamera);
+        mTextureView = (AutoFitTextureView) findViewById(R.id.ttvCamera);
 
         mCameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-//        initCameraInfo();
+
+        mOrientationListener = new OrientationEventListener(getApplicationContext(), 1_000_000) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                Log.d(TAG, "onOrientationChanged");
+                if (mTextureView != null && mTextureView.isAvailable()) {
+                    configureTransform(mTextureView.getWidth(), mTextureView.getHeight());
+                }
+            }
+        };
+
+        mSharePreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+        String imageSize = mSharePreferences.getString("prefCameraSizeRaw", "1920x1080");
+        Log.d(TAG, "imageSize:" + imageSize);
+        mPreferenceWidth = Integer.parseInt(imageSize.split("x")[0]);
+        mPreferenceHeight = Integer.parseInt(imageSize.split("x")[1]);
+        Log.d(TAG, "Setting:" + mPreferenceWidth + "x" + mPreferenceHeight);
+    }
+
+    private void startBackgroundThread() {
+        Log.d(TAG, "startBackgroundThread");
+        mBackgroundThread = new HandlerThread("BackgroundThread");
+        mBackgroundThread.start();
+        synchronized (mCameraStateLock) {
+            mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private void openCamera() {
+        if (!setUpCameraOutputs()) {
+            return;
+        }
+
+        try {
+            // 等待之前运行的Session结束
+            if (!mCameraOpenCloseLock.tryAcquire(2500, TimeUnit.MILLISECONDS)) {
+                throw new RuntimeException("Time out waiting to lock camera opening.");
+            }
+
+            String cameraId;
+            Handler backgroundHandler;
+            synchronized (mCameraStateLock) {
+                cameraId = mCameraId;
+                backgroundHandler = mBackgroundHandler;
+            }
+
+            mCameraManager.openCamera(cameraId, mStateCallback, backgroundHandler);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } catch (CameraAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean setUpCameraOutputs() {
+        if (mCameraManager == null) {
+            return false;
+        }
+        try {
+            for (String cameraId : mCameraManager.getCameraIdList()) {
+                CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cameraId);
+                if (characteristics.get(CameraCharacteristics.LENS_FACING) != CameraCharacteristics.LENS_FACING_BACK) {
+                    continue;
+                }
+
+                StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+
+                synchronized (mCameraStateLock) {
+                    mCharacteristics = characteristics;
+                    mCameraId = cameraId;
+                }
+                return true;
+            }
+        } catch (CameraAccessException e) {
+            throw new RuntimeException(e);
+        }
+        return false;
+    }
+
+    private void configureTransform(int width, int height) {
+        Log.d(TAG, "width:" + width + "," + "height:" + height);
+        synchronized (mCameraStateLock) {
+            if (null == mTextureView) {
+                return;
+            }
+
+            StreamConfigurationMap map = mCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+
+            Size largestJpeg = Collections.max(Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
+                    new Camera2Utils.CompareSizesByArea());
+//            Size largestJpeg = new Size(mPreferenceWidth, mPreferenceHeight);
+            Log.d(TAG, "largestJpeg:" + largestJpeg.toString());
+
+            int deviceRotation = this.getWindowManager().getDefaultDisplay().getRotation();
+            Point displaySize = new Point();
+            this.getWindowManager().getDefaultDisplay().getSize(displaySize);
+
+            int totalRotation = sensorToDeviceRotation(mCharacteristics, deviceRotation);
+            Log.d(TAG, "totalRotation:" + totalRotation);
+
+            boolean swappedDimensions = totalRotation == 90 || totalRotation == 270;
+
+            int rotatedViewWidth = width;
+            int rotatedViewHeight = height;
+
+            if (swappedDimensions) {
+                rotatedViewWidth = height;
+                rotatedViewHeight = width;
+            }
+
+            Size previewSize = Camera2Utils.chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
+                    rotatedViewWidth, rotatedViewHeight, largestJpeg);
+            Log.d(TAG, "previewSize:" + previewSize.toString());
+
+            if (swappedDimensions) {
+                mTextureView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
+            } else {
+                mTextureView.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
+            }
+        }
+
+        if (mPreviewSize == null) {
+            mPreviewSize = new Size(mPreferenceWidth, mPreferenceHeight);
+            createCameraPreviewSessionLocked();
+        }
+    }
+
+    private void createCameraPreviewSessionLocked() {
+        Log.d(TAG, "createCameraPreviewSessionLocked");
+
+        try {
+            SurfaceTexture texture = mTextureView.getSurfaceTexture();
+            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+
+            Surface surface = new Surface(texture);
+
+            CaptureRequest.Builder previewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            previewRequestBuilder.addTarget(surface);
+
+            mCameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback() {
+
+                @Override
+                public void onConfigured(@NonNull CameraCaptureSession session) {
+                    Log.d(TAG, "onConfigured");
+                    synchronized (mCameraStateLock) {
+                        if (null == mCameraDevice) {
+                            return;
+                        }
+                        try {
+                            session.setRepeatingRequest(previewRequestBuilder.build(),
+                                    new CameraCaptureSession.CaptureCallback() {
+                                @Override
+                                public void onCaptureProgressed(@NonNull CameraCaptureSession session,
+                                                                @NonNull CaptureRequest request,
+                                                                @NonNull CaptureResult partialResult) {
+//                                    Log.d(TAG, "onCaptureProgressed");
+                                }
+
+                                @Override
+                                public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                                               @NonNull CaptureRequest request,
+                                                               @NonNull TotalCaptureResult result) {
+//                                    Log.d(TAG, "onCaptureCompleted");
+                                }
+                            }, mBackgroundHandler);
+                        } catch (CameraAccessException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+
+                @Override
+                public void onConfigureFailed(@NonNull CameraCaptureSession session) {
+
+                }
+            }, mBackgroundHandler);
+        } catch (CameraAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static int sensorToDeviceRotation(CameraCharacteristics c, int deviceOrientation) {
+        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
+        Log.d(TAG, "sensorOrientation:" + sensorOrientation);
+
+        // Get device orientation in degrees
+        deviceOrientation = ORIENTATIONS.get(deviceOrientation);
+        Log.d(TAG, "deviceOrientation:" + deviceOrientation);
+
+        // Reverse device orientation for front-facing cameras
+        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
+            deviceOrientation = -deviceOrientation;
+        }
+
+        // Calculate desired JPEG orientation relative to camera orientation to make
+        // the image upright relative to the device orientation
+        return (sensorOrientation - deviceOrientation + 360) % 360;
     }
 
     @Override
@@ -122,197 +357,58 @@ public class Camera2Activity extends AppCompatActivity {
         super.onStart();
         Log.d(TAG, "onStart");
 
-        ttvCamera.setSurfaceTextureListener(new TextureView.SurfaceTextureListener() {
-            @Override
-            public void onSurfaceTextureAvailable(@NonNull SurfaceTexture surface, int width, int height) {
-                Log.d(TAG, "onSurfaceTextureAvailable");
-                configCamera();
-                configImageReader();
-                openCamera();
-            }
+        startBackgroundThread();
+        openCamera();
 
-            @Override
-            public void onSurfaceTextureSizeChanged(@NonNull SurfaceTexture surface, int width, int height) {
-
-            }
-
-            @Override
-            public boolean onSurfaceTextureDestroyed(@NonNull SurfaceTexture surface) {
-                return false;
-            }
-
-            @Override
-            public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
-
-            }
-        });
-    }
-
-    private void configCamera() {
-        try {
-            // 遍历相机列表，使用前置相机
-            for (String cid : mCameraManager.getCameraIdList()) {
-                // 获取相机配置
-                CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cid);
-                // 使用后置相机
-                int facing = characteristics.get(CameraCharacteristics.LENS_FACING);  // 获取相机朝向
-                if (facing == CameraCharacteristics.LENS_FACING_FRONT) {
-                    continue;
-                }
-                // 获取相机输出格式/尺寸参数
-                StreamConfigurationMap configs = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-                fpsRanges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
-                Log.d(TAG, "" + Arrays.toString(fpsRanges));
-                // 设定最佳预览尺寸
-//                previewSize = setOptimalPreviewSize(configs.getOutputSizes(ImageReader.class), ttvCamera.getWidth(), ttvCamera.getHeight());
-                previewSize = new Size(960, 1280);
-                ttvCamera.setAspectRation(previewSize.getWidth(), previewSize.getHeight());
-                Size[] sizes = configs.getOutputSizes(MediaRecorder.class);
-                for (int i = 0; i < sizes.length; i ++) {
-                    Log.d(TAG, String.valueOf(sizes[i]));
-                }
-                // 打印最佳预览尺寸
-                Log.d(TAG, "最佳预览尺寸（w-h）：" + previewSize.getWidth() + "-" + previewSize.getHeight());
-                mCameraId = cid;
-            }
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void configImageReader() {
-        mImageReaderThread = new HandlerThread("Reader");
-        mImageReaderThread.start();
-        Handler handler = new Handler(mImageReaderThread.getLooper());
-        mPreviewReader = ImageReader.newInstance(previewSize.getWidth(), previewSize.getHeight(), ImageFormat.JPEG, 2);
-        mPreviewReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-            @Override
-            public void onImageAvailable(ImageReader reader) {
-                Log.d(TAG, "onImageAvailable");
-                //获取预览帧数据
-                Image image = reader.acquireNextImage();
-                Log.d(TAG, "image:" + image.getWidth() + "," + image.getHeight());
-                image.close();
-            }
-        }, handler);
-    }
-
-    @SuppressLint("RestrictedApi")
-    private Size setOptimalPreviewSize(Size[] sizes, int previewViewWidth, int previewViewHeight) {
-        List<Size> bigEnoughSizes = new ArrayList<>();
-        List<Size> notBigEnoughSizes = new ArrayList<>();
-
-        for (Size size : sizes) {
-            if (size.getWidth() >= previewViewWidth && size.getHeight() >= previewViewHeight) {
-                bigEnoughSizes.add(size);
-            } else {
-                notBigEnoughSizes.add(size);
-            }
-        }
-
-        if (bigEnoughSizes.size() > 0) {
-            return Collections.min(bigEnoughSizes, new CompareSizesByArea());
-        } else if (notBigEnoughSizes.size() > 0) {
-            return Collections.max(notBigEnoughSizes, new CompareSizesByArea());
+        if (mTextureView.isAvailable()) {
+            configureTransform(mTextureView.getWidth(), mTextureView.getHeight());
         } else {
-            Log.d(TAG, "未找到合适的预览尺寸");
-            return sizes[0];
+            mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+        }
+
+        if (mOrientationListener != null && mOrientationListener.canDetectOrientation()) {
+            mOrientationListener.enable();
         }
     }
 
-    @SuppressLint("MissingPermission")
-    private void openCamera() {
+    private void stopBackgroundThread() {
+        mBackgroundThread.quitSafely();
         try {
-            mCameraManager.openCamera(mCameraId, mExecutorService, mStateCallback);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @SuppressLint("MissingPermission")
-    private void initCameraInfo() {
-        try {
-            String[] cameraIdList = mCameraManager.getCameraIdList();
-            Log.d(TAG, cameraIdList[0]);
-
-            CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cameraIdList[0]);
-            StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
-
-            Size[] sizes = map.getOutputSizes(ImageReader.class);
-//            Size[] sizes = map.getOutputSizes(map.getOutputFormats()[0]);
-            Log.d(TAG, String.valueOf(sizes.length));
-            for (int i = 0; i < sizes.length; i ++) {
-                Log.d(TAG, String.valueOf(sizes[i]));
+            mBackgroundThread.join();
+            mBackgroundThread = null;
+            synchronized (mCameraStateLock) {
+                mBackgroundHandler = null;
             }
-            previewSize = sizes[-8];
-            mCameraManager.openCamera(cameraIdList[0], mExecutorService, mStateCallback);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
         }
     }
 
-    private void createPreviewSession() {
-        //根据TextureView 和 选定的 previewSize 创建用于显示预览数据的Surface
-        SurfaceTexture surfaceTexture = ttvCamera.getSurfaceTexture();
-        surfaceTexture.setDefaultBufferSize(previewSize.getWidth(), previewSize.getHeight());//设置SurfaceTexture缓冲区大小
-        final Surface previewSurface = new Surface(surfaceTexture);
-
-        final Surface readerSurface = mPreviewReader.getSurface();
-
-        mSessionThread = new HandlerThread("Session");
-        mSessionThread.start();
-        Handler handler = new Handler(mSessionThread.getLooper());
-
+    private void closeCamera() {
         try {
-            //创建预览session
-            mCameraDevice.createCaptureSession(Arrays.asList(previewSurface, readerSurface), new CameraCaptureSession.StateCallback() {
-                @Override
-                public void onConfigured(CameraCaptureSession session) {
-                    try {
-                        // 构建预览捕获请求
-                        CaptureRequest.Builder builder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
-                        builder.addTarget(previewSurface);  // 设置 previewSurface 作为预览数据的显示界面
-                        builder.addTarget(readerSurface);
-                        CaptureRequest captureRequest = builder.build();
-                        // 设置重复请求，以获取连续预览数据
-                        session.setRepeatingRequest(captureRequest, new CameraCaptureSession.CaptureCallback() {
-                            @Override
-                            public void onCaptureProgressed(CameraCaptureSession session, CaptureRequest request, CaptureResult partialResult) {
-                                super.onCaptureProgressed(session, request, partialResult);
-                            }
-
-                            @Override
-                            public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
-                                super.onCaptureCompleted(session, request, result);
-                            }
-                        }, null);
-                    } catch (CameraAccessException e) {
-                        e.printStackTrace();
-                    }
+            mCameraOpenCloseLock.acquire();
+            synchronized (mCameraStateLock) {
+                if (null != mCameraDevice) {
+                    mCameraDevice.close();
+                    mCameraDevice = null;
                 }
-
-                @Override
-                public void onConfigureFailed(CameraCaptureSession session) {
-
-                }
-            }, handler);
-        } catch (CameraAccessException e) {
-            e.printStackTrace();
+            }
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        } finally {
+            mCameraOpenCloseLock.release();
         }
-
     }
 
-    private void releaseCamera() {
-        if (mCameraDevice != null) {
-            mCameraDevice.close();
-            mCameraDevice = null;
-            mSessionThread.quitSafely();
+    @Override
+    protected void onStop() {
+        super.onStop();
+        Log.d(TAG, "onStop");
+        if (mOrientationListener != null) {
+            mOrientationListener.disable();
         }
-        if (mPreviewReader != null) {
-            mPreviewReader.close();
-            mPreviewReader = null;
-            mImageReaderThread.quitSafely();
-        }
+        closeCamera();
+        stopBackgroundThread();
     }
 
     @Override
