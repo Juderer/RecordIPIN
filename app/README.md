@@ -111,3 +111,14 @@
 
 ## 1.28 Java IO
 
+## 1.29 Java泛型
+
+## 1.30 Camera2不重复创建Session实现视频录制
+
+- [camera2 +mediaRecorder 实现视频录制，不重复创建session 的方式](https://blog.csdn.net/tunmengsmile/article/details/118941906)
+
+## 1.31 Android Different Bars
+
+- (Android 状态栏, 标题栏, 导航栏，系统栏，应用栏的区别和解释)[https://blog.csdn.net/cleverGump/article/details/85602372]
+- (What Are the Different Types of Bars Available in Android?)[https://www.geeksforgeeks.org/what-are-the-different-types-of-bars-available-in-android/]
+- (What are the different bars available in android?)[https://stackoverflow.com/questions/39822787/what-are-the-different-bars-status-bar-action-bar-navigation-bar-tool-bar-et]

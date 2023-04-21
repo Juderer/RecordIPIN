@@ -42,7 +42,45 @@
 
     <PreferenceCategory
         android:title="CAMERA"
-        android:icon="@drawable/baseline_photo_camera_24">
+        android:icon="@drawable/round_photo_camera_24">
+
+        <ListPreference
+            android:title="Image Size"
+            android:key="prefCameraFrameSize"
+            android:defaultValue="1920x1080"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+        <ListPreference
+            android:title="Video Size"
+            android:key="prefCameraVideoSize"
+            android:defaultValue="1920x1080"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+        <ListPreference
+            android:title="Photo Sampling Period"
+            android:key="prefCameraPhotoSamplingPeriod"
+            android:entries="@array/cameraPhotoSamplingPeriod"
+            android:entryValues="@array/cameraPhotoSamplingPeriodValues"
+            android:defaultValue="500"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+<!--        <SeekBarPreference-->
+<!--            android:title="Frames Per Second"-->
+<!--            android:max="60"-->
+<!--            android:persistent="true"-->
+<!--            app:iconSpaceReserved="true"/>-->
+
+        <ListPreference
+            android:title="Record Mode"
+            android:key="prefCameraRecordMode"
+            android:entries="@array/cameraRecordMode"
+            android:entryValues="@array/cameraRecordModeValues"
+            android:defaultValue="0"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
 
         <SwitchPreference
             android:title="Collect or Not?"
@@ -52,24 +90,16 @@
             android:summaryOn="Yes"
             app:iconSpaceReserved="true"/>
 
-        <ListPreference
-            android:title="Frame Size"
-            android:key="prefCameraSizeRaw"
-            android:defaultValue="1"
-            android:summary="%s"
-            app:iconSpaceReserved="true"/>
-
     </PreferenceCategory>
 
     <PreferenceCategory
         android:title="CELLULAR"
         android:icon="@drawable/baseline_signal_cellular_alt_24">
 
-        <!--defaultValue似乎没用-->
         <ListPreference
-            android:title="Refresh Frequency"
-            android:entries="@array/cellularFreq"
-            android:entryValues="@array/cellularFreqValues"
+            android:title="Refresh Period"
+            android:entries="@array/cellularPeriod"
+            android:entryValues="@array/cellularPeriodValues"
             android:key="prefCellularFreq"
             android:defaultValue="1"
             app:useSimpleSummaryProvider="true"

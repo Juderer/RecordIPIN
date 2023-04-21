@@ -1,5 +1,7 @@
 package com.zhushuli.recordipin.utils;
 
+import android.hardware.camera2.CameraCharacteristics;
+import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 
@@ -53,6 +55,44 @@ public class Camera2Utils {
         } else {
             Log.e("Camera2Utils", "Couldn't find any suitable preview size");
             return choices[0];
+        }
+    }
+
+    public static boolean contains(int[] modes, int mode) {
+        if (modes == null) {
+            return false;
+        }
+        for (int i : modes) {
+            if (i == mode) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 判断正在使用的设备是否只支持LEGACY硬件级别
+     * @param characteristics 相机属性
+     * @return 如果是延时设备返回true
+     */
+    public static boolean isLegacyLocked(CameraCharacteristics characteristics) {
+        return characteristics.get(CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL) ==
+                CameraCharacteristics.INFO_SUPPORTED_HARDWARE_LEVEL_LEGACY;
+    }
+
+    public static long getTimerLocked() {
+        return SystemClock.elapsedRealtime();  // milliseconds
+    }
+
+    public static int discretizeOrientation(int orientation) {
+        if (orientation > 45 && orientation <= 135) {
+            return 90;
+        } else if (orientation > 135 && orientation <= 225) {
+            return 180;
+        } else if (orientation > 225 && orientation < 315) {
+            return 270;
+        } else {
+            return 0;
         }
     }
 }

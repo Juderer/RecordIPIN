@@ -11,8 +11,10 @@ import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.ImageReader;
 import android.media.MediaRecorder;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Range;
 import android.util.Size;
 
 import androidx.preference.ListPreference;
@@ -27,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements
         SharedPreferences.OnSharedPreferenceChangeListener {
@@ -56,10 +59,24 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
                 StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 //                Size[] sizes = map.getOutputSizes(ImageReader.class);
 //                Size[] sizes = map.getOutputSizes(SurfaceTexture.class);
-                Size[] sizes = map.getOutputSizes(ImageFormat.PRIVATE);
+                Size[] sizes = map.getOutputSizes(MediaRecorder.class);
+                Size[] imageSizes = map.getOutputSizes(ImageFormat.JPEG);
+                Size[] videoSizes = map.getOutputSizes(MediaRecorder.class);
 
                 // 保留比例为4:3或16:9的分辨率
                 List<Size> filterSizes = new ArrayList<>();
+                List<Size> filteredImageSizes = new ArrayList<>();
+                List<Size> filteredVideoSizes = new ArrayList<>();
+                for (Size size : imageSizes) {
+                    if (size.getWidth() * 3 == size.getHeight() * 4 || size.getWidth() * 9 == size.getHeight() * 16) {
+                        filteredImageSizes.add(size);
+                    }
+                }
+                for (Size size : videoSizes) {
+                    if (size.getWidth() * 3 == size.getHeight() * 4 || size.getWidth() * 9 == size.getHeight() * 16) {
+                        filteredVideoSizes.add(size);
+                    }
+                }
                 for (Size size : sizes) {
                     if (size.getWidth() * 3 == size.getHeight() * 4 || size.getWidth() * 9 == size.getHeight() * 16) {
                         filterSizes.add(size);
@@ -87,30 +104,53 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
                         return -(o1.getWidth() * o1.getHeight() - o2.getWidth() * o2.getHeight());
                     }
                 });
-
-                CharSequence[] rez = new CharSequence[filterSizes.size()];
-                CharSequence[] rezValues = new CharSequence[filterSizes.size()];
-                int defaultIndex = 0;
-                int count = 0;
-                for (Size size : filterSizes) {
-                    Log.d(TAG, "width:" + size.getWidth() + "," + "height:" + size.getHeight());
-                    rez[count] = size.getWidth() + "x" + size.getHeight();
-                    rezValues[count] = size.getWidth() + "x" + size.getHeight();
-                    if (size.getWidth() == DesiredCameraSetting.mDesiredFrameWidth
-                            && size.getHeight() == DesiredCameraSetting.mDesiredFrameHeight) {
-                        defaultIndex = count;
-                        Log.d(TAG, "defaultIndex:" + defaultIndex);
+                Collections.sort(filteredImageSizes, new Comparator<Size>() {
+                    @Override
+                    public int compare(Size o1, Size o2) {
+                        return -(o1.getWidth() * o1.getHeight() - o2.getWidth() * o2.getHeight());
                     }
+                });
+                Collections.sort(filteredVideoSizes, new Comparator<Size>() {
+                    @Override
+                    public int compare(Size o1, Size o2) {
+                        return -(o1.getWidth() * o1.getHeight() - o2.getWidth() * o2.getHeight());
+                    }
+                });
+
+                CharSequence[] imageSizeStrings = new CharSequence[filteredImageSizes.size()];
+                CharSequence[] imageSizeValues = new CharSequence[filteredImageSizes.size()];
+                int count = 0;
+                for (Size size : filteredImageSizes) {
+                    Log.d(TAG, "width:" + size.getWidth() + "," + "height:" + size.getHeight());
+                    imageSizeStrings[count] = size.getWidth() + "x" + size.getHeight();
+                    imageSizeValues[count] = size.getWidth() + "x" + size.getHeight();
                     count++;
                 }
 
-                ListPreference cameraRez = getPreferenceManager().findPreference("prefCameraSizeRaw");
-                assert cameraRez != null;
+                ListPreference cameraImageSize = getPreferenceManager().findPreference("prefCameraFrameSize");
+                assert cameraImageSize != null;
 
-                cameraRez.setEntries(rez);
-                cameraRez.setEntryValues(rezValues);
-                // TODO::没有作用！是因为高版本API？
-                cameraRez.setDefaultValue(rezValues[defaultIndex]);
+                cameraImageSize.setEntries(imageSizeStrings);
+                cameraImageSize.setEntryValues(imageSizeValues);
+
+                CharSequence[] videoSizeStrings = new CharSequence[filteredVideoSizes.size()];
+                CharSequence[] videoSizeValues = new CharSequence[filteredVideoSizes.size()];
+                for (int i = 0; i < filteredVideoSizes.size(); i++) {
+                    videoSizeStrings[i] = filteredVideoSizes.get(i).getWidth() + "x" + filteredVideoSizes.get(i).getHeight();
+                    videoSizeValues[i] = filteredVideoSizes.get(i).getWidth() + "x" + filteredVideoSizes.get(i).getHeight();
+                }
+
+                ListPreference cameraVideoSize = getPreferenceManager().findPreference("prefCameraVideoSize");
+                assert cameraVideoSize != null;
+
+                cameraVideoSize.setEntries(videoSizeStrings);
+                cameraVideoSize.setEntryValues(videoSizeValues);
+
+//                Range<Integer>[] fpsRanges = characteristics.get(CameraCharacteristics.CONTROL_AE_AVAILABLE_TARGET_FPS_RANGES);
+//                for (Range<Integer> fpsRange : fpsRanges) {
+//                    Log.d(TAG, fpsRange.getLower() + "->" + fpsRange.getUpper());
+//                }
+
                 break;
             }
         } catch (CameraAccessException e) {
@@ -122,14 +162,4 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
     public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
         Log.d(TAG, "onSharedPreferenceChanged");
     }
-}
-
-class DesiredCameraSetting {
-    static final int mDesiredFrameWidth = 800;
-
-    static final int mDesiredFrameHeight = 600;
-
-    static final Long mDesiredExposureTime = 5000000L; // nanoseconds
-
-    static final String mDesiredFrameSize = mDesiredFrameWidth + "x" + mDesiredFrameHeight;
 }

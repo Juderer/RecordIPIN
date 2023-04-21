@@ -27,4 +27,6 @@
     <color name="Gray">#808080</color>
     <color name="GlobalColor">#5BBC9F</color>
     <color name="Gainsboro">#DCDCDC</color>
+    <color name="DarkRed">#8B0000</color>
+    <color name="Red">#FF0000</color>
 </resources>
