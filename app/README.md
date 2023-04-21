@@ -91,7 +91,7 @@
 
 ## 1.23 绘图
 
-- 动态折线图
+- 动态折线图g
 
 ## 1.24 Java/Android代码规范
 
@@ -119,6 +119,6 @@
 
 ## 1.31 Android Different Bars
 
-- (Android 状态栏, 标题栏, 导航栏，系统栏，应用栏的区别和解释)[https://blog.csdn.net/cleverGump/article/details/85602372]
-- (What Are the Different Types of Bars Available in Android?)[https://www.geeksforgeeks.org/what-are-the-different-types-of-bars-available-in-android/]
-- (What are the different bars available in android?)[https://stackoverflow.com/questions/39822787/what-are-the-different-bars-status-bar-action-bar-navigation-bar-tool-bar-et]
+- [Android 状态栏, 标题栏, 导航栏，系统栏，应用栏的区别和解释](https://blog.csdn.net/cleverGump/article/details/85602372)
+- [What Are the Different Types of Bars Available in Android?](https://www.geeksforgeeks.org/what-are-the-different-types-of-bars-available-in-android/)
+- [What are the different bars available in android?](https://stackoverflow.com/questions/39822787/what-are-the-different-bars-status-bar-action-bar-navigation-bar-tool-bar-et)
