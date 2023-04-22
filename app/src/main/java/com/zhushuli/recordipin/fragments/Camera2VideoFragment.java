@@ -200,7 +200,7 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
                                         @NonNull CaptureRequest request,
                                         @NonNull CaptureResult partialResult) {
-//            Log.d(TAG, "onCaptureProgressed Preview:" + ThreadUtils.threadID());
+            Log.d(TAG, "onCaptureProgressed Preview:" + ThreadUtils.threadID());
         }
 
         @Override
@@ -287,7 +287,7 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
         mOrientationListener = new OrientationEventListener(getActivity(), SensorManager.SENSOR_DELAY_NORMAL) {
             @Override
             public void onOrientationChanged(int orientation) {
-                Log.d(TAG, "onOrientationChanged, " + orientation);
+//                Log.d(TAG, "onOrientationChanged, " + orientation);
                 mOrientationListenerValue = Camera2Utils.discretizeOrientation(orientation);
                 if (mDisplayRotation < 0) {
                     return;
@@ -390,12 +390,14 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
             return;
         }
 
+        Log.d(TAG, "width = " + width + ", " + "height = " + height);
+
         StreamConfigurationMap map = mCharacteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 
 //        Size largestJpeg = Collections.max(Arrays.asList(map.getOutputSizes(ImageFormat.JPEG)),
 //                new Camera2Utils.CompareSizesByArea());
         Size largestJpeg = new Size(mPreferenceWidth, mPreferenceHeight);
-//        Log.d(TAG, "largestJpeg:" + largestJpeg.toString());
+        Log.d(TAG, "largestJpeg:" + largestJpeg.toString());
 
         int deviceRotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
         mDisplayRotation = deviceRotation;
@@ -405,17 +407,20 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
 
         boolean swappedDimensions = totalRotation == 90 || totalRotation == 270;
 
-        int rotatedViewWidth = width;
-        int rotatedViewHeight = height;
+        int rotatedViewWidth;
+        int rotatedViewHeight;
 
         if (swappedDimensions) {
             rotatedViewWidth = height;
             rotatedViewHeight = width;
+        } else {
+            rotatedViewWidth = width;
+            rotatedViewHeight = height;
         }
 
         Size previewSize = Camera2Utils.chooseOptimalSize(map.getOutputSizes(SurfaceTexture.class),
                 rotatedViewWidth, rotatedViewHeight, largestJpeg);
-//        Log.d(TAG, "previewSize:" + previewSize.toString());
+        Log.d(TAG, "previewSize:" + previewSize.toString());
 
         if (swappedDimensions) {
             mTextureView.setAspectRation(previewSize.getHeight(), previewSize.getWidth());
@@ -542,7 +547,8 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
     private void createCameraPreviewSession() {
         try {
             SurfaceTexture texture = mTextureView.getSurfaceTexture();
-            texture.setDefaultBufferSize(mPreferenceWidth, mPreferenceHeight);
+            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+            // TODO::Harmony失真
 
             Surface surface = new Surface(texture);
 
@@ -695,7 +701,6 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
             @Override
             public void run() {
                 mMediaRecorder.stop();
-                mMediaRecorder.reset();
             }
         });
     }
