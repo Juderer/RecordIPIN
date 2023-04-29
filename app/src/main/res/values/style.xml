@@ -5,6 +5,7 @@
         <item name="android:statusBarColor">#323232</item>
         <item name="android:windowLightStatusBar">false</item>
         <!-- Customize your theme here. -->
+        <item name="android:keepScreenOn">true</item>
     </style>
 
     <style name="Theme.RecordIPIN.FullScreen" parent="android:Theme.Material.Light.NoActionBar.Fullscreen">

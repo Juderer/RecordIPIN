@@ -42,7 +42,7 @@
 
     <PreferenceCategory
         android:title="CAMERA"
-        android:icon="@drawable/round_photo_camera_24">
+        android:icon="@drawable/baseline_photo_camera_24">
 
         <ListPreference
             android:title="Image Size"
