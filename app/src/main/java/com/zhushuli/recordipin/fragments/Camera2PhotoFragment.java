@@ -35,6 +35,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -50,9 +51,11 @@ import android.widget.Toast;
 
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.utils.Camera2Utils;
+import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 import com.zhushuli.recordipin.views.AutoFitTextureView;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -62,8 +65,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -150,7 +155,15 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
 
     private final AtomicBoolean recording = new AtomicBoolean(false);
 
+    private String mRecordRootDir;
+
+    private String mRecordAbsDir;
+
     private ImageRecorder mImageRecorder;
+
+    private FrameInfoRecorder mFrameInfoRecorder;
+
+    private final Queue<String> mFrameInfos = new LinkedList<>();
 
     private final CameraDevice.StateCallback mStateCallback = new CameraDevice.StateCallback() {
         @Override
@@ -241,6 +254,15 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
                                        @NonNull TotalCaptureResult result) {
             Log.d(TAG, "onCaptureCompleted:" + ThreadUtils.threadID());
 //            finishedCapture();
+            /**
+             * Camera/PhotoFrame.csv
+             */
+            StringBuilder sb = new StringBuilder();
+            sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
+            sb.append(System.currentTimeMillis()).append(",");
+            sb.append(result.get(TotalCaptureResult.SENSOR_TIMESTAMP)).append(",");
+            sb.append(result.getFrameNumber()).append("\n");
+            mFrameInfos.offer(sb.toString());
         }
 
         @Override
@@ -277,7 +299,9 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
 
     private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS", Locale.CHINA);
 
-    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(4);
+    private final SimpleDateFormat recordFormatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss", Locale.CHINA);
+
+    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(8);
 
     private final ImageReader.OnImageAvailableListener mImageAvailableListener =
             new ImageReader.OnImageAvailableListener() {
@@ -358,6 +382,9 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
                 }
             }
         };
+
+        mRecordRootDir = getActivity().getExternalFilesDir(
+                Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
     }
 
     @Override
@@ -432,10 +459,16 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
         recording.set(!recording.get());
         if (recording.get()) {
             mImageRecorder = new ImageRecorder();
-            mExecutorService.execute(new ImageRecorder());
+            mRecordAbsDir = mRecordRootDir + File.separator +
+                    recordFormatter.format(new Date(System.currentTimeMillis()));
+            Log.d(TAG, mRecordAbsDir);
+            mFrameInfoRecorder = new FrameInfoRecorder(mRecordAbsDir);
+            mExecutorService.execute(mImageRecorder);
+            mExecutorService.execute(mFrameInfoRecorder);
             btnPhotoRecord.setImageResource(R.drawable.baseline_stop_24);
         } else {
             mImageRecorder = null;
+            mFrameInfoRecorder = null;
             btnPhotoRecord.setImageResource(R.drawable.baseline_fiber_manual_record_24_photo);
         }
     }
@@ -705,6 +738,50 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             mCaptureSession.capture(mCaptureRequestBuilder.build(), mCaptureCallback, mCaptureHandler);
         } catch (CameraAccessException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    private class FrameInfoRecorder implements Runnable {
+        private String mRecordDir;
+
+        private BufferedWriter mBufferedWriter;
+
+        public FrameInfoRecorder(String recordDir) {
+            mRecordDir = recordDir;
+        }
+
+        private void initWriter() {
+            mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Camera", "Frame.csv");
+            try {
+                mBufferedWriter.write("sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos),frameNumber\n");
+                mBufferedWriter.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            Log.d(TAG, "FrameInfoRecorder Init");
+        }
+
+        @Override
+        public void run() {
+            Log.d(TAG, "FrameInfoRecorder Start:" + this.mRecordDir);
+            initWriter();
+            int count = 0;
+            while (recording.get() || mFrameInfos.size() > 0) {
+                if (mFrameInfos.size() > 0) {
+                    try {
+                        mBufferedWriter.write(mFrameInfos.poll());
+                        count++;
+                        if (count > 10) {
+                            mBufferedWriter.flush();
+                            Log.d(TAG, "FrameInfoRecorder Write");
+                            count = 0;
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            FileUtils.closeBufferedWriter(mBufferedWriter);
         }
     }
 
