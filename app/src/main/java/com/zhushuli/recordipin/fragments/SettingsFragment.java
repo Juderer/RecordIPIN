@@ -17,6 +17,7 @@ import android.util.Log;
 import android.util.Range;
 import android.util.Size;
 
+import androidx.annotation.NonNull;
 import androidx.preference.ListPreference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -36,6 +37,15 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
 
     private static final String TAG = "SettingsFragment";
 
+    private Context mContext;
+
+    @Override
+    public void onAttach(@NonNull Context context) {
+        Log.d(TAG, "onAttach");
+        super.onAttach(context);
+        mContext = context;
+    }
+
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
         setPreferencesFromResource(R.xml.settings, rootKey);
@@ -44,16 +54,55 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
         PreferenceManager.getDefaultSharedPreferences(getActivity())
                 .registerOnSharedPreferenceChangeListener(this);
 
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        ListPreference recordMode = getPreferenceManager().findPreference("prefCameraRecordMode");
+        ListPreference lensFacing = getPreferenceManager().findPreference("prefCameraLensFacing");
 
+        if (recordMode.getValue().equals("0")) {
+            Log.d(TAG, lensFacing.getValue());
+            lensFacing.setEnabled(true);
+            updateFrameSize(Integer.parseInt(lensFacing.getValue()));
+        } else {
+            lensFacing.setValueIndex(1);
+            lensFacing.setEnabled(false);
+            updateFrameSize(Integer.parseInt(lensFacing.getValue()));
+        }
+
+//        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getActivity());
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        Log.d(TAG, "onSharedPreferenceChanged");
+
+        Log.d(TAG, key);
+        if (key.equals("prefCameraLensFacing")) {
+            int recordMode = Integer.parseInt(sharedPreferences.getString("prefCameraRecordMode", "0"));
+            if (recordMode == 0) {
+                int lenFacingType = Integer.parseInt(sharedPreferences.getString(key, "1"));
+                updateFrameSize(lenFacingType);
+            }
+        } else if (key.equals("prefCameraRecordMode")) {
+            ListPreference recordMode = getPreferenceManager().findPreference("prefCameraRecordMode");
+            ListPreference lensFacing = getPreferenceManager().findPreference("prefCameraLensFacing");
+
+            if (recordMode.getValue().equals("0")) {
+                lensFacing.setEnabled(true);
+                updateFrameSize(Integer.parseInt(lensFacing.getValue()));
+            } else {
+                lensFacing.setValueIndex(1);
+                lensFacing.setEnabled(false);
+                updateFrameSize(Integer.parseInt(lensFacing.getValue()));
+            }
+        }
+    }
+
+    private void updateFrameSize(int lensFacingType) {
         try {
-            Activity activity = getActivity();
-            CameraManager cameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
-
+            CameraManager cameraManager = (CameraManager) mContext.getSystemService(Context.CAMERA_SERVICE);
             for (String cameraId : cameraManager.getCameraIdList()) {
                 Log.d(TAG, "cameraId:" + cameraId);
                 CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
-                if (characteristics.get(CameraCharacteristics.LENS_FACING) != CameraCharacteristics.LENS_FACING_BACK) {
+                if (characteristics.get(CameraCharacteristics.LENS_FACING) != lensFacingType) {
                     continue;
                 }
                 StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
@@ -82,6 +131,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
                         filterSizes.add(size);
                     }
                 }
+
 //                Collections.sort(filterSizes, new Camera2Utils.CompareSizesByArea());
 //                Size[] nSizes = filterSizes.toArray(new Size[filterSizes.size()]);
 //
@@ -121,7 +171,7 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
                 CharSequence[] imageSizeValues = new CharSequence[filteredImageSizes.size()];
                 int count = 0;
                 for (Size size : filteredImageSizes) {
-                    Log.d(TAG, "width:" + size.getWidth() + "," + "height:" + size.getHeight());
+//                    Log.d(TAG, "width:" + size.getWidth() + "," + "height:" + size.getHeight());
                     imageSizeStrings[count] = size.getWidth() + "x" + size.getHeight();
                     imageSizeValues[count] = size.getWidth() + "x" + size.getHeight();
                     count++;
@@ -153,13 +203,14 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
 
                 break;
             }
-        } catch (CameraAccessException e) {
+        } catch (CameraAccessException | NullPointerException e) {
             throw new RuntimeException(e);
         }
     }
 
     @Override
-    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-        Log.d(TAG, "onSharedPreferenceChanged");
+    public void onDetach() {
+        Log.d(TAG, "onDetach");
+        super.onDetach();
     }
 }

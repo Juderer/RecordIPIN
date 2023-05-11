@@ -701,6 +701,8 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
             @Override
             public void run() {
                 mMediaRecorder.stop();
+                File file = getVideoFileBeforeRecording();
+                file.delete();
             }
         });
     }

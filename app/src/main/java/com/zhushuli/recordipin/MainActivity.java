@@ -150,6 +150,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 startActivity(new Intent(this, CameraxActivity.class));
                 break;
             case R.id.btn2Camera2Aty:
+                isAllGranted = checkPermissionAllGranted(new String[]{
+                        Manifest.permission.CAMERA,
+                        Manifest.permission.RECORD_AUDIO,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE});
+                if (!isAllGranted) {
+                    Log.d(TAG, "未授权");
+                    break;
+                }
                 startActivity(new Intent(this, Camera2Activity.class));
                 break;
             default:

@@ -59,6 +59,15 @@
             app:iconSpaceReserved="true"/>
 
         <ListPreference
+            android:title="Preview Lens Facing"
+            android:key="prefCameraLensFacing"
+            android:defaultValue="1"
+            android:summary="%s"
+            android:entries="@array/cameraLensFacing"
+            android:entryValues="@array/cameraLensFacingValues"
+            app:iconSpaceReserved="true"/>
+
+        <ListPreference
             android:title="Photo Sampling Period"
             android:key="prefCameraPhotoSamplingPeriod"
             android:entries="@array/cameraPhotoSamplingPeriod"

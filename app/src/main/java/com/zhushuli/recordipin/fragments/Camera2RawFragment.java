@@ -93,13 +93,15 @@ public class Camera2RawFragment extends Fragment {
 
     private static final int STATE_WAITING_FOR_3A_CONVERGENCE = 3;
 
-    private static final long PRECAPTURE_TIMEOUT_MS = 1000;
+    private static final long PRECAPTURE_TIMEOUT_MS = 2000;
 
     private SharedPreferences mSharedPreferences;
 
     private int mPreferenceWidth;
 
     private int mPreferenceHeight;
+
+    private int mPreferenceLenFacing;
 
     private AutoFitTextureView mTextureView;
 
@@ -274,7 +276,7 @@ public class Camera2RawFragment extends Fragment {
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
                                         @NonNull CaptureRequest request,
                                         @NonNull CaptureResult partialResult) {
-            Log.d(TAG, "onCaptureProgress Preview:" + ThreadUtils.threadID());
+//            Log.d(TAG, "onCaptureProgress Preview:" + ThreadUtils.threadID());
             process(partialResult);
         }
 
@@ -282,7 +284,7 @@ public class Camera2RawFragment extends Fragment {
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
-            Log.d(TAG, "onCaptureCompleted Preview:" + ThreadUtils.threadID());
+//            Log.d(TAG, "onCaptureCompleted Preview:" + ThreadUtils.threadID());
             process(result);
         }
     };
@@ -355,10 +357,14 @@ public class Camera2RawFragment extends Fragment {
         Log.d(TAG, "onCreate");
 
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getContext());
+
         String imageSize = mSharedPreferences.getString("prefCameraFrameSize", "1920x1080");
         mPreferenceWidth = Integer.parseInt(imageSize.split("x")[0]);
         mPreferenceHeight = Integer.parseInt(imageSize.split("x")[1]);
         Log.d(TAG, "mPreferenceWidth = " + mPreferenceWidth + ", " + "mPreferenceHeight = " + mPreferenceHeight);
+
+        mPreferenceLenFacing = Integer.parseInt(mSharedPreferences.getString("prefCameraLensFacing", "1"));
+        Log.d(TAG, "mPreferenceLenFacing = " + mPreferenceLenFacing);
 
         mCameraManager = (CameraManager) getActivity().getSystemService(Context.CAMERA_SERVICE);
 
@@ -403,6 +409,7 @@ public class Camera2RawFragment extends Fragment {
 
         startBackgroundThread();
         openCamera();
+        // TODO::手动对焦
 
         mJpegImageReader = ImageReader.newInstance(mPreferenceWidth, mPreferenceHeight, ImageFormat.JPEG, 5);
         mJpegImageReader.setOnImageAvailableListener(mImageAvailableListener, mCaptureHandler);
@@ -521,7 +528,7 @@ public class Camera2RawFragment extends Fragment {
             // cameras).
             int rotation = (mCharacteristics.get(CameraCharacteristics.LENS_FACING) ==
                     CameraCharacteristics.LENS_FACING_FRONT) ?
-                    (360 + ORIENTATIONS.get(deviceRotation)) % 360 :
+                    (360 - ORIENTATIONS.get(deviceRotation)) % 360 :
                     (360 - ORIENTATIONS.get(deviceRotation)) % 360;
 
             Matrix matrix = new Matrix();
@@ -680,7 +687,7 @@ public class Camera2RawFragment extends Fragment {
         try {
             for (String cameraId : mCameraManager.getCameraIdList()) {
                 CameraCharacteristics characteristics = mCameraManager.getCameraCharacteristics(cameraId);
-                if (characteristics.get(CameraCharacteristics.LENS_FACING) != CameraCharacteristics.LENS_FACING_BACK) {
+                if (characteristics.get(CameraCharacteristics.LENS_FACING) != mPreferenceLenFacing) {
                     continue;
                 }
 
@@ -795,8 +802,14 @@ public class Camera2RawFragment extends Fragment {
 
 //            int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
 //            mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, sensorToDeviceRotation(mCharacteristics, rotation));
+
             mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION,
                     sensorToDeviceRotationByListener(mCharacteristics, mOrientationListenerValue));
+            // 调试学习
+//            Log.d(TAG, String.valueOf(sensorToDeviceRotationByListener(mCharacteristics, mOrientationListenerValue)));
+//            mCaptureRequestBuilder.set(CaptureRequest.JPEG_ORIENTATION, 0);
+
+            mCaptureRequestBuilder.set(CaptureRequest.JPEG_QUALITY, Integer.valueOf(100).byteValue());
 
             setup3AControlsLocked(mCaptureRequestBuilder);
 

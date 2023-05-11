@@ -89,6 +89,8 @@
 
 ## 1.22 Fragment
 
+- **Fragment生命周期**
+
 ## 1.23 绘图
 
 - 动态折线图g
@@ -122,3 +124,13 @@
 - [Android 状态栏, 标题栏, 导航栏，系统栏，应用栏的区别和解释](https://blog.csdn.net/cleverGump/article/details/85602372)
 - [What Are the Different Types of Bars Available in Android?](https://www.geeksforgeeks.org/what-are-the-different-types-of-bars-available-in-android/)
 - [What are the different bars available in android?](https://stackoverflow.com/questions/39822787/what-are-the-different-bars-status-bar-action-bar-navigation-bar-tool-bar-et)
+
+## 1.31 Android Camera Sensor Orientation
+
+- [Android相机开发——预览画面的旋转](https://zhuanlan.zhihu.com/p/110944780)
+- [Android开发中关于摄像头方向的理解](https://www.jianshu.com/p/c362c6de0e23)
+- [Camera2 understanding the sensor and device orientations](https://stackoverflow.com/questions/48406497/camera2-understanding-the-sensor-and-device-orientations)
+- [Android Camera Hardware Architecture explained](https://blog.minhazav.dev/android-camera-hardware-explained/)
+- [Camera preview](https://developer.android.com/training/camera2/camera-preview)
+
+## 1.32 Android Studio 调试
