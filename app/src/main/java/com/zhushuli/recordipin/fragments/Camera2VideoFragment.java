@@ -190,7 +190,7 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
 
         @Override
         public void onSurfaceTextureUpdated(@NonNull SurfaceTexture surface) {
-
+//            Log.d(TAG, "onSurfaceTextureUpdated:" + ThreadUtils.threadID());
         }
     };
 
@@ -360,6 +360,8 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
         }
         stopBackgroundThread();
         closeCamera();
+
+        rmNeedlessVideoFile();
     }
 
     @Override
@@ -402,7 +404,7 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
         int deviceRotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
         mDisplayRotation = deviceRotation;
 
-        int totalRotation = sensorToDeviceRotation(mCharacteristics, deviceRotation);
+        int totalRotation = Camera2Utils.sensorToDeviceRotation(mCharacteristics, deviceRotation);
         Log.d(TAG, "totalRotation:" + totalRotation);
 
         boolean swappedDimensions = totalRotation == 90 || totalRotation == 270;
@@ -432,35 +434,6 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
             mPreviewSize = previewSize;
             createCameraPreviewSession();
         }
-    }
-
-    private static int sensorToDeviceRotation(CameraCharacteristics c, int deviceOrientation) {
-        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
-//        Log.d(TAG, "sensorOrientation:" + sensorOrientation);
-
-        // Get device orientation in degrees
-        deviceOrientation = ORIENTATIONS.get(deviceOrientation);
-//        Log.d(TAG, "deviceOrientation:" + deviceOrientation);
-
-        // Reverse device orientation for front-facing cameras
-        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
-            deviceOrientation = -deviceOrientation;
-        }
-
-        // Calculate desired JPEG orientation relative to camera orientation to make
-        // the image upright relative to the device orientation
-        return (sensorOrientation - deviceOrientation + 360) % 360;
-    }
-
-    private static int sensorToDeviceRotationByListener(CameraCharacteristics c, int orientation) {
-        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
-        Log.d(TAG, "sensorOrientation:" + sensorOrientation);
-
-        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
-            orientation = -orientation;
-        }
-
-        return (sensorOrientation - orientation + 360) % 360;
     }
 
     private void startBackgroundThread() {
@@ -656,7 +629,7 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
             if (mRecorderSurface != null) {
                 mMediaRecorder.setInputSurface(mRecorderSurface);
             }
-            mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
+//            mMediaRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
             mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
             mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
             if (recording.get()) {
@@ -669,11 +642,13 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
             mMediaRecorder.setCaptureRate(30.0D);
             mMediaRecorder.setVideoFrameRate(30);
             mMediaRecorder.setVideoSize(mPreferenceWidth, mPreferenceHeight);
-            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
+            // 注释即可取消音频录入
+//            mMediaRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
             mMediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264);
 //            int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
-//            mMediaRecorder.setOrientationHint(sensorToDeviceRotation(mCharacteristics, rotation));
-            mMediaRecorder.setOrientationHint(sensorToDeviceRotationByListener(mCharacteristics, mOrientationListenerValue));
+//            mMediaRecorder.setOrientationHint(Camera2Utils.sensorToDeviceRotation(mCharacteristics, rotation));
+            mMediaRecorder.setOrientationHint(Camera2Utils.sensorToDeviceRotationByListener(
+                    mCharacteristics, mOrientationListenerValue));
             mMediaRecorder.prepare();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -701,10 +676,14 @@ public class Camera2VideoFragment extends Fragment implements View.OnClickListen
             @Override
             public void run() {
                 mMediaRecorder.stop();
-                File file = getVideoFileBeforeRecording();
-                file.delete();
+                rmNeedlessVideoFile();
             }
         });
+    }
+
+    private void rmNeedlessVideoFile() {
+        File file = getVideoFileBeforeRecording();
+        file.delete();
     }
 
     private class VideoHinter implements Runnable {

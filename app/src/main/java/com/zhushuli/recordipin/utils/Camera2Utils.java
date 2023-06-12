@@ -4,6 +4,8 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
+import android.util.SparseIntArray;
+import android.view.Surface;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -18,6 +20,41 @@ import java.util.List;
 public class Camera2Utils {
 
     private static final double ASPECT_RATIO_TOLERANCE = 0.005D;
+
+    private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+
+    static {
+        ORIENTATIONS.append(Surface.ROTATION_0, 0);
+        ORIENTATIONS.append(Surface.ROTATION_90, 90);
+        ORIENTATIONS.append(Surface.ROTATION_180, 180);
+        ORIENTATIONS.append(Surface.ROTATION_270, 270);
+    }
+
+    public static int sensorToDeviceRotation(CameraCharacteristics c, int deviceOrientation) {
+        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+        // Get device orientation in degrees
+        deviceOrientation = ORIENTATIONS.get(deviceOrientation);
+
+        // Reverse device orientation for front-facing cameras
+        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_FRONT) {
+            deviceOrientation = -deviceOrientation;
+        }
+
+        // Calculate desired JPEG orientation relative to camera orientation to make
+        // the image upright relative to the device orientation
+        return (sensorOrientation - deviceOrientation + 360) % 360;
+    }
+
+    public static int sensorToDeviceRotationByListener(CameraCharacteristics c, int orientation) {
+        int sensorOrientation = c.get(CameraCharacteristics.SENSOR_ORIENTATION);
+
+        if (c.get(CameraCharacteristics.LENS_FACING) == CameraCharacteristics.LENS_FACING_BACK) {
+            orientation = -orientation;
+        }
+
+        return (sensorOrientation - orientation + 360) % 360;
+    }
 
     public static class CompareSizesByArea implements Comparator<Size> {
         @Override

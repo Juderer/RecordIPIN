@@ -134,3 +134,7 @@
 - [Camera preview](https://developer.android.com/training/camera2/camera-preview)
 
 ## 1.32 Android Studio 调试
+
+## 1.33 TextureView Vs SurfaceView
+
+- `SurfaceView Camera2 实现预览`

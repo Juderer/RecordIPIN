@@ -1,10 +1,9 @@
+package com.zhushuli.recordipin.views;
+
 /**
- * @author wangyantao
  * @refer https://github.com/WangYantao/android-camera-demos
  * @refer https://github.com/googlearchive/android-Camera2Raw
  */
-package com.zhushuli.recordipin.views;
-
 import android.content.Context;
 import android.util.AttributeSet;
 import android.view.TextureView;

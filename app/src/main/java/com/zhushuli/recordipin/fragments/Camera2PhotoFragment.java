@@ -25,6 +25,7 @@ import android.media.ImageReader;
 import android.os.Build;
 import android.os.Bundle;
 
+import androidx.annotation.LongDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -255,12 +256,26 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             Log.d(TAG, "onCaptureCompleted:" + ThreadUtils.threadID());
 //            finishedCapture();
             /**
-             * Camera/PhotoFrame.csv
+             * 时间戳参考CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE
+             * Camera/FrameMetadata.csv
+             * sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos),lensFocalLength,
+             * fx,fy,cx,cy,s,frameNumber
              */
             StringBuilder sb = new StringBuilder();
+            // 手机系统时间戳
             sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
+            // UTC时间戳
             sb.append(System.currentTimeMillis()).append(",");
+            // 图像传感器时间戳
             sb.append(result.get(TotalCaptureResult.SENSOR_TIMESTAMP)).append(",");
+            // 焦距
+            sb.append(result.get(TotalCaptureResult.LENS_FOCAL_LENGTH)).append(",");
+            // 内参
+            float[] intrinsics = result.get(TotalCaptureResult.LENS_INTRINSIC_CALIBRATION);
+            for (float x : intrinsics) {
+                sb.append(x).append(",");
+            }
+            // 帧数编号？
             sb.append(result.getFrameNumber()).append("\n");
             mFrameInfos.offer(sb.toString());
         }
@@ -308,11 +323,11 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
         @Override
         public void onImageAvailable(ImageReader reader) {
             Log.d(TAG, "onImageAvailable:" + ThreadUtils.threadID());
-            File jpegFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
-                    + File.separator + "RecordIPIN",
-                    "JPEG_" + formatter.format(new Date(System.currentTimeMillis())) + ".jpg");
-
-            mExecutorService.execute(new ImageSaver(reader, jpegFile));
+//            File jpegFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM)
+//                    + File.separator + "RecordIPIN",
+//                    "JPEG_" + formatter.format(new Date(System.currentTimeMillis())) + ".jpg");
+            String path = mRecordAbsDir + File.separator + "Camera" + File.separator + "MultiPhotos";
+            mExecutorService.execute(new ImageSaver(reader, null, path));
         }
     };
 
@@ -728,6 +743,13 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             mCaptureRequestBuilder.addTarget(mJpegImageReader.getSurface());
 
+            // TODO::加入该段显示应该会更流畅
+            SurfaceTexture texture = mTextureView.getSurfaceTexture();
+            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+
+            Surface surface = new Surface(texture);
+            mCaptureRequestBuilder.addTarget(surface);
+
             setup3AControlsLocked(mCaptureRequestBuilder);
 
 //            int rotation = getActivity().getWindowManager().getDefaultDisplay().getRotation();
@@ -751,9 +773,10 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
         }
 
         private void initWriter() {
-            mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Camera", "Frame.csv");
+            mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Camera", "FrameMetadata.csv");
             try {
-                mBufferedWriter.write("sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos),frameNumber\n");
+                mBufferedWriter.write("sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos)," +
+                        "lensFocalLength,fx,fy,cx,cy,s,frameNumber\n");
                 mBufferedWriter.flush();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -790,19 +813,27 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
 
         private File mFile;
 
-        public ImageSaver(ImageReader imageReader, File file) {
+        private String mPath;
+
+        public ImageSaver(ImageReader imageReader, @Nullable File file, String path) {
             mImageReader = imageReader;
             mFile = file;
-
-            if (!mFile.getParentFile().exists()) {
-                mFile.getParentFile().mkdirs();
-            }
+            mPath = path;
         }
 
         @Override
         public void run() {
             Image image = mImageReader.acquireNextImage();
             Log.d(TAG, image.getWidth() + "x" + image.getHeight());
+
+            if (mFile == null) {
+                long imageTime = image.getTimestamp();
+                mFile = new File(mPath + File.separator + String.format("%d.jpg", imageTime));
+            }
+            if (!mFile.getParentFile().exists()) {
+                mFile.getParentFile().mkdirs();
+            }
+
             ByteBuffer buffer = image.getPlanes()[0].getBuffer();
             byte[] bytes = new byte[buffer.remaining()];
             buffer.get(bytes);
