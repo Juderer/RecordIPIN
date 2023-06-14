@@ -304,6 +304,9 @@ public class Camera2RawFragment extends Fragment {
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
             Log.d(TAG, "onCaptureCompleted Capture:" + ThreadUtils.threadID());
+            Log.d(TAG, String.valueOf(result.get(TotalCaptureResult.LENS_FOCAL_LENGTH)));
+            Log.d(TAG, String.valueOf(result.get(TotalCaptureResult.LENS_FOCUS_DISTANCE)));
+            Log.d(TAG, String.valueOf(result.get(TotalCaptureResult.SENSOR_SENSITIVITY)));
             finishedCapture();
         }
 
@@ -372,7 +375,7 @@ public class Camera2RawFragment extends Fragment {
             @Override
             public void onOrientationChanged(int orientation) {
                 mOrientationListenerValue = Camera2Utils.discretizeOrientation(orientation);
-                Log.d(TAG, "onOrientationChanged, " + mOrientationListenerValue);
+//                Log.d(TAG, "onOrientationChanged, " + mOrientationListenerValue);
                 if (mDisplayRotation < 0) {
                     return;
                 }
@@ -409,7 +412,7 @@ public class Camera2RawFragment extends Fragment {
 
         startBackgroundThread();
         openCamera();
-        // TODO::手动对焦
+        // TODO::手动触屏对焦
 
         mJpegImageReader = ImageReader.newInstance(mPreferenceWidth, mPreferenceHeight, ImageFormat.JPEG, 5);
         mJpegImageReader.setOnImageAvailableListener(mImageAvailableListener, mCaptureHandler);
@@ -755,6 +758,7 @@ public class Camera2RawFragment extends Fragment {
         builder.set(CaptureRequest.CONTROL_MODE, CaptureRequest.CONTROL_MODE_AUTO);
 
         Float minFocusDist = mCharacteristics.get(CameraCharacteristics.LENS_INFO_MINIMUM_FOCUS_DISTANCE);
+        Log.d(TAG, "mNoAFRun = " + String.valueOf(minFocusDist));
 
         mNoAFRun = (minFocusDist == null || minFocusDist == 0);
 

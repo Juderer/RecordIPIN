@@ -76,6 +76,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import timber.log.Timber;
+
 /**
  * @author      : zhushuli
  * @createDate  : 2023/04/18 17:47
@@ -141,8 +143,6 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
     private ImageReader mJpegImageReader;
 
     private boolean mNoAFRun;
-
-    private final Object mCameraStateLock = new Object();
 
     private HandlerThread mPreviewThread;
 
@@ -224,11 +224,29 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
 
     private final CameraCaptureSession.CaptureCallback mPreCaptureCallback =
             new CameraCaptureSession.CaptureCallback() {
+
+        private void process(CaptureResult result) {
+            // TODO::相机对焦锁定参考https://github.com/A3DV/VIRec/blob/main/app/src/main/java/io/a3dv/VIRec/Camera2Proxy.java#L388
+            Integer afMode = result.get(CaptureResult.CONTROL_AF_MODE);
+            Log.d(TAG, String.valueOf(afMode));
+            Integer afState = result.get(CaptureResult.CONTROL_AF_STATE);
+            Log.d(TAG, String.valueOf(afState));
+            Integer aeMode = result.get(CaptureResult.CONTROL_AE_MODE);
+            Log.d(TAG, String.valueOf(aeMode));
+            Integer aeState = result.get(CaptureResult.CONTROL_AE_STATE);
+            Log.d(TAG, String.valueOf(aeState));
+            Integer awbMode = result.get(CaptureResult.CONTROL_AWB_MODE);
+            Log.d(TAG, String.valueOf(awbMode));
+            Integer awbState = result.get(CaptureResult.CONTROL_AWB_STATE);
+            Log.d(TAG, String.valueOf(awbState));
+        }
+
         @Override
         public void onCaptureProgressed(@NonNull CameraCaptureSession session,
                                         @NonNull CaptureRequest request,
                                         @NonNull CaptureResult partialResult) {
             Log.d(TAG, "onCaptureProgressed Preview:" + ThreadUtils.threadID());
+            process(partialResult);
         }
 
                 @Override
@@ -236,6 +254,7 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
             Log.d(TAG, "onCaptureCompleted Preview:" + ThreadUtils.threadID());
+            process(result);
         }
     };
 
@@ -254,7 +273,6 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
             Log.d(TAG, "onCaptureCompleted:" + ThreadUtils.threadID());
-//            finishedCapture();
             /**
              * 时间戳参考CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE
              * Camera/FrameMetadata.csv
@@ -271,9 +289,17 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             // 焦距
             sb.append(result.get(TotalCaptureResult.LENS_FOCAL_LENGTH)).append(",");
             // 内参
-            float[] intrinsics = result.get(TotalCaptureResult.LENS_INTRINSIC_CALIBRATION);
-            for (float x : intrinsics) {
-                sb.append(x).append(",");
+            try {
+                float[] intrinsics = result.get(TotalCaptureResult.LENS_INTRINSIC_CALIBRATION);
+                for (float x : intrinsics) {
+                    sb.append(x).append(",");
+                }
+            } catch (NullPointerException e) {
+                // 比如xiaomi8就没有内参信息
+                // TODO::需要手动计算
+                for (float x : new float[]{0, 0, 0, 0, 0}) {
+                    sb.append(x).append(",");
+                }
             }
             // 帧数编号？
             sb.append(result.getFrameNumber()).append("\n");
@@ -285,7 +311,6 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
                                     @NonNull CaptureRequest request,
                                     @NonNull CaptureFailure failure) {
             Log.d(TAG, "onCaptureFailed Capture:" + ThreadUtils.threadID());
-//            finishedCapture();
         }
     };
 
@@ -701,6 +726,7 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             }
         }
 
+        // 不需要对焦锁定
 //        if (!mNoAFRun) {
 //            builder.set(CaptureRequest.CONTROL_AF_TRIGGER, CameraMetadata.CONTROL_AF_TRIGGER_START);
 //        }

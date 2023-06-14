@@ -1,20 +1,15 @@
 package com.zhushuli.recordipin.fragments;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.ImageFormat;
-import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.ImageReader;
 import android.media.MediaRecorder;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Range;
 import android.util.Size;
 
 import androidx.annotation.NonNull;
@@ -24,13 +19,10 @@ import androidx.preference.PreferenceManager;
 
 import com.zhushuli.recordipin.R;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Locale;
 
 public class SettingsFragment extends PreferenceFragmentCompat implements
         SharedPreferences.OnSharedPreferenceChangeListener {
@@ -108,12 +100,10 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
                 StreamConfigurationMap map = characteristics.get(CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
 //                Size[] sizes = map.getOutputSizes(ImageReader.class);
 //                Size[] sizes = map.getOutputSizes(SurfaceTexture.class);
-                Size[] sizes = map.getOutputSizes(MediaRecorder.class);
                 Size[] imageSizes = map.getOutputSizes(ImageFormat.JPEG);
                 Size[] videoSizes = map.getOutputSizes(MediaRecorder.class);
 
                 // 保留比例为4:3或16:9的分辨率
-                List<Size> filterSizes = new ArrayList<>();
                 List<Size> filteredImageSizes = new ArrayList<>();
                 List<Size> filteredVideoSizes = new ArrayList<>();
                 for (Size size : imageSizes) {
@@ -124,11 +114,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
                 for (Size size : videoSizes) {
                     if (size.getWidth() * 3 == size.getHeight() * 4 || size.getWidth() * 9 == size.getHeight() * 16) {
                         filteredVideoSizes.add(size);
-                    }
-                }
-                for (Size size : sizes) {
-                    if (size.getWidth() * 3 == size.getHeight() * 4 || size.getWidth() * 9 == size.getHeight() * 16) {
-                        filterSizes.add(size);
                     }
                 }
 
@@ -148,12 +133,6 @@ public class SettingsFragment extends PreferenceFragmentCompat implements
 //                }
 
                 // 降序排序（Java默认升序排序）
-                Collections.sort(filterSizes, new Comparator<Size>() {
-                    @Override
-                    public int compare(Size o1, Size o2) {
-                        return -(o1.getWidth() * o1.getHeight() - o2.getWidth() * o2.getHeight());
-                    }
-                });
                 Collections.sort(filteredImageSizes, new Comparator<Size>() {
                     @Override
                     public int compare(Size o1, Size o2) {

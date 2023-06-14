@@ -125,7 +125,7 @@
 - [What Are the Different Types of Bars Available in Android?](https://www.geeksforgeeks.org/what-are-the-different-types-of-bars-available-in-android/)
 - [What are the different bars available in android?](https://stackoverflow.com/questions/39822787/what-are-the-different-bars-status-bar-action-bar-navigation-bar-tool-bar-et)
 
-## 1.31 Android Camera Sensor Orientation
+## 1.32 Android Camera Sensor Orientation
 
 - [Android相机开发——预览画面的旋转](https://zhuanlan.zhihu.com/p/110944780)
 - [Android开发中关于摄像头方向的理解](https://www.jianshu.com/p/c362c6de0e23)
@@ -133,8 +133,13 @@
 - [Android Camera Hardware Architecture explained](https://blog.minhazav.dev/android-camera-hardware-explained/)
 - [Camera preview](https://developer.android.com/training/camera2/camera-preview)
 
-## 1.32 Android Studio 调试
+## 1.33 Android Studio 调试
 
-## 1.33 TextureView Vs SurfaceView
+## 1.34 TextureView Vs SurfaceView
 
 - `SurfaceView Camera2 实现预览`
+
+## 1.35 焦距与对焦
+
+## 1.36 SurfaceTexture
+
