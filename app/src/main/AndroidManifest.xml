@@ -4,6 +4,9 @@
     package="com.zhushuli.recordipin">
 
     <uses-feature android:name="android.hardware.camera.any" />
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -17,9 +20,8 @@
     <uses-permission android:name="android.permission.READ_SMS" /> <!-- 摄像头权限 -->
     <uses-permission android:name="android.permission.CAMERA" /> <!-- 录屏所需权限 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" /> <!--提升IMU采样频率-->
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" /> <!-- 提升IMU采样频率 -->
 
-    <!-- configChanges: 旋转屏幕时阻止activity重建 -->
     <application
         android:allowBackup="true"
         android:icon="@drawable/baseline_pig_24"
@@ -29,18 +31,24 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.RecordIPIN">
         <activity
-            android:name=".SettingsActivity"
-            android:exported="false"
-            android:label="Settings"/>
-        <activity
-            android:name=".Camera2Activity"
+            android:name=".VideoActivity"
             android:exported="false"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.RecordIPIN.NoActionBar"/>
         <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Settings" />
+        <activity
+            android:name=".Camera2Activity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar" />
+        <activity
             android:name=".CameraxActivity"
             android:exported="false"
-            android:theme="@style/Theme.RecordIPIN.NoActionBar"/>
+            android:theme="@style/Theme.RecordIPIN.NoActionBar" />
         <activity
             android:name=".activities.cellular.CellularActivity"
             android:configChanges="orientation|screenSize"

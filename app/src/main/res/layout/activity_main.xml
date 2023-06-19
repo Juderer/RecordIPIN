@@ -16,6 +16,20 @@
         android:text="Record for IPIN 2023" />
 
     <Button
+        android:id="@+id/btn2VideoAty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btn2Camera2Aty"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="Camera2 OpenGL Test"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:typeface="serif"
+        android:enabled="true" />
+
+    <Button
         android:id="@+id/btn2Camera2Aty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

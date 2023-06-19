@@ -135,7 +135,7 @@
 
 ## 1.33 Android Studio 调试
 
-## 1.34 TextureView Vs SurfaceView
+## 1.34 TextureView Vs SurfaceView Vs GLSurfaceView
 
 - `SurfaceView Camera2 实现预览`
 
@@ -143,3 +143,6 @@
 
 ## 1.36 SurfaceTexture
 
+## 1.37 Timber
+
+- Timber不太适用于多线程日志？
