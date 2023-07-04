@@ -7,18 +7,16 @@ import android.graphics.SurfaceTexture;
 import android.opengl.EGL14;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 import android.util.Size;
 import android.view.Display;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
-
-import androidx.annotation.RequiresApi;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
@@ -39,6 +37,8 @@ import com.zhushuli.recordipin.views.SampleGLView;
 import timber.log.Timber;
 
 class VideoActivityBase extends Activity implements SurfaceTexture.OnFrameAvailableListener {
+
+    private static final String TAG = VideoActivityBase.class.getSimpleName();
 
     protected int mCameraPreviewWidth;
 
@@ -75,7 +75,7 @@ class VideoActivityBase extends Activity implements SurfaceTexture.OnFrameAvaila
 
         String dataDir = getExternalFilesDir(
                 Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
-        String outputDir = dataDir + File.separator + folderName;
+        String outputDir = dataDir + File.separator + folderName + File.separator + "Camera";
 
         (new File(outputDir)).mkdirs();
         return outputDir;
@@ -109,6 +109,7 @@ class VideoActivityBase extends Activity implements SurfaceTexture.OnFrameAvaila
         // Since GLSurfaceView doesn't establish a Looper, this will *probably* execute on
         // the main UI thread.  Fortunately, requestRender() can be called from any thread,
         // so it doesn't really matter.
+        Log.d(TAG, "onFrameAvailable");
         mGLView.requestRender();
     }
 }
@@ -193,6 +194,7 @@ public class VideoActivity extends VideoActivityBase {
     protected void onPause() {
         Timber.d("onPause -- releasing camera");
         super.onPause();
+
         // no more frame metadata will be saved during pause
         if (mCamera2Proxy != null) {
             mCamera2Proxy.releaseCamera();
@@ -213,19 +215,21 @@ public class VideoActivity extends VideoActivityBase {
         mCameraHandler.invalidateHandler();
     }
 
-
     public void clickToggleRecording(@SuppressWarnings("unused") View unused) {
         Timber.d("clickToggleRecording");
         mRecordingEnabled = !mRecordingEnabled;
         if (mRecordingEnabled) {
             String outputDir = renewOutputDir();
-            String outputFile = outputDir + File.separator + "movie.mp4";
-            String metaFile = outputDir + File.separator + "frame_timestamps.txt";
+            String outputFile = outputDir + File.separator + "Video" + File.separator + "Movie.mp4";
+            String frameTimeFile = outputDir + File.separator + "FrameTimestamp.csv";
+            String frameMetaFile = outputDir + File.separator + "FrameMetadata.csv";
 
             Timber.d(outputFile);
-            Timber.d(metaFile);
+            Timber.d(frameTimeFile);
 
-            mRenderer.resetOutputFiles(outputFile, metaFile); // this will not cause sync issues
+//            mRenderer.resetOutputFiles(outputFile, frameTimeFile); // this will not cause sync issues
+            mRenderer.resetOutputFiles(outputDir, outputDir);
+            mCamera2Proxy.startRecordingCaptureResult(frameMetaFile);
         } else {
             mCamera2Proxy.stopRecordingCaptureResult();
         }
@@ -241,7 +245,6 @@ public class VideoActivity extends VideoActivityBase {
 class CameraHandler extends Handler {
     public static final int MSG_SET_SURFACE_TEXTURE = 0;
     public static final int MSG_SET_SURFACE_TEXTURE2 = 2;
-    public static final int MSG_MANUAL_FOCUS = 1;
 
     // Weak reference to the Activity; only access this from the UI thread.
     private final WeakReference<Activity> mWeakActivity;
@@ -286,8 +289,6 @@ class CameraHandler extends Handler {
 class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
     private static final String TAG = "CameraSurfaceRenderer";
 
-    private static final boolean VERBOSE = false;
-
     private static final int RECORDING_OFF = 0;
     private static final int RECORDING_ON = 1;
     private static final int RECORDING_RESUMED = 2;
@@ -315,10 +316,9 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
     private int mVideoFrameWidth;
     private int mVideoFrameHeight;
 
-    private int mCurrentFilter;
-    private int mNewFilter;
-
     private final int mCameraId;
+
+    private final Object mLockObj = new Object();
 
     public CameraSurfaceRenderer(CameraHandler cameraHandler,
                                  TextureMovieEncoder movieEncoder, int cameraId) {
@@ -334,8 +334,6 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
         mIncomingWidth = mIncomingHeight = -1;
         mVideoFrameWidth = mVideoFrameHeight = -1;
 
-        mCurrentFilter = -1;
-
         mCameraId = cameraId;
     }
 
@@ -350,8 +348,11 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
      * For best results, call this *after* disabling Camera preview.
      */
     public void notifyPausing() {
+        if (mRecordingStatus != RECORDING_OFF) {
+            mVideoEncoder.stopRecording();
+        }
         if (mSurfaceTexture != null) {
-            Timber.d("renderer pausing -- releasing SurfaceTexture");
+            Log.d(TAG, "renderer pausing -- releasing SurfaceTexture");
             mSurfaceTexture.release();
             mSurfaceTexture = null;
         }
@@ -367,7 +368,7 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
      * Notifies the renderer that we want to stop or start recording.
      */
     public void changeRecordingState(boolean isRecording) {
-        Timber.d("changeRecordingState: was %b now %b", mRecordingEnabled, isRecording);
+        Log.d(TAG, String.format("changeRecordingState: was %b now %b", mRecordingEnabled, isRecording));
         mRecordingEnabled = isRecording;
     }
 
@@ -379,7 +380,7 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
      * so we at least know that they won't execute concurrently.)
      */
     public void setCameraPreviewSize(int width, int height) {
-        Timber.d("setCameraPreviewSize");
+        Log.d(TAG, "setCameraPreviewSize");
         mIncomingWidth = width;
         mIncomingHeight = height;
         mIncomingSizeUpdated = true;
@@ -392,7 +393,7 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
-        Timber.d("onSurfaceCreated");
+        Log.d(TAG, "onSurfaceCreated");
 
         // We're starting up or coming back. Either way we've got a new EGLContext that will
         // need to be shared with the video encoder, so figure out if a recording is already
@@ -428,14 +429,14 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
 
     @Override
     public void onSurfaceChanged(GL10 unused, int width, int height) {
-        Timber.d("onSurfaceChanged %dx%d", width, height);
+        Log.d(TAG, String.format("onSurfaceChanged %dx%d", width, height));
     }
 
     @Override
     public void onDrawFrame(GL10 unused) {
-        Timber.d("onDrawFrame");
-        Timber.d("mRecordingEnabled:" + mRecordingEnabled);
-        Timber.d("mRecordingStatus:" + mRecordingStatus);
+        Log.d(TAG, "onDrawFrame");
+        Log.d(TAG, "mRecordingEnabled:" + mRecordingEnabled);
+        Log.d(TAG, "mRecordingStatus:" + mRecordingStatus);
 
         boolean showBox;
 
@@ -450,10 +451,10 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
             switch (mRecordingStatus) {
                 case RECORDING_OFF:
                     if (mVideoFrameWidth <= 0 || mVideoFrameHeight <= 0) {
-                        Timber.i("Start recording before setting video frame size; skipping");
+                        Log.i(TAG,"Start recording before setting video frame size; skipping");
                         break;
                     }
-                    Timber.d("Start recording outputFile: %s", mOutputFile);
+                    Log.d(TAG, String.format("Start recording outputFile: %s", mOutputFile));
                     // The output video has a size e.g., 720x1280. Video of the same size is recorded in
                     // the portrait mode of the complex CameraRecorder-android at
                     // https://github.com/MasayukiSuda/CameraRecorder-android.
@@ -466,7 +467,7 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
                     mRecordingStatus = RECORDING_ON;
                     break;
                 case RECORDING_RESUMED:
-                    Timber.d("Resume recording");
+                    Log.d(TAG, "Resume recording");
                     mVideoEncoder.updateSharedContext(EGL14.eglGetCurrentContext());
                     mRecordingStatus = RECORDING_ON;
                     break;
@@ -479,9 +480,11 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
             switch (mRecordingStatus) {
                 case RECORDING_ON:
                 case RECORDING_RESUMED:
-                    Timber.d("Stop recording");
-                    mVideoEncoder.stopRecording();
-                    mRecordingStatus = RECORDING_OFF;
+                    Log.d(TAG, "Stop recording");
+                    synchronized (mLockObj) {
+                        mVideoEncoder.stopRecording();
+                        mRecordingStatus = RECORDING_OFF;
+                    }
                     break;
                 case RECORDING_OFF:
                     break;
@@ -503,7 +506,7 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
             // Texture size isn't set yet.  This is only used for the filters, but to be
             // safe we can just skip drawing while we wait for the various races to resolve.
             // (This seems to happen if you toggle the screen off/on with power button.)
-            Timber.i("Drawing before incoming texture size set; skipping");
+            Log.i(TAG, "Drawing before incoming texture size set; skipping");
             return;
         }
 

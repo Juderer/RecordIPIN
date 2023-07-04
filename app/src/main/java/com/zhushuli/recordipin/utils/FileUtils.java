@@ -23,6 +23,20 @@ public class FileUtils {
         return false;
     }
 
+    public static BufferedWriter initWriter(String fileName) {
+        File file = new File(fileName);
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
+        try {
+            BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(fileName));
+            return bufferedWriter;
+        } catch (IOException e) {
+            Log.d(TAG, "initWriter");
+            throw new RuntimeException(e);
+        }
+    }
+
     public static BufferedWriter initWriter(String dirPath, String fileName) {
         File file = new File(dirPath);
         if (!file.exists()) {

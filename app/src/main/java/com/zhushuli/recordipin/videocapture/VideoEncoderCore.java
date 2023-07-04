@@ -4,18 +4,23 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
+import android.os.SystemClock;
 import android.util.Log;
 import android.view.Surface;
 
-import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
+import com.zhushuli.recordipin.utils.FileUtils;
 
 import java.io.BufferedWriter;
-import java.io.FileWriter;
+import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-
-import timber.log.Timber;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * This class wraps up the core components used for surface-input video encoding.
@@ -31,43 +36,45 @@ public class VideoEncoderCore {
 
     private static final String TAG = "VideoEncoderCore";
 
-    private static final String MIME_TYPE = "video/avc";    // H.264 Advanced Video Coding
-    public static final int FRAME_RATE = 30;               // 30fps
-    private static final int IFRAME_INTERVAL = 1;           // seconds between I-frames
+    private static final String MIME_TYPE = "video/avc";  // H.264 Advanced Video Coding
+
+    public static final int FRAME_RATE = 30;  // 30fps
+
+    private static final int IFRAME_INTERVAL = 1;  // seconds between I-frames
 
     private final Surface mInputSurface;
+
     private MediaMuxer mMuxer;
+
     private MediaCodec mEncoder;
+
     private boolean mEncoderInExecutingState;
+
     private final MediaCodec.BufferInfo mBufferInfo;
+
     private int mTrackIndex;
+
     private boolean mMuxerStarted;
-    private BufferedWriter mFrameMetadataWriter = null;
 
-    static class TimePair {
-        public Long sensorTimeMicros;
-        public long unixTimeMillis;
-
-        public TimePair(Long sensorTime, long unixTime) {
-            sensorTimeMicros = sensorTime;
-            unixTimeMillis = unixTime;
-        }
-
-        @NonNull
-        public String toString() {
-            String delimiter = ",";
-            return sensorTimeMicros + "000" + delimiter + unixTimeMillis + "000000";
-        }
-    }
-
-    private final ArrayList<TimePair> mTimeArray;
     final int TIMEOUT_USEC = 10000;
+
+    private VideoTimeRecorder mVideoTimeRecorder;
+
+    private final Queue<String> mVideoTimes = new LinkedList<>();
+
+    private final AtomicBoolean recording = new AtomicBoolean(false);
+
+    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(1);
+
+    private boolean checkRecording() {
+        return recording.get();
+    }
 
     /**
      * Configures encoder and muxer state, and prepares the input Surface.
      */
     public VideoEncoderCore(int width, int height, int bitRate,
-                            String outputFile, String metaFile)
+                            String streamDir, String metaDir)
             throws IOException {
         Log.d(TAG, "VideoEncoderCore");
         mBufferInfo = new MediaCodec.BufferInfo();
@@ -95,7 +102,7 @@ public class VideoEncoderCore {
             mEncoderInExecutingState = true;
         } catch (IllegalStateException ise) {
             // This exception occurs with certain devices e.g., Nexus 9 API 22.
-            Timber.e(ise);
+            Log.e(TAG, String.valueOf(ise));
             mEncoderInExecutingState = false;
         }
 
@@ -105,17 +112,19 @@ public class VideoEncoderCore {
         //
         // We're not actually interested in multiplexing audio.  We just want to convert
         // the raw H.264 elementary stream we get from MediaCodec into a .mp4 file.
+        String outputFile = streamDir + File.separator + "Video" + File.separator + "Movie.mp4";
+        File file = new File(outputFile);
+        if (!file.getParentFile().exists()) {
+            file.getParentFile().mkdirs();
+        }
         mMuxer = new MediaMuxer(outputFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
 
         mTrackIndex = -1;
         mMuxerStarted = false;
 
-        try {
-            mFrameMetadataWriter = new BufferedWriter(new FileWriter(metaFile, false));
-        } catch (IOException err) {
-            Timber.e(err, "IOException in opening frameMetadataWriter.");
-        }
-        mTimeArray = new ArrayList<>();
+        mVideoTimeRecorder = new VideoTimeRecorder(null, metaDir);
+        recording.set(true);
+        mExecutorService.execute(mVideoTimeRecorder);
     }
 
     /**
@@ -140,20 +149,7 @@ public class VideoEncoderCore {
             mMuxer.release();
             mMuxer = null;
         }
-        if (mFrameMetadataWriter != null) {
-            try {
-                String frameTimeHeader = "Frame timestamp[nanosec],Unix time[nanosec]\n";
-                mFrameMetadataWriter.write(frameTimeHeader);
-                for (TimePair value : mTimeArray) {
-                    mFrameMetadataWriter.write(value.toString() + "\n");
-                }
-                mFrameMetadataWriter.flush();
-                mFrameMetadataWriter.close();
-            } catch (IOException err) {
-                Log.e(TAG, "IOException in closing frameMetadataWriter.");
-            }
-            mFrameMetadataWriter = null;
-        }
+        recording.set(false);
     }
 
     /**
@@ -220,8 +216,10 @@ public class VideoEncoderCore {
                     // adjust the ByteBuffer values to match BufferInfo (not needed?)
                     encodedData.position(mBufferInfo.offset);
                     encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
-                    mTimeArray.add(new TimePair(mBufferInfo.presentationTimeUs,
-                            System.currentTimeMillis()));
+//                    mTimeArray.add(new TimePair(mBufferInfo.presentationTimeUs,
+//                            System.currentTimeMillis()));
+                    mVideoTimes.add(String.format("%d,%d,%d\n",
+                            SystemClock.elapsedRealtimeNanos(), System.currentTimeMillis(), mBufferInfo.presentationTimeUs));
                     mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
                 }
 
@@ -236,6 +234,58 @@ public class VideoEncoderCore {
                     break;  // out of while
                 }
             }
+        }
+    }
+
+    private class VideoTimeRecorder implements Runnable {
+
+        private String mRecordFile;
+
+        private String mRecordDir;
+
+        private BufferedWriter mBufferedWriter;
+
+        public VideoTimeRecorder(@Nullable String recordFile, @Nullable String recordDir) {
+            mRecordFile = recordFile;
+            mRecordDir = recordDir;
+        }
+
+        private void initWriter() {
+            if (mRecordFile == null) {
+                mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Video",
+                        "FrameTimestamp.csv");
+            } else {
+                mBufferedWriter = FileUtils.initWriter(mRecordFile);
+            }
+            try {
+                mBufferedWriter.write("sysClockTime[nanos],sysTime[millis],frameTime[micros]\n");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public void run() {
+            Log.d(TAG, "VideoTimeRecorder");
+            initWriter();
+            int writeCount = 0;
+            while (VideoEncoderCore.this.checkRecording() || mVideoTimes.size() > 0) {
+                if (mVideoTimes.size() > 0) {
+                    try {
+                        mBufferedWriter.write(mVideoTimes.poll());
+                        writeCount += 1;
+                        if (writeCount > 30 * 3) {
+                            mBufferedWriter.flush();
+                            writeCount = 0;
+                            Log.d(TAG, "VideoTime Recorder Write");
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+            FileUtils.closeBufferedWriter(mBufferedWriter);
+            Log.d(TAG, "VideoTime Recorder End");
         }
     }
 }

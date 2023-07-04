@@ -276,9 +276,13 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             /**
              * 时间戳参考CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE
              * Camera/FrameMetadata.csv
-             * sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos),lensFocalLength,
-             * fx,fy,cx,cy,s,frameNumber
+             * sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos),lensFocalLength,lensFocusDistance,
+             * iso,frameNumber,exposureTime(nanos),frameDuration(nanos),frameReadoutTime(nanos),fx,fy,cx,cy,s
              */
+//            String header = "Timestamp[nanosec],fx[px],fy[px],Frame No.," +
+//                    "Exposure time[nanosec],Sensor frame duration[nanosec]," +
+//                    "Frame readout time[nanosec]," +
+//                    "ISO,Focal length,Focus distance,AF mode,Unix time[nanosec]";
             StringBuilder sb = new StringBuilder();
             // 手机系统时间戳
             sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
@@ -288,6 +292,17 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             sb.append(result.get(TotalCaptureResult.SENSOR_TIMESTAMP)).append(",");
             // 焦距
             sb.append(result.get(TotalCaptureResult.LENS_FOCAL_LENGTH)).append(",");
+            //
+            sb.append(result.get(TotalCaptureResult.LENS_FOCUS_DISTANCE)).append(",");
+            // ISO
+            sb.append(result.get(TotalCaptureResult.SENSOR_SENSITIVITY)).append(",");
+            // 帧数编号？
+            sb.append(result.getFrameNumber()).append(",");
+            // 曝光时间
+            sb.append(result.get(TotalCaptureResult.SENSOR_EXPOSURE_TIME)).append(",");
+            // 帧间隔
+            sb.append(result.get(TotalCaptureResult.SENSOR_FRAME_DURATION)).append(",");
+            sb.append(result.get(TotalCaptureResult.SENSOR_ROLLING_SHUTTER_SKEW)).append(",");
             // 内参
             try {
                 float[] intrinsics = result.get(TotalCaptureResult.LENS_INTRINSIC_CALIBRATION);
@@ -297,12 +312,13 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             } catch (NullPointerException e) {
                 // 比如xiaomi8就没有内参信息
                 // TODO::需要手动计算
+                // TODO::Harmony系统有所差别
                 for (float x : new float[]{0, 0, 0, 0, 0}) {
                     sb.append(x).append(",");
                 }
             }
-            // 帧数编号？
-            sb.append(result.getFrameNumber()).append("\n");
+//            sb.replace(sb.length() - 1, sb.length(), "\n");
+            sb.append("\n");
             mFrameInfos.offer(sb.toString());
         }
 
@@ -799,10 +815,12 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
         }
 
         private void initWriter() {
-            mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Camera", "FrameMetadata.csv");
+            mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Camera",
+                    "FrameMetadata.csv");
             try {
                 mBufferedWriter.write("sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos)," +
-                        "lensFocalLength,fx,fy,cx,cy,s,frameNumber\n");
+                        "lensFocalLength,lensFocusDistance,iso,frameNumber," +
+                        "exposureTime(nanos),frameDuration(nanos),frameReadoutTime(nanos),fx,fy,cx,cy,s\n");
                 mBufferedWriter.flush();
             } catch (IOException e) {
                 e.printStackTrace();

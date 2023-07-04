@@ -19,24 +19,10 @@
         android:id="@+id/btn2VideoAty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/btn2Camera2Aty"
-        android:layout_marginRight="30dp"
-        android:layout_marginLeft="30dp"
-        android:text="Camera2 OpenGL Test"
-        android:textAllCaps="false"
-        android:gravity="center"
-        android:textSize="20sp"
-        android:typeface="serif"
-        android:enabled="true" />
-
-    <Button
-        android:id="@+id/btn2Camera2Aty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
         android:layout_above="@+id/btn2CameraxAty"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
-        android:text="Camera2 Test"
+        android:text="Camera2 OpenGL Test"
         android:textAllCaps="false"
         android:gravity="center"
         android:textSize="20sp"
@@ -89,6 +75,20 @@
             android:layout_marginLeft="30dp">
 
             <Button
+                android:id="@+id/btn2Camera2Aty"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:text="Camera2"
+                android:textStyle="normal"
+                android:textAllCaps="false"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:typeface="sans"
+                android:enabled="true"
+                android:backgroundTint="@color/GlobalColor"/>
+
+            <Button
                 android:id="@+id/btn2ImuActivity"
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
@@ -129,14 +129,15 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:text="Collection"
+                android:text="SVIGD"
+                android:contentDescription="Smartphone-based Visual-Inertial-GNSS Dataset"
                 android:textStyle="normal"
                 android:textAllCaps="false"
                 android:typeface="normal"
                 android:autoSizeTextType="uniform"
                 android:autoSizeMinTextSize="10sp"
                 android:autoSizeMaxTextSize="24sp"
-                android:backgroundTint="@color/GlobalColor"/>
+                android:backgroundTint="#628CBA"/>
         </LinearLayout>
 
     </LinearLayout>
