@@ -11,6 +11,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.Size;
 import android.view.Display;
@@ -183,10 +184,15 @@ public class VideoActivity extends VideoActivityBase {
             mVideoFrameHeight = videoSize.getHeight();
         }
 
+        DisplayMetrics dm = getResources().getDisplayMetrics();
+        int screenWidth = dm.widthPixels;
+        int screenHeight = dm.heightPixels;
+
         mGLView.onResume();
         mGLView.queueEvent(() -> {
             mRenderer.setCameraPreviewSize(mCameraPreviewWidth, mCameraPreviewHeight);
             mRenderer.setVideoFrameSize(mVideoFrameWidth, mVideoFrameHeight);
+            mRenderer.setScreenSize(screenWidth, screenHeight);
         });
     }
 
@@ -316,6 +322,10 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
     private int mVideoFrameWidth;
     private int mVideoFrameHeight;
 
+    private int mScreenWidth;
+
+    private int mScreenHeight;
+
     private final int mCameraId;
 
     private final Object mLockObj = new Object();
@@ -389,6 +399,11 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
     public void setVideoFrameSize(int width, int height) {
         mVideoFrameWidth = width;
         mVideoFrameHeight = height;
+    }
+
+    public void setScreenSize(int width, int height) {
+        mScreenWidth = width;
+        mScreenHeight = height;
     }
 
     @Override
@@ -531,7 +546,11 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
      */
     private void drawBox() {
         GLES20.glEnable(GLES20.GL_SCISSOR_TEST);
-        GLES20.glScissor(0, 0, 50, 50);
+//        Log.d("ZHUSHULI1", String.format("%d,%d", mScreenWidth, mScreenHeight));
+//        Log.d("ZHUSHULI2", String.format("%d,%d", mVideoFrameWidth, mVideoFrameHeight));
+        GLES20.glScissor( mScreenWidth - 50,  mScreenWidth * mVideoFrameWidth / mVideoFrameHeight - 50,
+                50, 50);
+//        GLES20.glScissor( 0,  0, 50, 50);
         GLES20.glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
         GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
         GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
