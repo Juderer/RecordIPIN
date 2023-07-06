@@ -58,7 +58,8 @@
             android:name=".CollectionActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="Collection" />
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar"/>
         <activity
             android:name=".activities.imu.ImuDrawActivity"
             android:configChanges="orientation|screenSize"
