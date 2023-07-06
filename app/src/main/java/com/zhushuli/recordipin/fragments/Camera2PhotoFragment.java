@@ -279,10 +279,6 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
              * sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos),lensFocalLength,lensFocusDistance,
              * iso,frameNumber,exposureTime(nanos),frameDuration(nanos),frameReadoutTime(nanos),fx,fy,cx,cy,s
              */
-//            String header = "Timestamp[nanosec],fx[px],fy[px],Frame No.," +
-//                    "Exposure time[nanosec],Sensor frame duration[nanosec]," +
-//                    "Frame readout time[nanosec]," +
-//                    "ISO,Focal length,Focus distance,AF mode,Unix time[nanosec]";
             StringBuilder sb = new StringBuilder();
             // 手机系统时间戳
             sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
@@ -785,12 +781,12 @@ public class Camera2PhotoFragment extends Fragment implements View.OnClickListen
             mCaptureRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             mCaptureRequestBuilder.addTarget(mJpegImageReader.getSurface());
 
-            // TODO::加入该段显示应该会更流畅
-            SurfaceTexture texture = mTextureView.getSurfaceTexture();
-            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+            // 加入该段在Xiaomi 8上出现轻微闪屏
+//            SurfaceTexture texture = mTextureView.getSurfaceTexture();
+//            texture.setDefaultBufferSize(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 
-            Surface surface = new Surface(texture);
-            mCaptureRequestBuilder.addTarget(surface);
+//            Surface surface = new Surface(texture);
+//            mCaptureRequestBuilder.addTarget(surface);
 
             setup3AControlsLocked(mCaptureRequestBuilder);
 
