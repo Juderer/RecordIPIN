@@ -18,6 +18,7 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
 import android.view.Surface;
@@ -143,17 +144,16 @@ public class Camera2Proxy {
                     mFrameMetadataWriter.close();
                     Log.d(TAG, "Flushing results!");
                 } catch (IOException err) {
-                    Log.e(TAG,"IOException in closing an earlier frameMetadataWriter.");
+                    Log.e(TAG, "IOException in closing an earlier frameMetadataWriter.");
                 }
             }
             mFrameMetadataWriter = new BufferedWriter(
                     new FileWriter(captureResultFile, true));
-            String header = "Timestamp[nanosec],Frame No.," +
-                    "Exposure time[nanosec],Sensor frame duration[nanosec]," +
-                    "Frame readout time[nanosec]," +
-                    "ISO,Focal length,Focus distance,AF mode,Unix time[nanosec]";
+            String header = "sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos)," +
+                    "lensFocalLength,lensFocusDistance,iso,frameNumber," +
+                    "exposureTime(nanos),frameDuration(nanos),frameReadoutTime(nanos),fx,fy,cx,cy,s\n";
 
-            mFrameMetadataWriter.write(header + "\n");
+            mFrameMetadataWriter.write(header);
             mRecordingMetadata = true;
         } catch (IOException err) {
             Log.e(TAG, "IOException in opening frameMetadataWriter");
@@ -238,7 +238,7 @@ public class Camera2Proxy {
             mCameraDevice = null;
         }
         mPreviewSurfaceTexture = null;
-        mCameraIdStr = "";
+        mCameraIdStr = "0";
         stopRecordingCaptureResult();
         stopBackgroundThread();
     }
@@ -415,52 +415,100 @@ public class Camera2Proxy {
             process(partialResult);
         }
 
+//        @Override
+//        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+//                                       @NonNull CaptureRequest request,
+//                                       @NonNull TotalCaptureResult result) {
+//            long unixTime = System.currentTimeMillis();
+//            process(result);
+//
+//            Long timestamp = result.get(CaptureResult.SENSOR_TIMESTAMP);
+//            Long number = result.getFrameNumber();
+//            Long exposureTimeNs = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+//
+//            Long frmDurationNs = result.get(CaptureResult.SENSOR_FRAME_DURATION);
+//            Long frmReadoutNs = result.get(CaptureResult.SENSOR_ROLLING_SHUTTER_SKEW);
+//            Integer iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+//            if (expoStats.size() > kMaxExpoSamples) {
+//                expoStats.subList(0, kMaxExpoSamples / 2).clear();
+//            }
+//            expoStats.add(new NumExpoIso(number, exposureTimeNs, iso));
+//
+//            Float fl = result.get(CaptureResult.LENS_FOCAL_LENGTH);
+//
+//            Float fd = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
+//
+//            Integer afMode = result.get(CaptureResult.CONTROL_AF_MODE);
+//
+//            Rect rect = result.get(CaptureResult.SCALER_CROP_REGION);
+//            String delimiter = ",";
+//            String frame_info = timestamp +
+//                    delimiter + number +
+//                    delimiter + exposureTimeNs +
+//                    delimiter + frmDurationNs +
+//                    delimiter + frmReadoutNs +
+//                    delimiter + iso +
+//                    delimiter + fl +
+//                    delimiter + fd +
+//                    delimiter + afMode +
+//                    delimiter + unixTime + "000000";
+//            if (mRecordingMetadata) {
+//                try {
+//                    mFrameMetadataWriter.write(frame_info + "\n");
+//                } catch (IOException err) {
+//                    Log.e(TAG, "Error writing captureResult");
+//                }
+//            }
+//        }
+
         @Override
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
-            long unixTime = System.currentTimeMillis();
-            process(result);
-
-            Long timestamp = result.get(CaptureResult.SENSOR_TIMESTAMP);
-            Long number = result.getFrameNumber();
-            Long exposureTimeNs = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
-
-            Long frmDurationNs = result.get(CaptureResult.SENSOR_FRAME_DURATION);
-            Long frmReadoutNs = result.get(CaptureResult.SENSOR_ROLLING_SHUTTER_SKEW);
-            Integer iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
-            if (expoStats.size() > kMaxExpoSamples) {
-                expoStats.subList(0, kMaxExpoSamples / 2).clear();
+            StringBuilder sb = new StringBuilder();
+            // 手机系统时间戳
+            sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
+            // UTC时间戳
+            sb.append(System.currentTimeMillis()).append(",");
+            // 图像传感器时间戳
+            sb.append(result.get(TotalCaptureResult.SENSOR_TIMESTAMP)).append(",");
+            // 焦距
+            sb.append(result.get(TotalCaptureResult.LENS_FOCAL_LENGTH)).append(",");
+            //
+            sb.append(result.get(TotalCaptureResult.LENS_FOCUS_DISTANCE)).append(",");
+            // ISO
+            sb.append(result.get(TotalCaptureResult.SENSOR_SENSITIVITY)).append(",");
+            // 帧数编号？
+            sb.append(result.getFrameNumber()).append(",");
+            // 曝光时间
+            sb.append(result.get(TotalCaptureResult.SENSOR_EXPOSURE_TIME)).append(",");
+            // 帧间隔
+            sb.append(result.get(TotalCaptureResult.SENSOR_FRAME_DURATION)).append(",");
+            sb.append(result.get(TotalCaptureResult.SENSOR_ROLLING_SHUTTER_SKEW)).append(",");
+            // 内参
+            try {
+                float[] intrinsics = result.get(TotalCaptureResult.LENS_INTRINSIC_CALIBRATION);
+                for (float x : intrinsics) {
+                    sb.append(x).append(",");
+                }
+            } catch (NullPointerException e) {
+                // 比如xiaomi8就没有内参信息
+                // TODO::需要手动计算
+                // TODO::Harmony系统有所差别
+                for (float x : new float[]{0, 0, 0, 0, 0}) {
+                    sb.append(x).append(",");
+                }
             }
-            expoStats.add(new NumExpoIso(number, exposureTimeNs, iso));
-
-            Float fl = result.get(CaptureResult.LENS_FOCAL_LENGTH);
-
-            Float fd = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
-
-            Integer afMode = result.get(CaptureResult.CONTROL_AF_MODE);
-
-            Rect rect = result.get(CaptureResult.SCALER_CROP_REGION);
-            String delimiter = ",";
-            String frame_info = timestamp +
-                    delimiter + number +
-                    delimiter + exposureTimeNs +
-                    delimiter + frmDurationNs +
-                    delimiter + frmReadoutNs +
-                    delimiter + iso +
-                    delimiter + fl +
-                    delimiter + fd +
-                    delimiter + afMode +
-                    delimiter + unixTime + "000000";
+//            sb.replace(sb.length() - 1, sb.length(), "\n");
+            sb.append("\n");
             if (mRecordingMetadata) {
                 try {
-                    mFrameMetadataWriter.write(frame_info + "\n");
+                    mFrameMetadataWriter.write(sb.toString());
                 } catch (IOException err) {
-                    Log.e(TAG,"Error writing captureResult");
+                    Log.e(TAG, "Error writing captureResult");
                 }
             }
         }
-
     };
 
     private void startBackgroundThread() {

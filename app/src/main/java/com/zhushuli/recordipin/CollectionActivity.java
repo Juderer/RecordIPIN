@@ -4,11 +4,13 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
 import android.content.SharedPreferences;
+import android.hardware.camera2.CameraCharacteristics;
 import android.os.Bundle;
 import android.util.Log;
 
 import com.zhushuli.recordipin.fragments.IGDFragment;
 import com.zhushuli.recordipin.fragments.VIGDFragment;
+import com.zhushuli.recordipin.utils.Camera2Utils;
 
 public class CollectionActivity extends AppCompatActivity {
 
@@ -26,6 +28,10 @@ public class CollectionActivity extends AppCompatActivity {
 
         mSharePreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         videoRecording = mSharePreferences.getBoolean("prefCameraCollected", false);
+
+        Log.d(TAG, Camera2Utils.getCameraString(this, CameraCharacteristics.LENS_FACING_FRONT));
+        Log.d(TAG, Camera2Utils.getCameraString(this, CameraCharacteristics.LENS_FACING_BACK));
+        Log.d(TAG, String.valueOf(Camera2Utils.getCameraString(this, CameraCharacteristics.LENS_FACING_EXTERNAL)));
 
         if (null == savedInstanceState) {
             if (videoRecording) {

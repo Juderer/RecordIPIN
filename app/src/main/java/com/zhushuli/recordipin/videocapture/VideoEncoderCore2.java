@@ -230,7 +230,10 @@ public class VideoEncoderCore2 {
         }
         if (mCallbackThread != null) {
             mCallbackThread.quitSafely();
+            mCallbackThread = null;
+            mCallbackHandler = null;
         }
+        recording.set(false);
     }
 
     private class VideoTimeRecorder implements Runnable {

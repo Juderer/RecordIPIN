@@ -1,6 +1,10 @@
 package com.zhushuli.recordipin.utils;
 
+import android.app.Activity;
+import android.content.Context;
+import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CameraManager;
 import android.os.SystemClock;
 import android.util.Log;
 import android.util.Size;
@@ -131,5 +135,22 @@ public class Camera2Utils {
         } else {
             return 0;
         }
+    }
+
+    public static String getCameraString(Activity activity, int lens) {
+        CameraManager cameraManager = (CameraManager) activity.getSystemService(Context.CAMERA_SERVICE);
+        List<String> tgtStrings = new ArrayList<>();
+        try {
+            for (String cameraId : cameraManager.getCameraIdList()) {
+                CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(cameraId);
+                if (characteristics.get(CameraCharacteristics.LENS_FACING) == lens) {
+                    tgtStrings.add(cameraId);
+                }
+            }
+        } catch (CameraAccessException e) {
+            return null;
+//            throw new RuntimeException(e);
+        }
+        return tgtStrings.toString();
     }
 }
