@@ -4,7 +4,6 @@ import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.SystemClock;
@@ -20,15 +19,10 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.Queue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author      : zhushuli
- * @createDate  : 2023/05/30 09:45
+ * @author : zhushuli
+ * @createDate : 2023/05/30 09:45
  * @description : MediaCodec视频编码
  */
 public class VideoEncoderCore2 {
@@ -52,20 +46,6 @@ public class VideoEncoderCore2 {
     private MediaCodec.BufferInfo mBufferInfo;
 
     private Surface mInputSurface;
-
-    private boolean mEncoderInExecutingState;
-
-    private VideoTimeRecorder mVideoTimeRecorder;
-
-    private final Queue<String> mVideoTimes = new LinkedList<>();
-
-    private final AtomicBoolean recording = new AtomicBoolean(false);
-
-    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(1);
-
-    private boolean checkRecording() {
-        return recording.get();
-    }
 
     private final MediaCodec.Callback mCallback = new MediaCodec.Callback() {
         @Override
@@ -97,8 +77,24 @@ public class VideoEncoderCore2 {
                 encodedData.position(mBufferInfo.offset);
                 encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
                 mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
-                mVideoTimes.add(String.format("%d,%d,%d\n",
-                        SystemClock.elapsedRealtimeNanos(), System.currentTimeMillis(), mBufferInfo.presentationTimeUs));
+
+                /**
+                 * <p>It is incorrect that we start a new thread to record timestamps like {@link com.zhushuli.recordipin.services.LocationService2}.
+                 * The detailed error message is below:
+                 *   java.lang.NullPointerException: Attempt to invoke virtual method 'int java.lang.String.length()' on a null object reference.
+                 * We use {@link BufferedWriter} directly in {@link MediaCodec.Callback}</p>
+                 * <p>If you want to know more details, you could see [issue002](https://github.com/Juderer/RecordIPIN/issues/2)</p>
+                 */
+                try {
+                    mTimeWriter.write(genFrameTimeStr(mBufferInfo));
+                    mTimeCount++;
+                    if (mTimeCount % 30 == 0) {
+                        mTimeCount = 0;
+                        mTimeWriter.flush();
+                    }
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
             mEncoder.releaseOutputBuffer(index, false);
         }
@@ -114,7 +110,7 @@ public class VideoEncoderCore2 {
             mFormat = format;
             mTrackIndex = mMuxer.addTrack(mFormat);
             // TODO::设置视频朝向
-//            mMuxer.setOrientationHint(90);
+            mMuxer.setOrientationHint(0);
             mMuxer.start();
             mMuxerStarted = true;
         }
@@ -124,7 +120,11 @@ public class VideoEncoderCore2 {
 
     private Handler mCallbackHandler;
 
-    public VideoEncoderCore2(int width, int height, int bitRate, String streamDir, String metaDir)
+    private BufferedWriter mTimeWriter;
+
+    private int mTimeCount = 0;
+
+    public VideoEncoderCore2(int width, int height, int bitRate, String streamDir, String timeDir)
             throws IOException {
         Log.d(TAG, "VideoEncoderCore2");
         mBufferInfo = new MediaCodec.BufferInfo();
@@ -162,54 +162,31 @@ public class VideoEncoderCore2 {
         mTrackIndex = -1;
         mMuxerStarted = false;
 
-        mVideoTimeRecorder = new VideoTimeRecorder(null, metaDir);
-        recording.set(true);
-        mExecutorService.execute(mVideoTimeRecorder);
+        mTimeWriter = initFrameTimeWriter(null, timeDir);
     }
 
-    public VideoEncoderCore2(int width, int height, int bitRate, @Nullable Surface surface,
-                             String streamDir, String metaDir) throws IOException {
-        Log.d(TAG, "VideoEncoderCore2");
-        mFormat = MediaFormat.createVideoFormat(MediaFormat.MIMETYPE_VIDEO_AVC, width, height);
-
-        // TODO::Harmony系统出现闪屏问题!!!可尝试使用VideoEncoderCore类解决。
-        mFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-                MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface);
-//        mFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,
-//                MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible);
-//        mFormat.setInteger(MediaFormat.KEY_BITRATE_MODE,
-//                MediaCodecInfo.EncoderCapabilities.BITRATE_MODE_CQ);
-        mFormat.setInteger(MediaFormat.KEY_BIT_RATE, bitRate);
-        mFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
-        mFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
-
-        mCallbackThread = new HandlerThread("EncoderCallback");
-        mCallbackThread.start();
-        mCallbackHandler = new Handler(mCallbackThread.getLooper());
-
-        mEncoder = MediaCodec.createEncoderByType(MediaFormat.MIMETYPE_VIDEO_AVC);
-        mEncoder.setCallback(mCallback, mCallbackHandler);
-        mEncoder.configure(mFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
-        if (surface == null) {
-            mInputSurface = mEncoder.createInputSurface();
+    private BufferedWriter initFrameTimeWriter(@Nullable String recordFile, @Nullable String recordDir) {
+        BufferedWriter writer;
+        if (recordFile == null) {
+            writer = FileUtils.initWriter(recordDir + File.separator + "Video",
+                    "FrameTimestamp.csv");
         } else {
-            mEncoder.setInputSurface(surface);
+            writer = FileUtils.initWriter(recordFile);
         }
-        mEncoder.start();
-
-        String outputFile = streamDir + File.separator + "Video" + File.separator + "Movie.mp4";
-        File file = new File(outputFile);
-        if (!file.getParentFile().exists()) {
-            file.getParentFile().mkdirs();
+        try {
+            writer.write("sysClockTime[nanos],sysTime[millis],frameTime[micros]\n");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        mMuxer = new MediaMuxer(outputFile, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+        return writer;
+    }
 
-        mTrackIndex = -1;
-        mMuxerStarted = false;
-
-        mVideoTimeRecorder = new VideoTimeRecorder(null, metaDir);
-        recording.set(true);
-        mExecutorService.execute(mVideoTimeRecorder);
+    private String genFrameTimeStr(MediaCodec.BufferInfo bufferInfo) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
+        sb.append(System.currentTimeMillis()).append(",");
+        sb.append(bufferInfo.presentationTimeUs).append("\n");
+        return sb.toString();
     }
 
     public Surface getInputSurface() {
@@ -230,61 +207,9 @@ public class VideoEncoderCore2 {
         }
         if (mCallbackThread != null) {
             mCallbackThread.quitSafely();
-            mCallbackThread = null;
-            mCallbackHandler = null;
         }
-        recording.set(false);
-    }
-
-    private class VideoTimeRecorder implements Runnable {
-
-        private String mRecordFile;
-
-        private String mRecordDir;
-
-        private BufferedWriter mBufferedWriter;
-
-        public VideoTimeRecorder(@Nullable String recordFile, @Nullable String recordDir) {
-            mRecordFile = recordFile;
-            mRecordDir = recordDir;
-        }
-
-        private void initWriter() {
-            if (mRecordFile == null) {
-                mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Video",
-                        "FrameTimestamp.csv");
-            } else {
-                mBufferedWriter = FileUtils.initWriter(mRecordFile);
-            }
-            try {
-                mBufferedWriter.write("sysClockTime[nanos],sysTime[millis],frameTime[micros]\n");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void run() {
-            Log.d(TAG, "VideoTimeRecorder");
-            initWriter();
-            int writeCount = 0;
-            while (VideoEncoderCore2.this.checkRecording() || mVideoTimes.size() > 0) {
-                if (mVideoTimes.size() > 0) {
-                    try {
-                        mBufferedWriter.write(mVideoTimes.poll());
-                        writeCount += 1;
-                        if (writeCount > 30 * 3) {
-                            mBufferedWriter.flush();
-                            writeCount = 0;
-                            Log.d(TAG, "VideoTime Recorder Write");
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-            FileUtils.closeBufferedWriter(mBufferedWriter);
-            Log.d(TAG, "VideoTime Recorder End");
+        if (mTimeWriter != null) {
+            FileUtils.closeBufferedWriter(mTimeWriter);
         }
     }
 }

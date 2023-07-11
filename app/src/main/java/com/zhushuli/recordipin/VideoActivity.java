@@ -40,7 +40,7 @@ import timber.log.Timber;
 
 class VideoActivityBase extends Activity implements SurfaceTexture.OnFrameAvailableListener {
 
-    private static final String TAG = VideoActivityBase.class.getSimpleName();
+    private static final String TAG = "VideoActivityBase";
 
     protected int mCameraPreviewWidth;
 
@@ -453,8 +453,6 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
     @Override
     public void onDrawFrame(GL10 unused) {
         Log.d(TAG, "onDrawFrame");
-        Log.d(TAG, "mRecordingEnabled:" + mRecordingEnabled);
-        Log.d(TAG, "mRecordingStatus:" + mRecordingStatus);
 
         boolean showBox;
 

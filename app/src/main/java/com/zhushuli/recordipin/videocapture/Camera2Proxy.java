@@ -28,6 +28,7 @@ import androidx.preference.PreferenceManager;
 
 import com.zhushuli.recordipin.utils.Camera2Utils;
 import com.zhushuli.recordipin.utils.FileUtils;
+import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 
 public class Camera2Proxy {
 
@@ -57,6 +59,8 @@ public class Camera2Proxy {
     private Size mVideoSize;
 
     private final CameraManager mCameraManager;
+
+    private CameraCharacteristics mCharacteristics;
 
     private CameraDevice mCameraDevice;
 
@@ -100,9 +104,9 @@ public class Camera2Proxy {
      * Camera state: Focus distance is locked.
      */
     private static final int STATE_FOCUS_LOCKED = 4;
+
     /**
      * The current state of camera state for taking pictures.
-     *
      * @see #mFocusCaptureCallback
      */
     private int mState = STATE_PREVIEW;
@@ -112,6 +116,8 @@ public class Camera2Proxy {
     private FrameMetadataRecorder mFrameMetadataRecorder;
 
     private final ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
+
+    private final Semaphore mSemaphore = new Semaphore(1);
 
     private volatile boolean mRecordingMetadata = false;
 
@@ -136,10 +142,6 @@ public class Camera2Proxy {
         }
     };
 
-    public Integer getTimeSourceValue() {
-        return mTimeSourceValue;
-    }
-
     public Size getVideoSize() {
         return mVideoSize;
     }
@@ -149,14 +151,6 @@ public class Camera2Proxy {
         mFrameMetadataRecorder = new FrameMetadataRecorder(captureResultFile, null);
         mExecutorService.execute(mFrameMetadataRecorder);
     }
-
-//    public void resumeRecordingCaptureResult() {
-//        mRecordingMetadata = true;
-//    }
-//
-//    public void pauseRecordingCaptureResult() {
-//        mRecordingMetadata = false;
-//    }
 
     public void stopRecordingCaptureResult() {
         if (mRecordingMetadata) {
@@ -178,11 +172,12 @@ public class Camera2Proxy {
 
     public Size configureCamera() {
         try {
-            CameraCharacteristics mCameraCharacteristics = mCameraManager.getCameraCharacteristics(mCameraIdStr);
-            StreamConfigurationMap map = mCameraCharacteristics.get(CameraCharacteristics
+            mCharacteristics = mCameraManager.getCameraCharacteristics(mCameraIdStr);
+            StreamConfigurationMap map = mCharacteristics.get(CameraCharacteristics
                     .SCALER_STREAM_CONFIGURATION_MAP);
 
-            mTimeSourceValue = mCameraCharacteristics.get(
+            // TODO::时间戳规则
+            mTimeSourceValue = mCharacteristics.get(
                     CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE);
 
             mVideoSize = new Size(mPreferenceWidth, mPreferenceHeight);
@@ -229,23 +224,12 @@ public class Camera2Proxy {
         mPreviewSurfaceTexture = surfaceTexture;
     }
 
-    private static class NumExpoIso {
-        public Long mNumber;
-        public Long mExposureNanos;
-        public Integer mIso;
-
-        public NumExpoIso(Long number, Long expoNanos, Integer iso) {
-            mNumber = number;
-            mExposureNanos = expoNanos;
-            mIso = iso;
-        }
-    }
-
-    private final int kMaxExpoSamples = 10;
-    private final ArrayList<NumExpoIso> expoStats = new ArrayList<>(kMaxExpoSamples);
-
     private void initPreviewRequest() {
         try {
+            /**
+             * TODO::考虑加入setup3AControlsLocked
+             * 可参考{@link com.zhushuli.recordipin.fragments.Camera2PhotoFragment}
+             */
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_RECORD);
 
             // Set control elements, we want auto white balance
@@ -447,7 +431,7 @@ public class Camera2Proxy {
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
-            Log.d(TAG, "onCaptureCompleted");
+            Log.d(TAG, "onCaptureCompleted:" + ThreadUtils.threadID());
             StringBuilder sb = new StringBuilder();
             // 手机系统时间戳
             sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
@@ -482,10 +466,16 @@ public class Camera2Proxy {
                     sb.append(x).append(",");
                 }
             }
-//            sb.replace(sb.length() - 1, sb.length(), "\n");
-            sb.append("\n");
+            sb.replace(sb.length() - 1, sb.length(), "\n");
             if (mRecordingMetadata) {
-                mFrameInfos.add(sb.toString());
+                try {
+                    mSemaphore.acquire();
+                    mFrameInfos.offer(sb.toString());
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    mSemaphore.release();
+                }
             }
         }
     };
@@ -547,18 +537,25 @@ public class Camera2Proxy {
             initWriter();
             int count = 0;
             while (mRecordingMetadata || mFrameInfos.size() > 0) {
-                if (mFrameInfos.size() > 0) {
-                    try {
-                        mBufferedWriter.write(mFrameInfos.poll());
-                        count++;
-                        if (count > 30 * 3) {
-                            mBufferedWriter.flush();
-                            count = 0;
-                            Log.d(TAG, "FrameMetadataRecorder Write");
+                try {
+                    mSemaphore.acquire();
+                    if (mFrameInfos.size() > 0) {
+                        try {
+                            mBufferedWriter.write(mFrameInfos.poll());
+                            count++;
+                            if (count > 30 * 3) {
+                                mBufferedWriter.flush();
+                                count = 0;
+                                Log.d(TAG, "FrameMetadataRecorder Write");
+                            }
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
                     }
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    mSemaphore.release();
                 }
             }
             FileUtils.closeBufferedWriter(mBufferedWriter);
