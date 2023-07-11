@@ -42,6 +42,8 @@ public class VideoEncoderCore {
 
     private static final int IFRAME_INTERVAL = 1;  // seconds between I-frames
 
+    private static final int TIMEOUT_US = 10000;
+
     private final Surface mInputSurface;
 
     private MediaMuxer mMuxer;
@@ -56,25 +58,15 @@ public class VideoEncoderCore {
 
     private boolean mMuxerStarted;
 
-    final int TIMEOUT_USEC = 10000;
+    private BufferedWriter mTimeWriter;
 
-    private VideoTimeRecorder mVideoTimeRecorder;
-
-    private final Queue<String> mVideoTimes = new LinkedList<>();
-
-    private final AtomicBoolean recording = new AtomicBoolean(false);
-
-    private final ExecutorService mExecutorService = Executors.newFixedThreadPool(1);
-
-    private boolean checkRecording() {
-        return recording.get();
-    }
+    private int mTimeCount = 0;
 
     /**
      * Configures encoder and muxer state, and prepares the input Surface.
      */
     public VideoEncoderCore(int width, int height, int bitRate,
-                            String streamDir, String metaDir)
+                            String streamDir, String timeDir)
             throws IOException {
         Log.d(TAG, "VideoEncoderCore");
         mBufferInfo = new MediaCodec.BufferInfo();
@@ -98,7 +90,7 @@ public class VideoEncoderCore {
         mEncoder.start();
 
         try {
-            mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
+            mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_US);
             mEncoderInExecutingState = true;
         } catch (IllegalStateException ise) {
             // This exception occurs with certain devices e.g., Nexus 9 API 22.
@@ -122,9 +114,31 @@ public class VideoEncoderCore {
         mTrackIndex = -1;
         mMuxerStarted = false;
 
-        mVideoTimeRecorder = new VideoTimeRecorder(null, metaDir);
-        recording.set(true);
-        mExecutorService.execute(mVideoTimeRecorder);
+        mTimeWriter = initFrameTimeWriter(null, timeDir);
+    }
+
+    private BufferedWriter initFrameTimeWriter(@Nullable String recordFile, @Nullable String recordDir) {
+        BufferedWriter writer;
+        if (recordFile == null) {
+            writer = FileUtils.initWriter(recordDir + File.separator + "Video",
+                    "FrameTimestamp.csv");
+        } else {
+            writer = FileUtils.initWriter(recordFile);
+        }
+        try {
+            writer.write("sysClockTime[nanos],sysTime[millis],frameTime[micros]\n");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return writer;
+    }
+
+    private String genFrameTimeStr(MediaCodec.BufferInfo bufferInfo) {
+        StringBuffer sb = new StringBuffer();
+        sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
+        sb.append(System.currentTimeMillis()).append(",");
+        sb.append(bufferInfo.presentationTimeUs).append("\n");
+        return sb.toString();
     }
 
     /**
@@ -149,7 +163,10 @@ public class VideoEncoderCore {
             mMuxer.release();
             mMuxer = null;
         }
-        recording.set(false);
+        if (mTimeWriter != null) {
+            FileUtils.closeBufferedWriter(mTimeWriter);
+            mTimeWriter = null;
+        }
     }
 
     /**
@@ -171,7 +188,7 @@ public class VideoEncoderCore {
         }
 
         while (mEncoderInExecutingState) {
-            int encoderStatus = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
+            int encoderStatus = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_US);
             if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                 // no output available yet
                 if (!endOfStream) {
@@ -216,11 +233,18 @@ public class VideoEncoderCore {
                     // adjust the ByteBuffer values to match BufferInfo (not needed?)
                     encodedData.position(mBufferInfo.offset);
                     encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
-//                    mTimeArray.add(new TimePair(mBufferInfo.presentationTimeUs,
-//                            System.currentTimeMillis()));
-                    mVideoTimes.add(String.format("%d,%d,%d\n",
-                            SystemClock.elapsedRealtimeNanos(), System.currentTimeMillis(), mBufferInfo.presentationTimeUs));
                     mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
+
+                    try {
+                        mTimeWriter.write(genFrameTimeStr(mBufferInfo));
+                        mTimeCount ++;
+                        if (mTimeCount % 30 == 0) {
+                            mTimeCount = 0;
+                            mTimeWriter.flush();
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
 
                 mEncoder.releaseOutputBuffer(encoderStatus, false);
@@ -234,58 +258,6 @@ public class VideoEncoderCore {
                     break;  // out of while
                 }
             }
-        }
-    }
-
-    private class VideoTimeRecorder implements Runnable {
-
-        private String mRecordFile;
-
-        private String mRecordDir;
-
-        private BufferedWriter mBufferedWriter;
-
-        public VideoTimeRecorder(@Nullable String recordFile, @Nullable String recordDir) {
-            mRecordFile = recordFile;
-            mRecordDir = recordDir;
-        }
-
-        private void initWriter() {
-            if (mRecordFile == null) {
-                mBufferedWriter = FileUtils.initWriter(mRecordDir + File.separator + "Video",
-                        "FrameTimestamp.csv");
-            } else {
-                mBufferedWriter = FileUtils.initWriter(mRecordFile);
-            }
-            try {
-                mBufferedWriter.write("sysClockTime[nanos],sysTime[millis],frameTime[micros]\n");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-
-        @Override
-        public void run() {
-            Log.d(TAG, "VideoTimeRecorder");
-            initWriter();
-            int writeCount = 0;
-            while (VideoEncoderCore.this.checkRecording() || mVideoTimes.size() > 0) {
-                if (mVideoTimes.size() > 0) {
-                    try {
-                        mBufferedWriter.write(mVideoTimes.poll());
-                        writeCount += 1;
-                        if (writeCount > 30 * 3) {
-                            mBufferedWriter.flush();
-                            writeCount = 0;
-                            Log.d(TAG, "VideoTime Recorder Write");
-                        }
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-            FileUtils.closeBufferedWriter(mBufferedWriter);
-            Log.d(TAG, "VideoTime Recorder End");
         }
     }
 }

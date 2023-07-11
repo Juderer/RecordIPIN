@@ -18,6 +18,7 @@ package com.zhushuli.recordipin.videocapture;
 
 import android.graphics.SurfaceTexture;
 import android.opengl.EGLContext;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -29,6 +30,7 @@ import com.zhushuli.recordipin.gles.EglCore;
 import com.zhushuli.recordipin.gles.FullFrameRect;
 import com.zhushuli.recordipin.gles.Texture2dProgram;
 import com.zhushuli.recordipin.gles.WindowSurface;
+import com.zhushuli.recordipin.utils.DeviceUtils;
 
 import timber.log.Timber;
 
@@ -79,17 +81,14 @@ public class TextureMovieEncoder implements Runnable {
 
     private int mTextureId;
 
-    private int mFrameNum;
-
     private VideoEncoderCore mVideoEncoder;
-
 
     private VideoEncoderCore2 mVideoEncoder2;
 
     // ----- accessed by multiple threads -----
     private volatile EncoderHandler mHandler;
 
-    private final Object mReadyFence = new Object();      // guards ready/running
+    private final Object mReadyFence = new Object();  // guards ready/running
 
     private boolean mReady;
 
@@ -326,7 +325,6 @@ public class TextureMovieEncoder implements Runnable {
      */
     private void handleStartRecording(EncoderConfig config) {
         Timber.d("handleStartRecording %s", config.toString());
-        mFrameNum = 0;
         prepareEncoder(config.mEglContext, config.mWidth, config.mHeight, config.mBitRate,
                 config.mOutputFile, config.mProgram, config.mMetadataFile);
     }
@@ -342,7 +340,9 @@ public class TextureMovieEncoder implements Runnable {
      * @param timestampNanos The frame's timestamp, from SurfaceTexture.
      */
     private void handleFrameAvailable(float[] transform, long timestampNanos) {
-        mVideoEncoder.drainEncoder(false);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || DeviceUtils.isHarmonyOs()) {
+            mVideoEncoder.drainEncoder(false);
+        }
         mFullScreen.drawFrame(mTextureId, transform);
 
         mInputWindowSurface.setPresentationTime(timestampNanos);
@@ -360,7 +360,9 @@ public class TextureMovieEncoder implements Runnable {
      */
     private void handleStopRecording() {
         Timber.d("handleStopRecording");
-        mVideoEncoder.drainEncoder(true);
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || DeviceUtils.isHarmonyOs()) {
+            mVideoEncoder.drainEncoder(true);
+        }
         releaseEncoder();
     }
 
@@ -399,16 +401,25 @@ public class TextureMovieEncoder implements Runnable {
     private void prepareEncoder(EGLContext sharedContext, int width, int height, int bitRate,
                                 String outputFile, Texture2dProgram program, String metaFile) {
         try {
-            mVideoEncoder = new VideoEncoderCore(
-                    width, height, bitRate, outputFile, metaFile);
-//            mVideoEncoder2 = new VideoEncoderCore2(
-//                    width, height, bitRate, outputFile, metaFile);
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || DeviceUtils.isHarmonyOs()) {
+                mVideoEncoder = new VideoEncoderCore(
+                        width, height, bitRate, outputFile, metaFile);
+            } else {
+                mVideoEncoder2 = new VideoEncoderCore2(
+                        width, height, bitRate, outputFile, metaFile);
+            }
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }
+
         mEglCore = new EglCore(sharedContext, EglCore.FLAG_RECORDABLE);
-//        mInputWindowSurface = new WindowSurface(mEglCore, mVideoEncoder2.getInputSurface(), true);
-        mInputWindowSurface = new WindowSurface(mEglCore, mVideoEncoder.getInputSurface(), true);
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || DeviceUtils.isHarmonyOs()) {
+            mInputWindowSurface = new WindowSurface(mEglCore, mVideoEncoder.getInputSurface(), true);
+        } else {
+            mInputWindowSurface = new WindowSurface(mEglCore, mVideoEncoder2.getInputSurface(), true);
+        }
+
         mInputWindowSurface.makeCurrent();
 
         if (program.getProgramType() == Texture2dProgram.ProgramType.TEXTURE_EXT_FILT_VIEW) {
@@ -421,8 +432,11 @@ public class TextureMovieEncoder implements Runnable {
     }
 
     private void releaseEncoder() {
-        mVideoEncoder.release();
-//        mVideoEncoder2.release();
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP || DeviceUtils.isHarmonyOs()) {
+            mVideoEncoder.release();
+        } else {
+            mVideoEncoder2.release();
+        }
         if (mInputWindowSurface != null) {
             mInputWindowSurface.release();
             mInputWindowSurface = null;
