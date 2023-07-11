@@ -24,6 +24,7 @@ import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -123,7 +124,7 @@ public class VideoActivity extends VideoActivityBase {
 
     private CameraHandler mCameraHandler;
 
-    private boolean mRecordingEnabled;      // controls button state
+    private final AtomicBoolean recording = new AtomicBoolean(false);
 
     @SuppressLint("SourceLockedOrientationActivity")
     @Override
@@ -159,8 +160,6 @@ public class VideoActivity extends VideoActivityBase {
         // to Camera must be made on the same thread.  Note we create this before the renderer
         // thread, so we know the fully-constructed object will be visible.
         mCameraHandler = new CameraHandler(this);
-
-        mRecordingEnabled = sVideoEncoder.isRecording();
 
         if (mRenderer == null) {
             mRenderer = new CameraSurfaceRenderer(mCameraHandler, sVideoEncoder, 0);
@@ -201,6 +200,10 @@ public class VideoActivity extends VideoActivityBase {
         Timber.d("onPause -- releasing camera");
         super.onPause();
 
+        if (recording.get()) {
+            clickToggleRecording(null);
+        }
+
         // no more frame metadata will be saved during pause
         if (mCamera2Proxy != null) {
             mCamera2Proxy.releaseCamera();
@@ -223,8 +226,8 @@ public class VideoActivity extends VideoActivityBase {
 
     public void clickToggleRecording(@SuppressWarnings("unused") View unused) {
         Timber.d("clickToggleRecording");
-        mRecordingEnabled = !mRecordingEnabled;
-        if (mRecordingEnabled) {
+        recording.set(!recording.get());
+        if (recording.get()) {
             String outputDir = renewOutputDir();
             String outputFile = outputDir + File.separator + "Video" + File.separator + "Movie.mp4";
             String frameTimeFile = outputDir + File.separator + "FrameTimestamp.csv";
@@ -242,7 +245,7 @@ public class VideoActivity extends VideoActivityBase {
 
         mGLView.queueEvent(() -> {
             // notify the renderer that we want to change the encoder's state
-            mRenderer.changeRecordingState(mRecordingEnabled);
+            mRenderer.changeRecordingState(recording.get());
         });
     }
 }

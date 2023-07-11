@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.graphics.Rect;
 import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
@@ -24,15 +23,20 @@ import android.util.Size;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
 
 import com.zhushuli.recordipin.utils.Camera2Utils;
+import com.zhushuli.recordipin.utils.FileUtils;
 
 import java.io.BufferedWriter;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class Camera2Proxy {
 
@@ -103,7 +107,11 @@ public class Camera2Proxy {
      */
     private int mState = STATE_PREVIEW;
 
-    private BufferedWriter mFrameMetadataWriter = null;
+    private Queue<String> mFrameInfos = new LinkedList<>();
+
+    private FrameMetadataRecorder mFrameMetadataRecorder;
+
+    private final ExecutorService mExecutorService = Executors.newSingleThreadExecutor();
 
     private volatile boolean mRecordingMetadata = false;
 
@@ -137,27 +145,9 @@ public class Camera2Proxy {
     }
 
     public void startRecordingCaptureResult(String captureResultFile) {
-        try {
-            if (mFrameMetadataWriter != null) {
-                try {
-                    mFrameMetadataWriter.flush();
-                    mFrameMetadataWriter.close();
-                    Log.d(TAG, "Flushing results!");
-                } catch (IOException err) {
-                    Log.e(TAG, "IOException in closing an earlier frameMetadataWriter.");
-                }
-            }
-            mFrameMetadataWriter = new BufferedWriter(
-                    new FileWriter(captureResultFile, true));
-            String header = "sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos)," +
-                    "lensFocalLength,lensFocusDistance,iso,frameNumber," +
-                    "exposureTime(nanos),frameDuration(nanos),frameReadoutTime(nanos),fx,fy,cx,cy,s\n";
-
-            mFrameMetadataWriter.write(header);
-            mRecordingMetadata = true;
-        } catch (IOException err) {
-            Log.e(TAG, "IOException in opening frameMetadataWriter");
-        }
+        mRecordingMetadata = true;
+        mFrameMetadataRecorder = new FrameMetadataRecorder(captureResultFile, null);
+        mExecutorService.execute(mFrameMetadataRecorder);
     }
 
 //    public void resumeRecordingCaptureResult() {
@@ -172,15 +162,7 @@ public class Camera2Proxy {
         if (mRecordingMetadata) {
             mRecordingMetadata = false;
         }
-        if (mFrameMetadataWriter != null) {
-            try {
-                mFrameMetadataWriter.flush();
-                mFrameMetadataWriter.close();
-            } catch (IOException err) {
-                Log.e(TAG, "IOException in closing frameMetadataWriter.");
-            }
-            mFrameMetadataWriter = null;
-        }
+        mFrameMetadataRecorder = null;
     }
 
     public Camera2Proxy(Activity activity) {
@@ -465,6 +447,7 @@ public class Camera2Proxy {
         public void onCaptureCompleted(@NonNull CameraCaptureSession session,
                                        @NonNull CaptureRequest request,
                                        @NonNull TotalCaptureResult result) {
+            Log.d(TAG, "onCaptureCompleted");
             StringBuilder sb = new StringBuilder();
             // 手机系统时间戳
             sb.append(SystemClock.elapsedRealtimeNanos()).append(",");
@@ -502,11 +485,7 @@ public class Camera2Proxy {
 //            sb.replace(sb.length() - 1, sb.length(), "\n");
             sb.append("\n");
             if (mRecordingMetadata) {
-                try {
-                    mFrameMetadataWriter.write(sb.toString());
-                } catch (IOException err) {
-                    Log.e(TAG, "Error writing captureResult");
-                }
+                mFrameInfos.add(sb.toString());
             }
         }
     };
@@ -531,6 +510,58 @@ public class Camera2Proxy {
             mBackgroundHandler = null;
         } catch (InterruptedException e) {
             Log.e(TAG, e.toString());
+        }
+    }
+
+    private class FrameMetadataRecorder implements Runnable {
+
+        private String mRecordFile;
+
+        private String mRecordDir;
+
+        private BufferedWriter mBufferedWriter;
+
+        public FrameMetadataRecorder(@Nullable String recordFile, @Nullable String recordDir) {
+            this.mRecordFile = recordFile;
+            this.mRecordDir = recordDir;
+        }
+
+        private void initWriter() {
+            if (mRecordFile == null) {
+                mBufferedWriter = FileUtils.initWriter(mRecordDir, "FrameTimestamp.csv");
+            } else {
+                mBufferedWriter = FileUtils.initWriter(mRecordFile);
+            }
+            try {
+                mBufferedWriter.write("sysClockTime(nanos),sysTime(millis),sensorTimestamp(nanos)," +
+                        "lensFocalLength,lensFocusDistance,iso,frameNumber," +
+                        "exposureTime(nanos),frameDuration(nanos),frameReadoutTime(nanos),fx,fy,cx,cy,s\n");
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        @Override
+        public void run() {
+            Log.d(TAG, "FrameMetadataRecorder");
+            initWriter();
+            int count = 0;
+            while (mRecordingMetadata || mFrameInfos.size() > 0) {
+                if (mFrameInfos.size() > 0) {
+                    try {
+                        mBufferedWriter.write(mFrameInfos.poll());
+                        count++;
+                        if (count > 30 * 3) {
+                            mBufferedWriter.flush();
+                            count = 0;
+                            Log.d(TAG, "FrameMetadataRecorder Write");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+            FileUtils.closeBufferedWriter(mBufferedWriter);
         }
     }
 }

@@ -1,6 +1,5 @@
 package com.zhushuli.recordipin.fragments;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -58,8 +57,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
-
-import timber.log.Timber;
 
 /**
  * @author      : zhushuli
@@ -345,7 +342,7 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
         }
     };
 
-    private boolean mRecordingEnabled;
+//    private boolean mRecordingEnabled;
 
     public VIGDFragment() {
         // Required empty public constructor
@@ -395,8 +392,6 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
 
         mCameraHandler = new CameraHandler(this);
 
-        mRecordingEnabled = mVideoEncoder.isRecording();
-
         if (mRenderer == null) {
             mRenderer = new CameraSurfaceRenderer(mCameraHandler, mVideoEncoder, 0);
             mGLView.setEGLContextClientVersion(2);
@@ -418,7 +413,7 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
         mGLView.queueEvent(() -> {
             mRenderer.setCameraPreviewSize(mCameraPreviewWidth, mCameraPreviewHeight);
             mRenderer.setVideoFrameSize(mVideoFrameWidth, mVideoFrameHeight);
-            mRenderer.setScreenSize(screenWidth,    screenHeight);
+            mRenderer.setScreenSize(screenWidth, screenHeight);
         });
     }
 
@@ -426,6 +421,10 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
     public void onPause() {
         super.onPause();
         Log.d(TAG, "onPause");
+
+        if (recording.get()) {
+            clickToggleRecording(null);
+        }
 
         if (mCamera2Proxy != null) {
             mCamera2Proxy.releaseCamera();
@@ -454,7 +453,6 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
     private void clickToggleRecording(@SuppressWarnings("unused") View unused) {
         Log.d(TAG, "clickToggleRecording");
         recording.set(!recording.get());
-        mRecordingEnabled = !mRecordingEnabled;
         if (recording.get()) {
             btnRecord.setImageResource(R.drawable.baseline_stop_24);
 
@@ -508,7 +506,7 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
 
 class CameraHandler extends Handler {
 
-    private static final String TAG = "CameraHandler";
+    private static final String TAG = "VIGDCameraHandler";
 
     public static final int MSG_SET_SURFACE_TEXTURE = 0;
 
@@ -533,7 +531,7 @@ class CameraHandler extends Handler {
         int what = inputMessage.what;
         Object obj = inputMessage.obj;
 
-        Timber.d("CameraHandler [%s]: what=%d", this.toString(), what);
+        Log.d(TAG, String.format("CameraHandler [%s]: what=%d", this.toString(), what));
 
         Fragment fragment = mWeakFragment.get();
         if (fragment == null) {
@@ -553,7 +551,8 @@ class CameraHandler extends Handler {
 }
 
 class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
-    private static final String TAG = "CameraSurfaceRenderer";
+
+    private static final String TAG = "VIGDCameraSurfaceRenderer";
 
     private static final int RECORDING_OFF = 0;
 
@@ -630,6 +629,7 @@ class CameraSurfaceRenderer implements GLSurfaceView.Renderer {
      * For best results, call this *after* disabling Camera preview.
      */
     public void notifyPausing() {
+        mRecordingEnabled = false;
         if (mRecordingStatus != RECORDING_OFF) {
             mVideoEncoder.stopRecording();
         }
