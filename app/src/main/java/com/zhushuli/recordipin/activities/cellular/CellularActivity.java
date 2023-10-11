@@ -30,29 +30,19 @@ import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.zhushuli.recordipin.R;
-import com.zhushuli.recordipin.models.cellular.CellNeighborLte;
-import com.zhushuli.recordipin.models.cellular.CellNeighborNr;
-import com.zhushuli.recordipin.models.cellular.CellPacket;
-import com.zhushuli.recordipin.models.cellular.CellServiceLte;
-import com.zhushuli.recordipin.models.cellular.CellServiceNr;
 import com.zhushuli.recordipin.services.CellularService2;
 import com.zhushuli.recordipin.services.LocationService2;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
-import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -80,13 +70,6 @@ public class CellularActivity extends AppCompatActivity {
     private TableLayout neighborTable;
 
     private Button btnCellularTrack;
-
-    // POI信息（室内采集时辅助确认真值）
-    private EditText etPoi;
-    // 保存POI信息
-    private Button btnPoiSave;
-    // POI列表
-    private List<String> pois = new ArrayList<>();
 
     private List<TableRow> mNgbTableHeader = new ArrayList<>();
     private AtomicBoolean abNgbHeader = new AtomicBoolean(false);
@@ -313,50 +296,6 @@ public class CellularActivity extends AppCompatActivity {
                 }
                 else {
                     unbindServices();
-                    etPoi.setText("");
-                    etPoi.clearFocus();
-                }
-            }
-        });
-
-        // TODO::will be @Deprecated
-        etPoi = (EditText) findViewById(R.id.etPoi);
-        btnPoiSave = (Button) findViewById(R.id.btnPoiSave);
-        btnPoiSave.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Log.d(TAG, "onClick:" + ThreadUtils.threadID());
-                if (btnCellularTrack.getText() == "Tracking" || mRecordAbsDir == null) {
-                    return ;
-                }
-                if (etPoi.getText().toString().trim().length() > 1) {
-                    String poi = etPoi.getText().toString().trim();
-                    Log.d(TAG, "onClick:" + poi);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            Log.d(TAG, "run:" + ThreadUtils.threadID());
-                            boolean exists = FileUtils.checkFileExists(mRecordAbsDir + File.separator + "POI.csv");
-                            BufferedWriter writer = null;
-                            if (!exists) {
-                                writer = FileUtils.initWriter(mRecordAbsDir, "POI.csv");
-                            }
-                            else {
-                                writer = FileUtils.initAppendWriter(mRecordAbsDir, "POI.csv");
-                            }
-                            try {
-                                if (!exists) {
-                                    writer.write("sysTime,POI\n");
-                                }
-                                writer.write(String.format("%d,%s\n", System.currentTimeMillis(), poi));
-                                writer.flush();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                            FileUtils.closeBufferedWriter(writer);
-                        }
-                    }).start();
-                    Toast.makeText(CellularActivity.this, "POI记录成功", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -482,49 +421,6 @@ public class CellularActivity extends AppCompatActivity {
 
     private void initServiceConnection() {
         Log.d(TAG, "initServiceConnection");
-    }
-
-    private static boolean checkCellInfo(CellInfo cell) {
-        if (cell instanceof CellInfoLte) {
-            CellInfoLte cellLte = (CellInfoLte) cell;
-            CellSignalStrengthLte cssLte = cellLte.getCellSignalStrength();
-            if (cssLte.getRsrp() == CellInfo.UNAVAILABLE || cssLte.getRsrq() == CellInfo.UNAVAILABLE) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public static List<CellPacket> transDataFormat(List<CellInfo> cellInfo) {
-        List<CellPacket> records = new ArrayList<>();
-
-        for (CellInfo cell : cellInfo) {
-            if (!checkCellInfo(cell)) {
-                continue;
-            }
-            if (cell.isRegistered()) {
-                if (cell instanceof CellInfoLte) {
-                    records.add(new CellServiceLte(cell));
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    if (cell instanceof CellInfoNr) {
-                        records.add(new CellServiceNr(cell));
-                    }
-                }
-            }
-            else {
-                if (cell instanceof CellInfoLte) {
-                    records.add(new CellNeighborLte(cell));
-                }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    if (cell instanceof CellInfoNr) {
-                        records.add(new CellNeighborNr(cell));
-                    }
-                }
-            }
-        }
-
-        return records;
     }
 
     @Override

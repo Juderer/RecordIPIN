@@ -7,11 +7,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Binder;
 import android.os.Build;
-import android.os.Environment;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
 import android.os.Parcelable;
 import android.telephony.CellInfo;
 import android.telephony.PhoneStateListener;
@@ -29,14 +25,15 @@ import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -122,7 +119,11 @@ public class CellularService2 extends Service {
     private String mRecordAbsDir;
 
     // 基站数据写入子线程
-    private RecordThread mRecordThread = null;
+    private Recorder mRecorder = null;
+
+    private final Semaphore mSemaphore = new Semaphore(1);
+
+    private Queue<String> mCellInfoStrs = new LinkedList<>();
 
     @Nullable
     @Override
@@ -158,11 +159,15 @@ public class CellularService2 extends Service {
                         Log.d(TAG, cell.toString());
                     }
                     // 基站信息写入文件
-                    if (cellInfo.size() > 0 && recording.get() && mRecordThread != null) {
-                        Message msg = Message.obtain();
-                        msg.what = LTE_NR_RECORD_CODE;
-                        msg.obj = cellInfo;
-                        mRecordThread.getHandler().sendMessage(msg);
+                    if (cellInfo.size() > 0 && recording.get() && mRecorder != null) {
+                        try {
+                            mSemaphore.acquire();
+                            mCellInfoStrs.offer(CellularUtils.transCellInfo2Str(cellInfo));
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        } finally {
+                            mSemaphore.release();
+                        }
                     }
                     // 使用广播的方式实现与Activity通信
                     sendBroadcast(new Intent(CELLULAR_CELL_INFO_CHANGED_ACTION)
@@ -196,78 +201,82 @@ public class CellularService2 extends Service {
 
     public synchronized void startCellularRecord(String recordDir) {
         // 启动数据写入子线程
-        if (recording.get() && mRecordThread == null) {
+        if (recording.get() && mRecorder == null) {
             mRecordAbsDir = recordDir;
-            mRecordThread = new RecordThread(mRecordAbsDir);
-            new Thread(mRecordThread).start();
+            mRecorder = new Recorder(mRecordAbsDir);
+            new Thread(mRecorder).start();
         } else {
             Log.d(TAG, "Cellular record thread has been already RUNNING or cellular record is NOT allowed.");
         }
     }
 
-    private class RecordThread implements Runnable {
-
-        private Handler mRecordHandler;
+    private class Recorder implements Runnable {
 
         private BufferedWriter mBufferedWriter;
 
         private String mRecordDir;
 
-        public RecordThread(String recordDir) {
+        public Recorder(String recordDir) {
             mRecordDir = recordDir;
-        }
-
-        public Handler getHandler() {
-            return mRecordHandler;
         }
 
         private void initWriter() {
             mBufferedWriter = FileUtils.initWriter(mRecordDir, "Cellular.csv");
-            try {
-                mBufferedWriter.write("cellType,isRegistered,sysTime,elapsedTime,mcc,mnc,cid,tac,earfcn(nrarfcn),pci,rsrp,rsrq\n");
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            // 使用中存在网络切换（如5G切换到4G），取消列名说明
+            // TODO::在数据格式文档中统一介绍
+//            try {
+//                String networkType = CellularUtils.getMobileNetworkTypeName(getApplicationContext());
+//                if (CellularUtils.NETWORK_CELLULAR_GSM == networkType) {
+//                    mBufferedWriter.write("cellType,sysTime,elapsedTime,isRegistered,MCC,MNC,CID,LAC,ARFCN,BSIC,RSSI\n");
+//                }
+//                else if (CellularUtils.NETWORK_CELLULAR_CDMA == networkType) {
+//                    mBufferedWriter.write("cellType,sysTime,elapsedTime,isRegistered,MCC,MNC,CID,LAC,UARFCN,PSC,RSCP\n");
+//                }
+//                else if (CellularUtils.NETWORK_CELLULAR_LTE == networkType) {
+//                    mBufferedWriter.write("cellType,sysTime,elapsedTime,isRegistered,MCC,MNC,CID,TAC,EARFCN,PCI,RSRP,RSRQ\n");
+//                }
+//                else if (CellularUtils.NETWORK_CELLULAR_NR == networkType) {
+//                    mBufferedWriter.write("cellType,sysTime,elapsedTime,isRegistered,MCC,MNC,CID,TAC,NARFCN,PCI,SS_RSRP,SS_RSRQ\n");
+//                }
+//                else {
+//                    mBufferedWriter.write("cellType,isRegistered,sysTime,elapsedTime,mcc,mnc,cid,tac,earfcn(nrarfcn),pci,rsrp,rsrq\n");
+//                }
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
         }
 
         @Override
         public void run() {
-            Log.d(TAG, "LTE/NR Record Start:" + ThreadUtils.threadID());
+            Log.d(TAG, "Recorder Start:" + ThreadUtils.threadID());
             initWriter();
-            Looper.prepare();
-            mRecordHandler = new Handler(Looper.myLooper()) {
-                @Override
-                public void handleMessage(@NonNull Message msg) {
-                    switch (msg.what) {
-                        case LTE_NR_RECORD_CODE:
-                            List<CellInfo> cellInfo = (List<CellInfo>) msg.obj;
-                            try {
-                                mBufferedWriter.write(CellularUtils.transCellInfo2Str(cellInfo));
-                                mBufferedWriter.flush();
-                                Log.d(TAG, "LTE/NR Record Write");
-                            } catch (IOException e) {
-                                throw new RuntimeException(e);
-                            }
-                            break;
-                        case LTE_NR_RECORD_CLOSE_CODE:
-                            FileUtils.closeBufferedWriter(mBufferedWriter);
-                            Looper.myLooper().quitSafely();
-                            break;
-                        default:
-                            break;
+            while (recording.get() || mCellInfoStrs.size() > 0) {
+                if (mCellInfoStrs.size() > 0) {
+                    try {
+                        mSemaphore.acquire();
+                        mBufferedWriter.write(mCellInfoStrs.poll());
+                        mBufferedWriter.flush();
+                        Log.d(TAG, "Recorder Write");
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        mSemaphore.release();
                     }
                 }
-            };
-            Looper.loop();
-            Log.d(TAG, "LTE/NR Record End");
+            }
+            FileUtils.closeBufferedWriter(mBufferedWriter);
+            Log.d(TAG, "Recorder End");
         }
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
         Log.d(TAG, "onUnbind");
-        if (recording.get() && mRecordThread != null) {
-            mRecordThread.getHandler().sendEmptyMessage(LTE_NR_RECORD_CLOSE_CODE);
+        if (recording.get() && mRecorder != null) {
+            recording.set(false);
+            mRecorder = null;
         }
         return super.onUnbind(intent);
     }

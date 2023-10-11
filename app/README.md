@@ -149,4 +149,9 @@
 
 ## 1.38 volatile
 
+## 1.39 View自定义绘图
+
+- 相关类：`Canvas`、`Paint`、`Bitmap`
+- [Android中使用SVG](https://juejin.cn/post/6980707107729309733)
+
 # 2 Android音视频开发/图形编程

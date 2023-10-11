@@ -11,6 +11,9 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.telephony.CellInfo;
+import android.telephony.CellInfoLte;
+import android.telephony.CellInfoNr;
+import android.telephony.CellSignalStrengthLte;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyCallback;
 import android.telephony.TelephonyManager;
@@ -19,7 +22,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 
-import com.zhushuli.recordipin.activities.cellular.CellularActivity;
 import com.zhushuli.recordipin.models.cellular.CellPacket;
 import com.zhushuli.recordipin.models.cellular.CellNeighborLte;
 import com.zhushuli.recordipin.models.cellular.CellNeighborNr;
@@ -30,6 +32,7 @@ import com.zhushuli.recordipin.utils.ThreadUtils;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -123,6 +126,49 @@ public class CellularService extends Service {
         }
     }
 
+    private static boolean checkCellInfo(CellInfo cell) {
+        if (cell instanceof CellInfoLte) {
+            CellInfoLte cellLte = (CellInfoLte) cell;
+            CellSignalStrengthLte cssLte = cellLte.getCellSignalStrength();
+            if (cssLte.getRsrp() == CellInfo.UNAVAILABLE || cssLte.getRsrq() == CellInfo.UNAVAILABLE) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static List<CellPacket> transDataFormat(List<CellInfo> cellInfo) {
+        List<CellPacket> records = new ArrayList<>();
+
+        for (CellInfo cell : cellInfo) {
+            if (!checkCellInfo(cell)) {
+                continue;
+            }
+            if (cell.isRegistered()) {
+                if (cell instanceof CellInfoLte) {
+                    records.add(new CellServiceLte(cell));
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    if (cell instanceof CellInfoNr) {
+                        records.add(new CellServiceNr(cell));
+                    }
+                }
+            }
+            else {
+                if (cell instanceof CellInfoLte) {
+                    records.add(new CellNeighborLte(cell));
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    if (cell instanceof CellInfoNr) {
+                        records.add(new CellNeighborNr(cell));
+                    }
+                }
+            }
+        }
+
+        return records;
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.S)
     private class MyTelephonyCallback extends TelephonyCallback implements TelephonyCallback.CellInfoListener,
             TelephonyCallback.DataConnectionStateListener {
@@ -162,7 +208,7 @@ public class CellularService extends Service {
 
                 // 写入文件
                 if (abRecording.get()) {
-                    List<CellPacket> records = CellularActivity.transDataFormat(cellInfo);
+                    List<CellPacket> records = transDataFormat(cellInfo);
                     Message msg = Message.obtain();
                     msg.what = RECORD_CELL_CODE;
                     msg.obj = records;
@@ -207,7 +253,7 @@ public class CellularService extends Service {
 
                 // 写入文件
                 if (abRecording.get()) {
-                    List<CellPacket> records = CellularActivity.transDataFormat(cellInfo);
+                    List<CellPacket> records = transDataFormat(cellInfo);
                     Message msg = Message.obtain();
                     msg.what = RECORD_CELL_CODE;
                     msg.obj = records;
@@ -233,7 +279,7 @@ public class CellularService extends Service {
             Log.d(TAG, "onCellInfo" + cellInfo.size());
 
             callback.onCellInfoChanged(cellInfo);
-            List<CellPacket> records = CellularActivity.transDataFormat(cellInfo);
+            List<CellPacket> records = transDataFormat(cellInfo);
             for (CellPacket record : records) {
                 Log.d(TAG, record.toString() + ";" + System.currentTimeMillis());
             }

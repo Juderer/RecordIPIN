@@ -19,37 +19,9 @@
             android:layout_marginLeft="5dp"
             android:layout_marginRight="5dp"/>
 
-        <LinearLayout
-            android:id="@+id/POI"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_below="@+id/layoutCellular"
-            android:layout_marginTop="10dp"
-            android:layout_marginLeft="5dp"
-            android:layout_marginRight="5dp">
-            <EditText
-                android:id="@+id/etPoi"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="3"
-                android:hint="POI"/>
-            <Button
-                android:id="@+id/btnPoiSave"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Save"
-                android:typeface="serif"
-                android:backgroundTint="@color/skyblue"
-                android:textColor="@color/black"
-                android:textAllCaps="false"
-                android:textSize="20sp"/>
-        </LinearLayout>
-
         <Button
             android:id="@+id/btnCellularTrack"
-            android:layout_below="@+id/POI"
+            android:layout_below="@+id/layoutCellular"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Tracking"

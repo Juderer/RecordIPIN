@@ -124,6 +124,7 @@ public class VideoEncoderCore2 {
 
     private int mTimeCount = 0;
 
+    // Attention::Recorded file size exceeds limit 4294967295bytes (Android 11后取消限制)
     public VideoEncoderCore2(int width, int height, int bitRate, String streamDir, String timeDir)
             throws IOException {
         Log.d(TAG, "VideoEncoderCore2");
