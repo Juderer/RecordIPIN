@@ -154,4 +154,8 @@
 - 相关类：`Canvas`、`Paint`、`Bitmap`
 - [Android中使用SVG](https://juejin.cn/post/6980707107729309733)
 
+## 1.40 底部导航栏
+
+- [Android底部导航栏三种风格与实现](https://blog.csdn.net/afei__/article/details/80950288)
+
 # 2 Android音视频开发/图形编程

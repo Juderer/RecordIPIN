@@ -19,7 +19,9 @@ android {
         main {
             res.srcDirs = [
                     'src/main/res',
-                    'src/main/res-cellular'
+                    'src/main/res-cellular',
+                    'src/main/res-imu',
+                    'src/main/res-gnss'
             ]
         }
     }
