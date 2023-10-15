@@ -158,4 +158,14 @@
 
 - [Android底部导航栏三种风格与实现](https://blog.csdn.net/afei__/article/details/80950288)
 
+## 1.41 Android Studio Gradle 下载太慢
+
+- [使用阿里云与腾讯镜像加速下载](https://juejin.cn/post/7198791176445607997)
+- [Gradle Distributions](https://services.gradle.org/distributions/)
+
+## 1.42 Android全局异常日志记录
+
+- [Android全局异常日志记录](https://blog.51cto.com/u_14397532/2999055)
+- [Android异常崩溃日志，捕捉并保存到本地](https://blog.csdn.net/u012787226/article/details/52514505)
+
 # 2 Android音视频开发/图形编程
