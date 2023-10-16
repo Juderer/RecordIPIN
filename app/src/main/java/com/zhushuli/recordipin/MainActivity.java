@@ -21,6 +21,7 @@ import com.zhushuli.recordipin.activities.imu.ImuActivity2;
 import com.zhushuli.recordipin.activities.location.LocationActivity;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
+import com.zhushuli.recordipin.utils.log.CrashHandler;
 
 import timber.log.Timber;
 
@@ -64,6 +65,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        CrashHandler.getInstance().init(this);
 
         if (BuildConfig.DEBUG) {
             Timber.plant(new Timber.DebugTree());
