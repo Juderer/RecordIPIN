@@ -29,4 +29,10 @@
     <color name="Gainsboro">#DCDCDC</color>
     <color name="DarkRed">#8B0000</color>
     <color name="Red">#FF0000</color>
+    <color name="Jonquil">#fada5e</color>
+    <color name="Maize">#fbec5d</color>
+    <color name="Yellow">#ffff00</color>
+    <color name="Gold">#ffd700</color>
+    <color name="Goldenrod">#daa520</color>
+    <color name="GoldenYellow">#ffdf00</color>
 </resources>

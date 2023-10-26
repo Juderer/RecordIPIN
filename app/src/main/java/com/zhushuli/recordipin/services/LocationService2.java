@@ -28,17 +28,19 @@ import androidx.core.app.NotificationCompat;
 import androidx.preference.PreferenceManager;
 
 import com.zhushuli.recordipin.R;
+import com.zhushuli.recordipin.models.location.SatelliteInfo;
 import com.zhushuli.recordipin.utils.FileUtils;
 import com.zhushuli.recordipin.utils.location.LocationUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
 import com.zhushuli.recordipin.utils.location.GnssClockUtils;
+import com.zhushuli.recordipin.utils.location.SatelliteUtils;
 
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.Map;
+import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -97,15 +99,6 @@ public class LocationService2 extends Service {
         }
     };
 
-    // 总卫星数
-    private int mSatelliteCount;
-
-    // 北斗卫星数
-    private int mBeidouSatelliteCount;
-
-    // GPS卫星数
-    private int mGpsSatelliteCount;
-
     // 卫星状态监听
     private final GnssStatus.Callback mGnssStatusCallback = new GnssStatus.Callback() {
         @Override
@@ -131,27 +124,11 @@ public class LocationService2 extends Service {
             // 耗时操作；尤其在室内无法定位时，会严重影响主线程
             super.onSatelliteStatusChanged(status);
             Log.d(TAG, "onSatelliteStatusChanged:" + ThreadUtils.threadID());
-            mSatelliteCount = status.getSatelliteCount();
-            mBeidouSatelliteCount = 0;
-            mGpsSatelliteCount = 0;
-            for (int index = 0; index < mSatelliteCount; index++) {
-                if (!status.usedInFix(index)) {
-                    continue;
-                }
-                switch (status.getConstellationType(index)) {
-                    case GnssStatus.CONSTELLATION_BEIDOU:
-                        mBeidouSatelliteCount++;
-                        break;
-                    case GnssStatus.CONSTELLATION_GPS:
-                        mGpsSatelliteCount++;
-                        break;
-                    default:
-                        break;
-                }
-            }
-            Log.d(TAG, "BD" + mBeidouSatelliteCount + "GPS" + mGpsSatelliteCount);
+
+            List<SatelliteInfo> satelliteInfos = SatelliteUtils.genSatelliteInfos(status);
+
             sendBroadcast(new Intent(GNSS_SATELLITE_STATUS_CHANGED_ACTION)
-                    .putExtra("Satellite", "BD" + mBeidouSatelliteCount + "," + "GPS" + mGpsSatelliteCount));
+                    .putParcelableArrayListExtra("Satellites", (ArrayList<SatelliteInfo>) satelliteInfos));
         }
     };
 
@@ -297,10 +274,20 @@ public class LocationService2 extends Service {
     @SuppressLint("MissingPermission")
     private void requestLocationUpdates() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mExecutorService, mLocationListener);
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    0,
+                    0,
+                    mExecutorService,
+                    mLocationListener);
         } else {
             mLocationListenerThread.start();
-            mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener, mLocationListenerThread.getLooper());
+            mLocationManager.requestLocationUpdates(
+                    LocationManager.GPS_PROVIDER,
+                    0,
+                    0,
+                    mLocationListener,
+                    mLocationListenerThread.getLooper());
         }
     }
 

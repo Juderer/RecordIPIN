@@ -93,7 +93,7 @@
 
 ## 1.23 绘图
 
-- 动态折线图g
+- 动态折线图
 
 ## 1.24 Java/Android代码规范
 
@@ -167,5 +167,18 @@
 
 - [Android全局异常日志记录](https://blog.51cto.com/u_14397532/2999055)
 - [Android异常崩溃日志，捕捉并保存到本地](https://blog.csdn.net/u012787226/article/details/52514505)
+
+## 1.43 Parcelable
+
+- [Android中Parcelable的原理和使用方法](https://www.jianshu.com/p/df35baa91541)
+
+## 1.44 RecyclerView与DiffUtil搭配实现动态更新
+
+- [RecyclerView中DiffUtil的使用](https://blog.csdn.net/yaojie5519/article/details/117174114)
+
+## 1.45 Java List的浅拷贝与深拷贝
+
+- [Java如何实现List<String>的深拷贝](https://blog.csdn.net/piaoranyuji/article/details/125485410)
+- [Java中List的深拷贝](https://blog.csdn.net/qq_34896199/article/details/110929976)
 
 # 2 Android音视频开发/图形编程

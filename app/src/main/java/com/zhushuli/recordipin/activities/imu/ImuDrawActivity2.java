@@ -52,8 +52,6 @@ public class ImuDrawActivity2 extends AppCompatActivity {
         }
     };
 
-    private AtomicBoolean connected = new AtomicBoolean(false);
-
     private final BroadcastReceiver mImuReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -96,7 +94,6 @@ public class ImuDrawActivity2 extends AppCompatActivity {
 
         Intent intent = new Intent(ImuDrawActivity2.this, ImuService2.class);
         bindService(intent, mImuServiceConn, BIND_AUTO_CREATE);
-        connected.set(true);
 
         mReceiverThread.start();
     }
@@ -125,9 +122,8 @@ public class ImuDrawActivity2 extends AppCompatActivity {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
 
-        if (connected.get()) {
-            unbindService(mImuServiceConn);
-        }
+        unbindService(mImuServiceConn);
+
         mReceiverThread.quitSafely();
     }
 }

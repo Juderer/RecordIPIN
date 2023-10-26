@@ -9,6 +9,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.location.GnssStatus;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Environment;
@@ -23,6 +24,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 import com.zhushuli.recordipin.R;
+import com.zhushuli.recordipin.models.location.SatelliteInfo;
 import com.zhushuli.recordipin.services.LocationService2;
 import com.zhushuli.recordipin.utils.DialogUtils;
 import com.zhushuli.recordipin.utils.ThreadUtils;
@@ -30,6 +32,7 @@ import com.zhushuli.recordipin.utils.ThreadUtils;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 
 public class LocationActivity extends AppCompatActivity implements View.OnClickListener {
 
@@ -88,7 +91,11 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
                 case LocationService2.GNSS_PROVIDER_DISABLED_CODE:
                     setDefaultGnssInfo();
                     DialogUtils.showLocationSettingsAlert(LocationActivity.this);
-                    unbindService(mLocationServiceConn);
+                    try {
+                        unbindService(mLocationServiceConn);
+                    } catch (IllegalArgumentException e) {
+                        // Nothing to do
+                    }
                     btnLocServiceStart.setText("Start");
                     break;
                 default:
@@ -126,9 +133,28 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
             Log.d(TAG, action);
 
             if (action.equals(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION)) {
+                List<SatelliteInfo> satellites = intent.getParcelableArrayListExtra("Satellites");
+
+                int beidouSatelliteCount = 0;
+                int gpsSatelliteCount = 0;
+                for (SatelliteInfo satellite : satellites) {
+                    if (satellite.isUsed()) {
+                        switch (satellite.getConstellationType()) {
+                            case GnssStatus.CONSTELLATION_BEIDOU:
+                                beidouSatelliteCount += 1;
+                                break;
+                            case GnssStatus.CONSTELLATION_GPS:
+                                gpsSatelliteCount += 1;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+
                 Message msg = Message.obtain();
                 msg.what = LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE;
-                msg.obj = intent.getStringExtra("Satellite");
+                msg.obj = String.format("%02d Beidou; %02d GPS", beidouSatelliteCount, gpsSatelliteCount);
                 mMainHandler.sendMessage(msg);
             }
         }
@@ -150,6 +176,18 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         @Override
         public void onServiceDisconnected(ComponentName name) {
             Log.d(TAG, "onServiceDisconnected");
+        }
+    };
+
+    private final View.OnClickListener mGraphListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            switch (v.getId()) {
+                case R.id.tvSatellite:
+                    Intent skyViewIntent = new Intent(LocationActivity.this, GnssSkyViewActivity.class);
+                    startActivity(skyViewIntent);
+                    break;
+            }
         }
     };
 
@@ -176,6 +214,8 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
         mSatelliteReceiverThread.start();
 
         mRecordRootDir = getExternalFilesDir(Environment.getDataDirectory().getAbsolutePath()).getAbsolutePath();
+
+        tvSatellite.setOnClickListener(mGraphListener);
     }
 
     @Override
