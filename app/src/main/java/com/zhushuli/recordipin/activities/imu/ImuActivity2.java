@@ -82,7 +82,7 @@ public class ImuActivity2 extends AppCompatActivity {
     };
 
     // 时间戳转日期
-    private SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+    private final SimpleDateFormat formatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
     // 数据存储路径
     private String mRecordRootDir;
     // 数据存储路径

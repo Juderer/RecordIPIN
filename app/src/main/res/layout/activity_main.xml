@@ -13,7 +13,9 @@
         android:layout_alignParentTop="true"
         android:textSize="20sp"
         android:layout_marginTop="20dp"
-        android:text="Record for IPIN 2023" />
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:text="@string/purpose" />
 
     <Button
         android:id="@+id/btn2VideoAty"
@@ -71,7 +73,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:orientation="vertical"
-            android:layout_marginRight="0dp"
+            android:layout_marginRight="5dp"
             android:layout_marginLeft="30dp">
 
             <Button
@@ -121,7 +123,7 @@
             android:layout_weight="1"
             android:orientation="horizontal"
             android:layout_marginRight="30dp"
-            android:layout_marginLeft="0dp">
+            android:layout_marginLeft="5dp">
 
             <Button
                 android:id="@+id/btn2CollectAty"

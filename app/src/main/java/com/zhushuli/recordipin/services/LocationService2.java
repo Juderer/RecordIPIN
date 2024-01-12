@@ -244,7 +244,7 @@ public class LocationService2 extends Service {
         setRecording(mSharedPreferences.getBoolean("prefGnssCollected", false));
         Log.d(TAG, String.valueOf(checkRecording()));
 
-        // 启动前台服务, 确保APP长时间后台运行后返回前台无法更新定位
+        // 启动前台服务, 确保APP长时间后台运行后返回前台仍能更新定位
         Notification notification = createNotification();
         startForeground(0x1000, notification);
     }

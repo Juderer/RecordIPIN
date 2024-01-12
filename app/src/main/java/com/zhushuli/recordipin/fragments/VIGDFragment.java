@@ -8,6 +8,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.SurfaceTexture;
 import android.hardware.Sensor;
+import android.location.GnssStatus;
 import android.location.Location;
 import android.opengl.EGL14;
 import android.opengl.GLES20;
@@ -41,6 +42,7 @@ import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.gles.FullFrameRect;
 import com.zhushuli.recordipin.gles.Texture2dProgram;
 import com.zhushuli.recordipin.models.imu.ImuInfo;
+import com.zhushuli.recordipin.models.location.SatelliteInfo;
 import com.zhushuli.recordipin.services.ImuService2;
 import com.zhushuli.recordipin.services.LocationService2;
 import com.zhushuli.recordipin.utils.DialogUtils;
@@ -53,6 +55,7 @@ import java.io.File;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.microedition.khronos.egl.EGLConfig;
@@ -136,13 +139,33 @@ class VIGDFragmentBase extends Fragment {
     protected final BroadcastReceiver mSatelliteReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.d(TAG, "onReceive Satellite:" + ThreadUtils.threadID());
-
+            Log.d(TAG, "onReceive Satellite");
             String action = intent.getAction();
+            Log.d(TAG, action);
+
             if (action.equals(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION)) {
+                List<SatelliteInfo> satellites = intent.getParcelableArrayListExtra("Satellites");
+
+                int beidouSatelliteCount = 0;
+                int gpsSatelliteCount = 0;
+                for (SatelliteInfo satellite : satellites) {
+                    if (satellite.isUsed()) {
+                        switch (satellite.getConstellationType()) {
+                            case GnssStatus.CONSTELLATION_BEIDOU:
+                                beidouSatelliteCount += 1;
+                                break;
+                            case GnssStatus.CONSTELLATION_GPS:
+                                gpsSatelliteCount += 1;
+                                break;
+                            default:
+                                break;
+                        }
+                    }
+                }
+
                 Message msg = Message.obtain();
                 msg.what = LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE;
-                msg.obj = intent.getStringExtra("Satellite");
+                msg.obj = String.format("%02d Beidou; %02d GPS", beidouSatelliteCount, gpsSatelliteCount);
                 mMainHandler.sendMessage(msg);
             }
         }

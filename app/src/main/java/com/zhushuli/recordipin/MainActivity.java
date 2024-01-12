@@ -251,8 +251,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         switch (item.getItemId()) {
             case R.id.showAbout:
-                // TODO::加入RecordIPIN的开发说明(如: 设计静态文字页面)
-                Toast.makeText(this, "juderer.github.io", Toast.LENGTH_SHORT).show();
+//                Toast.makeText(this, "juderer.github.io", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(this, AboutActivity.class));
                 break;
 //            case R.id.showIMU:
 //                startActivity(new Intent(this, ImuActivity.class));

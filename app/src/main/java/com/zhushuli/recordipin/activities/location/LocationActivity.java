@@ -55,7 +55,7 @@ public class LocationActivity extends AppCompatActivity implements View.OnClickL
     private LocationService2 mLocationService2;
 
     // 时间戳转日期
-    private final SimpleDateFormat storageFormatter = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");
+    private final SimpleDateFormat storageFormatter = new SimpleDateFormat("yyyy_MM_dd_HH_mm_ss");
 
     private final SimpleDateFormat displayFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
