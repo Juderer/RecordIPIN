@@ -17,7 +17,6 @@
 package com.zhushuli.recordipin.activities.location;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -40,6 +39,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.zhushuli.recordipin.BaseActivity;
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.models.location.SatelliteInfo;
 import com.zhushuli.recordipin.services.LocationService2;
@@ -54,7 +54,7 @@ import java.util.stream.Collectors;
  * @createDate  : 2023/10/23 21:22
  * @description : GNSS星空图
  */
-public class GnssSkyViewActivity extends AppCompatActivity {
+public class GnssSkyViewActivity extends BaseActivity {
 
     private static final String TAG = GnssSkyViewActivity.class.getSimpleName();
 

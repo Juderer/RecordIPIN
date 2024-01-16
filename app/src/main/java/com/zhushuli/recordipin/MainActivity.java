@@ -1,7 +1,6 @@
 package com.zhushuli.recordipin;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
@@ -25,7 +24,7 @@ import com.zhushuli.recordipin.utils.log.CrashHandler;
 
 import timber.log.Timber;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity extends BaseActivity implements View.OnClickListener {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 

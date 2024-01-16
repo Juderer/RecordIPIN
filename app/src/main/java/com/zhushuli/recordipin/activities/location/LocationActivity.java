@@ -1,7 +1,6 @@
 package com.zhushuli.recordipin.activities.location;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -23,6 +22,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.zhushuli.recordipin.BaseActivity;
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.models.location.SatelliteInfo;
 import com.zhushuli.recordipin.services.LocationService2;
@@ -34,7 +34,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-public class LocationActivity extends AppCompatActivity implements View.OnClickListener {
+public class LocationActivity extends BaseActivity implements View.OnClickListener {
 
     private static final String TAG = LocationActivity.class.getSimpleName();
 //    private static final String TAG = LocationActivity.class.getName();

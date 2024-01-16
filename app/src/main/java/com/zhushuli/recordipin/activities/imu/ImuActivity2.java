@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.os.Bundle;
 import android.os.Environment;
@@ -18,14 +17,12 @@ import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 
 import com.alibaba.fastjson2.JSON;
+import com.zhushuli.recordipin.BaseActivity;
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.models.imu.ImuInfo;
 import com.zhushuli.recordipin.services.ImuService2;
@@ -35,14 +32,13 @@ import java.io.File;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * @author      : zhushuli
  * @createDate  : 2023/02/27 14:53
  * @description : 使用ImuService2在页面表格中展示IMU六轴数据
  */
-public class ImuActivity2 extends AppCompatActivity {
+public class ImuActivity2 extends BaseActivity {
 
     private static final String TAG = ImuActivity2.class.getSimpleName();
 

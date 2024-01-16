@@ -1,6 +1,5 @@
 package com.zhushuli.recordipin;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.text.HtmlCompat;
 
 import android.os.Bundle;
@@ -13,7 +12,7 @@ import android.widget.TextView;
  * @createDate : 2024/01/12 11:00
  * @description : Refer to https://github.com/A3DV/VIRec
  */
-public class AboutActivity extends AppCompatActivity {
+public class AboutActivity extends BaseActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

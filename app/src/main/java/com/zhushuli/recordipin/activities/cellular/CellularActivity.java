@@ -1,7 +1,6 @@
 package com.zhushuli.recordipin.activities.cellular;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
@@ -35,6 +34,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.zhushuli.recordipin.BaseActivity;
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.services.CellularService2;
 import com.zhushuli.recordipin.services.LocationService2;
@@ -49,7 +49,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class CellularActivity extends AppCompatActivity {
+public class CellularActivity extends BaseActivity {
 
     private static final String TAG = CellularActivity.class.getSimpleName();
 

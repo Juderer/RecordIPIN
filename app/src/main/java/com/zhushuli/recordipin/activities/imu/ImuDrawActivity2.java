@@ -32,6 +32,7 @@ import android.util.Log;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.alibaba.fastjson.JSON;
+import com.zhushuli.recordipin.BaseActivity;
 import com.zhushuli.recordipin.R;
 import com.zhushuli.recordipin.models.imu.ImuInfo;
 import com.zhushuli.recordipin.services.ImuService2;
@@ -44,7 +45,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * @createDate  : 2023/02/27 11:56
  * @description : 使用ImuService2更新折线图
  */
-public class ImuDrawActivity2 extends AppCompatActivity {
+public class ImuDrawActivity2 extends BaseActivity {
 
     private final static String TAG = ImuDrawActivity2.class.getSimpleName();
 

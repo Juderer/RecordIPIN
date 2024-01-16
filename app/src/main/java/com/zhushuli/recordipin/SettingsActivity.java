@@ -1,13 +1,11 @@
 package com.zhushuli.recordipin;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.os.Bundle;
 import android.util.Log;
 
 import com.zhushuli.recordipin.fragments.SettingsFragment;
 
-public class SettingsActivity extends AppCompatActivity {
+public class SettingsActivity extends BaseActivity {
 
     private static final String TAG = SettingsActivity.class.getSimpleName();
 

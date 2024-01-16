@@ -1,6 +1,5 @@
 package com.zhushuli.recordipin;
 
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
 import android.content.SharedPreferences;
@@ -12,7 +11,7 @@ import com.zhushuli.recordipin.fragments.IGDFragment;
 import com.zhushuli.recordipin.fragments.VIGDFragment;
 import com.zhushuli.recordipin.utils.Camera2Utils;
 
-public class CollectionActivity extends AppCompatActivity {
+public class CollectionActivity extends BaseActivity {
 
     private static final String TAG = CollectionActivity.class.getSimpleName();
 
