@@ -33,6 +33,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class LocationActivity extends BaseActivity implements View.OnClickListener {
 
@@ -82,7 +83,7 @@ public class LocationActivity extends BaseActivity implements View.OnClickListen
                     tvLocation.setText(String.format("%.6f,%.6f", location.getLongitude(), location.getLatitude()));
                     tvLocationAcc.setText(String.format("%.2fm", location.getAccuracy()));
                     tvSpeed.setText(String.format("%.2fm/s,%.2fkm/h", location.getSpeed(), location.getSpeed() * 3.6));
-                    tvBearing.setText(String.valueOf(location.getBearing()));
+                    tvBearing.setText(String.format(Locale.getDefault(), "%.2f\u00B0", location.getBearing()));
                     tvAltitude.setText(String.format("%.2fm", location.getAltitude()));
                     break;
                 case LocationService2.GNSS_SATELLITE_STATUS_CHANGED_CODE:

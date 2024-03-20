@@ -22,4 +22,5 @@
         7. <b>FrameMetadata.csv</b>: Camera frame metadata.\n
     </string>
     <string name="versionName">RecordIPIN v%1$s</string>
+    <string name="deg">\u00B0</string>
 </resources>

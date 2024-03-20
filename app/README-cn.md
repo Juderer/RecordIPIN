@@ -181,4 +181,9 @@
 - [Java如何实现List<String>的深拷贝](https://blog.csdn.net/piaoranyuji/article/details/125485410)
 - [Java中List的深拷贝](https://blog.csdn.net/qq_34896199/article/details/110929976)
 
+## 1.46 特殊字符显示
+
+- [Android特殊符号显示](https://blog.csdn.net/Bleen1009/article/details/44411237)
+- [Special Character in Android](https://droidbyme.medium.com/special-character-in-android-c7f10a490911)
+
 # 2 Android音视频开发/图形编程

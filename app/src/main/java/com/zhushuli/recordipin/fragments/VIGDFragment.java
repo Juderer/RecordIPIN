@@ -346,7 +346,7 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
                     sb.append(displayFormatter.format(new Date(System.currentTimeMillis()))).append("\n");
                     sb.append(String.format("%.6f,%.6f,%.2fm",
                             location.getLongitude(), location.getLatitude(), location.getAccuracy())).append("\n");
-                    sb.append(String.format("%.2fm/s,%.2f",
+                    sb.append(String.format("%.2fm/s,%.2f\u00B0",
                             location.getSpeed(), location.getBearing()));
                     tvGnssInfo.setText(sb.toString());
                     break;
