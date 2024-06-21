@@ -147,6 +147,7 @@ public class GnssSkyViewActivity extends BaseActivity {
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(GnssSkyViewActivity.this);
         rvSatellite.setLayoutManager(layoutManager);
+        rvSatellite.setItemAnimator(null);
         mSatelliteAdapter = new SatelliteAdapter();
 
         mSatelliteReceiverThread.start();

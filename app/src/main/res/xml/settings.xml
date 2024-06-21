@@ -124,4 +124,27 @@
 
     </PreferenceCategory>
 
+    <PreferenceCategory
+        android:title="WIFI"
+        android:icon="@drawable/baseline_wifi_24">
+
+        <ListPreference
+            android:title="Refresh Period"
+            android:entries="@array/wifiPeriod"
+            android:entryValues="@array/wifiPeriodValues"
+            android:key="prefWiFiScanPeriod"
+            android:defaultValue="1"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"/>
+
+        <SwitchPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefWiFiCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
 </androidx.preference.PreferenceScreen>

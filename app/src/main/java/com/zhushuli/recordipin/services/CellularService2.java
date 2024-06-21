@@ -67,7 +67,7 @@ public class CellularService2 extends Service {
     private SharedPreferences mSharedPreferences;
 
     // 信号扫描时间间隔（单位：毫秒）
-    private int SCAN_INTERVAL = 3000;
+    private int SCAN_INTERVAL = 3_000;
 
     public class CellularBinder extends Binder {
         public CellularService2 getCellularService2() {
@@ -81,15 +81,9 @@ public class CellularService2 extends Service {
 
     private Callback callback = null;
 
-    public Callback getCallback() {
-        return this.callback;
-    }
-
-    public void setCallback(Callback callback) {
-        this.callback = callback;
-    }
-
     private final ExecutorService mExecutorService = Executors.newFixedThreadPool(4);
+
+    private TelephonyManager mTelephonyManager;
 
     private TelephonyManager.CellInfoCallback mCellInfoCallback;
 
@@ -106,9 +100,9 @@ public class CellularService2 extends Service {
             for (CellInfo cell : cellInfo) {
                 Log.d(TAG, cell.toString());
             }
-            if (callback != null) {
-                callback.onCellInfoChanged(cellInfo);
-            }
+
+            sendBroadcast(new Intent(CELLULAR_CELL_INFO_CHANGED_ACTION)
+                    .putParcelableArrayListExtra("CellInfo", (ArrayList<? extends Parcelable>) cellInfo));
         }
     }
 
@@ -141,6 +135,14 @@ public class CellularService2 extends Service {
 
     private Queue<String> mCellInfoStrs = new LinkedList<>();
 
+    public Callback getCallback() {
+        return this.callback;
+    }
+
+    public void setCallback(Callback callback) {
+        this.callback = callback;
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
@@ -159,6 +161,8 @@ public class CellularService2 extends Service {
         recording.set(mSharedPreferences.getBoolean("prefCellularCollected", false));
         Log.d(TAG, String.valueOf(recording.get()));
 
+        mTelephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+
         initScanResources();
         scanning.set(true);
         // 启动扫描子线程
@@ -166,6 +170,9 @@ public class CellularService2 extends Service {
     }
 
     private void initScanResources() {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            mTelephonyCallback = new MyTelephonyCallback();
+//        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             mCellInfoCallback = new TelephonyManager.CellInfoCallback() {
                 @Override
@@ -198,6 +205,22 @@ public class CellularService2 extends Service {
                 }
             };
         }
+        else {
+            mPhoneStateListener = new PhoneStateListener() {
+                @SuppressLint("MissingPermission")
+                @Override
+                public void onCellInfoChanged(List<CellInfo> cellInfo) {
+                    super.onCellInfoChanged(cellInfo);
+                    Log.d(TAG, "onCellInfoChanged:" + ThreadUtils.threadID());
+                    for (CellInfo cell : cellInfo) {
+                        Log.d(TAG, cell.toString());
+                    }
+
+                    sendBroadcast(new Intent(CELLULAR_CELL_INFO_CHANGED_ACTION)
+                            .putParcelableArrayListExtra("CellInfo", (ArrayList<? extends Parcelable>) cellInfo));
+                }
+            };
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -205,12 +228,21 @@ public class CellularService2 extends Service {
         @Override
         public void run() {
             while (scanning.get()) {
-                final TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
-                Log.d(TAG, "ScanThread:" + System.identityHashCode(telephonyManager));
+//                final TelephonyManager telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+                Log.d(TAG, "ScanThread:" + System.identityHashCode(mTelephonyManager));
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//                    mTelephonyManager.registerTelephonyCallback(mExecutorService, mTelephonyCallback);
+//                    break;
+//                }
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    telephonyManager.requestCellInfoUpdate(mExecutorService, mCellInfoCallback);
+                    mTelephonyManager.requestCellInfoUpdate(mExecutorService, mCellInfoCallback);
+                    ThreadUtils.sleep(SCAN_INTERVAL);
                 }
-                ThreadUtils.sleep(SCAN_INTERVAL);
+                else {
+//                    mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_CELL_INFO);
+//                    ThreadUtils.sleep(SCAN_INTERVAL);
+//                    mTelephonyManager.listen(mPhoneStateListener, PhoneStateListener.LISTEN_NONE);
+                }
             }
         }
     }
@@ -264,7 +296,7 @@ public class CellularService2 extends Service {
 
         @Override
         public void run() {
-            Log.d(TAG, "Recorder Start:" + ThreadUtils.threadID());
+            Log.d(TAG, "Recorder Starts:" + ThreadUtils.threadID());
             initWriter();
             while (recording.get() || mCellInfoStrs.size() > 0) {
                 if (mCellInfoStrs.size() > 0) {
@@ -272,7 +304,7 @@ public class CellularService2 extends Service {
                         mSemaphore.acquire();
                         mBufferedWriter.write(mCellInfoStrs.poll());
                         mBufferedWriter.flush();
-                        Log.d(TAG, "Recorder Write");
+                        Log.d(TAG, "Recorder Writes");
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     } catch (IOException e) {
@@ -283,7 +315,7 @@ public class CellularService2 extends Service {
                 }
             }
             FileUtils.closeBufferedWriter(mBufferedWriter);
-            Log.d(TAG, "Recorder End");
+            Log.d(TAG, "Recorder Finishes.");
         }
     }
 
@@ -300,6 +332,11 @@ public class CellularService2 extends Service {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            mTelephonyManager.unregisterTelephonyCallback(mTelephonyCallback);
+//        }
+
         scanning.set(false);
         mExecutorService.shutdown();
     }

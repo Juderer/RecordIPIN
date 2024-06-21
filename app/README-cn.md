@@ -30,7 +30,7 @@
 ## 1.6 Android Studio打包
 
 - [Android Studio 超级简单的打包生成apk](https://blog.csdn.net/woaichimahua/article/details/54427528)
-- [Android Studio 打包APK （详细版）](https://blog.csdn.net/qq_38436214/article/details/112288954)
+- [Android Studio 打包APK（详细版）](https://blog.csdn.net/qq_38436214/article/details/112288954)
 
 ## 1.7 GNSS Status
 
@@ -185,5 +185,13 @@
 
 - [Android特殊符号显示](https://blog.csdn.net/Bleen1009/article/details/44411237)
 - [Special Character in Android](https://droidbyme.medium.com/special-character-in-android-c7f10a490911)
+
+## 1.47 Google Guava
+
+- [java批量消费队列(BlockingQueue)中的数据](https://blog.csdn.net/weixin_42326851/article/details/126336012)
+
+## 1.48 Settings Panel
+
+- [Android Q+ 新特性 Settings Panel](https://blog.csdn.net/u013398960/article/details/106662631)
 
 # 2 Android音视频开发/图形编程

@@ -35,7 +35,7 @@
         android:id="@+id/btn2CameraxAty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/btn2CellularAty"
+        android:layout_above="@+id/btn2WiFiAty"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
         android:text="Camerax Test"
@@ -44,6 +44,21 @@
         android:textSize="20sp"
         android:typeface="serif"
         android:enabled="true" />
+
+    <Button
+        android:id="@+id/btn2WiFiAty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btn2CellularAty"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="WiFi"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:textSize="24sp"
+        android:typeface="serif"
+        android:enabled="true"
+        android:visibility="visible"/>
 
     <Button
         android:id="@+id/btn2CellularAty"

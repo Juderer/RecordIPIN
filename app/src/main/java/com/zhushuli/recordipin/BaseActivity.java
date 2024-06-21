@@ -5,6 +5,11 @@ import android.content.res.Configuration;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+/**
+ * @author : zhushuli
+ * @createDate : 2024/01/16 14:11
+ * @description : prevent changes in the system font size from affecting our application
+ */
 public class BaseActivity extends AppCompatActivity {
 
     @Override

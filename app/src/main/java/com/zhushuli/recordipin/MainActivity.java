@@ -2,9 +2,11 @@ package com.zhushuli.recordipin;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+import androidx.preference.PreferenceManager;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.KeyEvent;
@@ -18,6 +20,8 @@ import android.widget.Toast;
 import com.zhushuli.recordipin.activities.cellular.CellularActivity;
 import com.zhushuli.recordipin.activities.imu.ImuActivity2;
 import com.zhushuli.recordipin.activities.location.LocationActivity;
+import com.zhushuli.recordipin.activities.wifi.WiFiActivity;
+import com.zhushuli.recordipin.activities.wifi.WiFiActivity2;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
 import com.zhushuli.recordipin.utils.log.CrashHandler;
@@ -38,7 +42,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
             Manifest.permission.READ_PHONE_STATE,
             Manifest.permission.ACCESS_NETWORK_STATE,
             Manifest.permission.CAMERA,
-            Manifest.permission.RECORD_AUDIO};
+            Manifest.permission.RECORD_AUDIO,
+            Manifest.permission.ACCESS_WIFI_STATE,
+            Manifest.permission.CHANGE_WIFI_STATE,};
 
     private boolean isAllGranted = false;
 
@@ -51,6 +57,8 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     private Button btn2CollectAty;
 
     private Button btn2CellularAty;
+
+    private Button btn2WiFiAty;
 
     private Button btn2CameraxAty;
 
@@ -85,6 +93,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
 
         btn2CellularAty = (Button) findViewById(R.id.btn2CellularAty);
         btn2CellularAty.setOnClickListener(this);
+
+        btn2WiFiAty = (Button) findViewById(R.id.btn2WiFiAty);
+        btn2WiFiAty.setOnClickListener(this);
 
         btn2CameraxAty = (Button) findViewById(R.id.btn2CameraxAty);
         btn2CameraxAty.setOnClickListener(this);
@@ -154,6 +165,23 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                     break;
                 }
                 startActivity(new Intent(this, CellularActivity.class));
+                break;
+            case R.id.btn2WiFiAty:
+                isAllGranted = checkPermissionAllGranted(new String[]{
+                        Manifest.permission.ACCESS_WIFI_STATE,
+                        Manifest.permission.CHANGE_WIFI_STATE,
+                        Manifest.permission.ACCESS_FINE_LOCATION});
+                if (!isAllGranted) {
+                    Timber.w("NOT granted!");
+                    break;
+                }
+                SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+                boolean recording = preferences.getBoolean("prefWiFiCollected", false);
+                if (recording) {
+                    startActivity(new Intent(this, WiFiActivity.class));
+                } else {
+                    startActivity(new Intent(this, WiFiActivity2.class));
+                }
                 break;
             case R.id.btn2CameraxAty:
                 isAllGranted = checkPermissionAllGranted(new String[]{
