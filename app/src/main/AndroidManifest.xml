@@ -1,7 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.zhushuli.recordipin">
+    package="com.zhushuli.recordipin" >
+
+    <uses-feature android:name="android.hardware.camera.any" />
+    <uses-feature
+        android:glEsVersion="0x00020000"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
+    <uses-feature
+        android:name="android.hardware.wifi"
+        android:required="false" />
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -9,47 +20,122 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_SMS" /> <!-- 摄像头权限 -->
+    <uses-permission android:name="android.permission.CAMERA" /> <!-- 录屏所需权限 -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@drawable/baseline_pig_24"
         android:label="@string/app_name"
         android:requestLegacyExternalStorage="true"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:roundIcon="@drawable/baseline_pig_24"
         android:supportsRtl="true"
-        android:theme="@style/Theme.RecordIPIN">
-
-        <!-- configChanges: 旋转屏幕时阻止activity重建 -->
+        android:theme="@style/Theme.RecordIPIN" >
+        <activity
+            android:name=".activities.wifi.WiFiActivity2"
+            android:exported="false"
+            android:label="WiFi Scan"/>
+        <activity
+            android:name=".activities.wifi.WiFiActivity"
+            android:exported="false"
+            android:label="WiFi" />
+        <activity
+            android:name=".AboutActivity"
+            android:exported="false"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar2" />
+        <activity
+            android:name=".activities.location.GnssSkyViewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar2" />
+        <activity
+            android:name=".VideoActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar" />
+        <activity
+            android:name=".SettingsActivity"
+            android:exported="false"
+            android:label="Settings" />
+        <activity
+            android:name=".Camera2Activity"
+            android:exported="false"
+            android:hardwareAccelerated="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar" />
+        <activity
+            android:name=".CameraxActivity"
+            android:exported="false"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar" />
+        <activity
+            android:name=".activities.cellular.CellularActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false"
+            android:label="LTE/NR" />
         <activity
             android:name=".CollectionActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="CollectionTest" />
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.RecordIPIN.NoActionBar" />
         <activity
-            android:name=".ImuActivity"
+            android:name=".activities.imu.ImuDrawActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activities.imu.ImuDrawActivity2"
+            android:configChanges="orientation|screenSize"
+            android:exported="false" />
+        <activity
+            android:name=".activities.imu.ImuActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="IMUTest" />
+            android:label="IMU" />
         <activity
-            android:name=".LocationActivity"
+            android:name=".activities.imu.ImuActivity2"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="LocationTest"
-            android:launchMode="standard" />
+            android:label="IMU" />
         <activity
-            android:name=".ThreadTestActivity"
+            android:name=".activities.location.LocationActivity"
             android:configChanges="orientation|screenSize"
             android:exported="false"
-            android:label="ThreadTest"
+            android:label="Location"
             android:launchMode="standard" />
 
         <service
-            android:name=".service.LocationService"
+            android:name=".services.LocationService"
             android:enabled="true"
             android:exported="true"
             tools:ignore="Instantiatable" />
         <service
-            android:name=".service.ImuService"
+            android:name=".services.LocationService2"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".services.ImuService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".services.ImuService2"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".services.CellularService"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".services.CellularService2"
+            android:enabled="true"
+            android:exported="true" />
+        <service
+            android:name=".services.WiFiService"
             android:enabled="true"
             android:exported="true" />
 
@@ -57,7 +143,7 @@
             android:name=".MainActivity"
             android:configChanges="orientation|screenSize"
             android:exported="true"
-            android:launchMode="standard">
+            android:launchMode="standard" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

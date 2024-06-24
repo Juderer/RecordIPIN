@@ -13,29 +13,18 @@
         android:layout_alignParentTop="true"
         android:textSize="20sp"
         android:layout_marginTop="20dp"
-        android:text="Record for IPIN 2023" />
+        android:layout_marginLeft="10dp"
+        android:layout_marginRight="10dp"
+        android:text="@string/purpose" />
 
     <Button
-        android:id="@+id/btn2CollActivity"
+        android:id="@+id/btn2VideoAty"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/btn2ImuActivity"
+        android:layout_above="@+id/btn2CameraxAty"
         android:layout_marginRight="30dp"
         android:layout_marginLeft="30dp"
-        android:text="Collection"
-        android:textAllCaps="false"
-        android:gravity="center"
-        android:textSize="25sp"
-        android:typeface="serif"/>
-
-    <Button
-        android:id="@+id/btn2ImuActivity"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/btn2LocationActivity"
-        android:layout_marginRight="30dp"
-        android:layout_marginLeft="30dp"
-        android:text="IMU Test"
+        android:text="Camera2 OpenGL Test"
         android:textAllCaps="false"
         android:gravity="center"
         android:textSize="20sp"
@@ -43,17 +32,172 @@
         android:enabled="true" />
 
     <Button
-        android:id="@+id/btn2LocationActivity"
+        android:id="@+id/btn2CameraxAty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btn2WiFiAty"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="Camerax Test"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:textSize="20sp"
+        android:typeface="serif"
+        android:enabled="true" />
+
+    <Button
+        android:id="@+id/btn2WiFiAty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/btn2CellularAty"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="WiFi"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:textSize="24sp"
+        android:typeface="serif"
+        android:enabled="true"
+        android:visibility="visible"/>
+
+    <Button
+        android:id="@+id/btn2CellularAty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/gnss_ins"
+        android:layout_marginRight="30dp"
+        android:layout_marginLeft="30dp"
+        android:text="Cellular"
+        android:textAllCaps="false"
+        android:gravity="center"
+        android:textSize="24sp"
+        android:typeface="serif"
+        android:enabled="true"
+        android:visibility="visible"/>
+
+    <LinearLayout
+        android:id="@+id/gnss_ins"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_marginBottom="20dp"
-        android:layout_marginRight="30dp"
-        android:layout_marginLeft="30dp"
-        android:text="Location Test"
-        android:textAllCaps="false"
-        android:gravity="center"
-        android:textSize="20sp"
-        android:typeface="serif"/>
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginRight="5dp"
+            android:layout_marginLeft="30dp">
+
+            <Button
+                android:id="@+id/btn2Camera2Aty"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:text="Camera2"
+                android:textStyle="normal"
+                android:textAllCaps="false"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:typeface="sans"
+                android:enabled="true"
+                android:backgroundTint="@color/GlobalColor"/>
+
+            <Button
+                android:id="@+id/btn2ImuActivity"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:text="IMU"
+                android:textAllCaps="false"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:typeface="sans"
+                android:enabled="true"
+                android:backgroundTint="@color/GlobalColor"/>
+
+            <Button
+                android:id="@+id/btn2LocationActivity"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:text="Location"
+                android:textStyle="normal"
+                android:textAllCaps="false"
+                android:gravity="center"
+                android:textSize="24sp"
+                android:typeface="sans"
+                android:backgroundTint="@color/GlobalColor"/>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:layout_marginRight="30dp"
+            android:layout_marginLeft="5dp">
+
+            <Button
+                android:id="@+id/btn2CollectAty"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="SVIGD"
+                android:contentDescription="Smartphone-based Visual-Inertial-GNSS Dataset"
+                android:textStyle="normal"
+                android:textAllCaps="false"
+                android:typeface="normal"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="10sp"
+                android:autoSizeMaxTextSize="24sp"
+                android:backgroundTint="#628CBA"/>
+        </LinearLayout>
+
+    </LinearLayout>
+
+<!--    <Button-->
+<!--        android:id="@+id/btn2CollectAty"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_above="@+id/btn2ImuActivity"-->
+<!--        android:layout_marginRight="30dp"-->
+<!--        android:layout_marginLeft="30dp"-->
+<!--        android:text="Collection"-->
+<!--        android:textAllCaps="false"-->
+<!--        android:gravity="center"-->
+<!--        android:textSize="24sp"-->
+<!--        android:typeface="serif"/>-->
+
+<!--    <Button-->
+<!--        android:id="@+id/btn2ImuActivity"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_above="@+id/btn2LocationActivity"-->
+<!--        android:layout_marginRight="30dp"-->
+<!--        android:layout_marginLeft="30dp"-->
+<!--        android:text="IMU"-->
+<!--        android:textAllCaps="false"-->
+<!--        android:gravity="center"-->
+<!--        android:textSize="24sp"-->
+<!--        android:typeface="serif"-->
+<!--        android:enabled="true" />-->
+
+<!--    <Button-->
+<!--        android:id="@+id/btn2LocationActivity"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_alignParentBottom="true"-->
+<!--        android:layout_marginBottom="20dp"-->
+<!--        android:layout_marginRight="30dp"-->
+<!--        android:layout_marginLeft="30dp"-->
+<!--        android:text="Location"-->
+<!--        android:textAllCaps="false"-->
+<!--        android:gravity="center"-->
+<!--        android:textSize="24sp"-->
+<!--        android:typeface="serif"/>-->
 
 </RelativeLayout>

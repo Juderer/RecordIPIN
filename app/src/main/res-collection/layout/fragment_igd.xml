@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".fragments.IGDFragment">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <include
+            layout="@layout/layout_imu"
+            android:id="@+id/layoutImu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"/>
+
+        <include
+            layout="@layout/layout_location"
+            android:id="@+id/layoutLocation"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@+id/layoutImu"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"/>
+
+        <Button
+            android:id="@+id/btnCollectData"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Collect"
+            android:textAllCaps="false"
+            android:backgroundTint="@color/SteelBlue"
+            android:textColor="@color/black"
+            android:textSize="24sp"
+            android:typeface="serif"
+            android:layout_centerInParent="true"
+            android:layout_below="@+id/layoutLocation"
+            android:layout_marginTop="10dp"
+            android:layout_marginLeft="3dp"
+            android:layout_marginRight="3dp"/>
+    </RelativeLayout>
+</ScrollView>

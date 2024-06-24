@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#363636"
+    tools:context=".fragments.Camera2PhotoFragment">
+
+    <com.zhushuli.recordipin.views.AutoFitTextureView
+        android:id="@+id/ttvCamera"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentStart="true"/>
+
+    <ImageButton
+        android:id="@+id/btnPhotoRecord"
+        android:contentDescription="Record"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_alignParentBottom="true"
+        android:src="@drawable/baseline_fiber_manual_record_24_photo"
+        android:background="@drawable/rounded_button_photo"
+        android:layout_marginBottom="30dp"/>
+
+    <ImageView
+        android:id="@+id/ivHint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:src="@drawable/baseline_square_24_photo"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:visibility="invisible"/>
+
+</RelativeLayout>

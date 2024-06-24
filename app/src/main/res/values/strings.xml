@@ -1,3 +1,26 @@
 <resources>
     <string name="app_name">RecordIPIN</string>
+    <string name="purpose"><b>V</b>isual-<b>I</b>nertial-<b>G</b>NSS\nRecord System</string>
+
+    <string name="creator"><b>RecordIPIN</b> records back-facing cameras, IMU, and GNSS data on an Android smartphone, which is developed by</string>
+    <string name="created_by"><big><b>RecordIPIN</b></big> is developed by <a href="https://juderer.github.io">SHULI ZHU</a> for efficiently recording back-facing camera, IMU, and GNSS data on Android smartphones.</string>
+    <string name="link_foreword">The source code for this app is available at</string>
+    <string name="about_data">
+        \n
+        All data sessions are saved in \'<i>/Android/data/com.zhushuli.recordipin/files/data</i>\' on the SD card. Each data session in a folder named local time (YYYY_MM_DD_hh_mm_ss) at the start of recording has three parts:\n\n
+        <b><u>IMU</u></b>\n
+        1. <b>ACCEL.csv</b>: Accelerometer data.\n
+        2. <b>GYRO.csv</b>: Gyroscope data.\n
+        \n
+        <b><u>GNSS</u></b>\n
+        3. <b>GNSS.csv</b>: GNSS data.\n
+        4. <b>GnssClock.csv</b>: GNSS clock data.\n
+        \n
+        <b><u>Camera</u></b>\n
+        5. <b>Movie.mp4</b>: Back-facing camera frames.\n
+        6. <b>FrameTimestamp.csv</b>: Camera frame timestamp.\n
+        7. <b>FrameMetadata.csv</b>: Camera frame metadata.\n
+    </string>
+    <string name="versionName">RecordIPIN v%1$s</string>
+    <string name="deg">\u00B0</string>
 </resources>

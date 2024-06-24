@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.RecordIPIN.NoActionBar" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">#323232</item>
+<!--        <item name="android:statusBarColor">@android:color/transparent</item>-->
+        <item name="android:windowLightStatusBar">false</item>
+        <!-- Customize your theme here. -->
+        <item name="android:keepScreenOn">true</item>
+    </style>
+
+    <style name="Theme.RecordIPIN.NoActionBar2" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <!-- Customize your theme here. -->
+        <item name="android:keepScreenOn">true</item>
+    </style>
+
+    <style name="Theme.RecordIPIN.FullScreen" parent="android:Theme.Material.Light.NoActionBar.Fullscreen">
+    </style>
+
+    <!--利用themes设置页面切换动画似乎对Android 10 Q（小米8测试）无效-->
+    <style name="MyAnimation" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenExitAnimation">@anim/center_to_left</item>
+        <item name="android:activityOpenEnterAnimation">@anim/right_to_center</item>
+        <item name="android:activityCloseExitAnimation">@anim/center_to_right</item>
+        <item name="android:activityCloseEnterAnimation">@anim/left_to_center</item>
+        <!--        <item name="android:taskOpenExitAnimation">@anim/center_to_bottom</item>-->
+        <!--        <item name="android:taskOpenEnterAnimation">@anim/top_to_center</item>-->
+        <!--        <item name="android:taskCloseExitAnimation">@anim/center_to_top</item>-->
+        <!--        <item name="android:taskCloseEnterAnimation">@anim/bottom_to_center</item>-->
+        <!--        <item name="android:taskToFrontExitAnimation">@anim/center_to_bottom</item>-->
+        <!--        <item name="android:taskToFrontEnterAnimation">@anim/top_to_center</item>-->
+        <!--        <item name="android:taskToBackExitAnimation">@anim/center_to_bottom</item>-->
+        <!--        <item name="android:taskToBackEnterAnimation">@anim/top_to_center</item>-->
+    </style>
+
+    <style name="MyNoAnimation">
+        <item name="android:activityOpenEnterAnimation">@null</item>
+        <item name="android:activityOpenExitAnimation">@null</item>
+        <item name="android:activityCloseEnterAnimation">@null</item>
+        <item name="android:activityCloseExitAnimation">@null</item>
+        <item name="android:taskOpenEnterAnimation">@null</item>
+        <item name="android:taskOpenExitAnimation">@null</item>
+        <item name="android:taskCloseEnterAnimation">@null</item>
+        <item name="android:taskCloseExitAnimation">@null</item>
+        <item name="android:taskToFrontEnterAnimation">@null</item>
+        <item name="android:taskToFrontExitAnimation">@null</item>
+        <item name="android:taskToBackEnterAnimation">@null</item>
+        <item name="android:taskToBackExitAnimation">@null</item>
+    </style>
+
+    <style name="MyTheme.CustomActionBarStyle" parent="@android:style/Widget.ActionBar">
+        <item name="android:background">@color/skyblue</item><!-- ActionBar背景颜色 -->
+        <item name="android:titleTextStyle">@style/MyTheme.ActionBarTitleStyle</item><!-- ActionBar文字样式 -->
+    </style>
+
+    <style name="MyTheme.ActionBarTitleStyle" parent="@android:style/Widget.Holo.Light">
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+</resources>

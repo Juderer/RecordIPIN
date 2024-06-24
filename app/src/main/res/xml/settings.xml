@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.preference.PreferenceScreen
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <PreferenceCategory
+        android:title="IMU"
+        android:icon="@drawable/baseline_sensors_24">
+
+        <ListPreference
+            android:title="Sampling Frequency"
+            android:entries="@array/imuFreq"
+            android:entryValues="@array/imuFreqValues"
+            android:key="prefImuFreq"
+            android:defaultValue="1"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+        <CheckBoxPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefImuCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="GNSS"
+        android:icon="@drawable/baseline_near_me_24">
+
+        <SwitchPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefGnssCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="CAMERA"
+        android:icon="@drawable/baseline_photo_camera_24">
+
+        <ListPreference
+            android:title="Image Size"
+            android:key="prefCameraFrameSize"
+            android:defaultValue="1920x1080"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+        <ListPreference
+            android:title="Video Size"
+            android:key="prefCameraVideoSize"
+            android:defaultValue="1920x1080"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+        <ListPreference
+            android:title="Preview Lens Facing"
+            android:key="prefCameraLensFacing"
+            android:defaultValue="1"
+            android:summary="%s"
+            android:entries="@array/cameraLensFacing"
+            android:entryValues="@array/cameraLensFacingValues"
+            app:iconSpaceReserved="true"/>
+
+        <ListPreference
+            android:title="Photo Sampling Period"
+            android:key="prefCameraPhotoSamplingPeriod"
+            android:entries="@array/cameraPhotoSamplingPeriod"
+            android:entryValues="@array/cameraPhotoSamplingPeriodValues"
+            android:defaultValue="500"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+<!--        <SeekBarPreference-->
+<!--            android:title="Frames Per Second"-->
+<!--            android:max="60"-->
+<!--            android:persistent="true"-->
+<!--            app:iconSpaceReserved="true"/>-->
+
+        <ListPreference
+            android:title="Record Mode"
+            android:key="prefCameraRecordMode"
+            android:entries="@array/cameraRecordMode"
+            android:entryValues="@array/cameraRecordModeValues"
+            android:defaultValue="0"
+            android:summary="%s"
+            app:iconSpaceReserved="true"/>
+
+        <SwitchPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefCameraCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="CELLULAR"
+        android:icon="@drawable/baseline_signal_cellular_alt_24">
+
+        <ListPreference
+            android:title="Refresh Period"
+            android:entries="@array/cellularPeriod"
+            android:entryValues="@array/cellularPeriodValues"
+            android:key="prefCellularFreq"
+            android:defaultValue="1"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"/>
+
+        <SwitchPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefCellularCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        android:title="WIFI"
+        android:icon="@drawable/baseline_wifi_24">
+
+        <ListPreference
+            android:title="Refresh Period"
+            android:entries="@array/wifiPeriod"
+            android:entryValues="@array/wifiPeriodValues"
+            android:key="prefWiFiScanPeriod"
+            android:defaultValue="1"
+            app:useSimpleSummaryProvider="true"
+            app:iconSpaceReserved="true"/>
+
+        <SwitchPreference
+            android:title="Collect or Not?"
+            android:defaultValue="false"
+            android:key="prefWiFiCollected"
+            android:summaryOff="No"
+            android:summaryOn="Yes"
+            app:iconSpaceReserved="true"/>
+
+    </PreferenceCategory>
+
+</androidx.preference.PreferenceScreen>
