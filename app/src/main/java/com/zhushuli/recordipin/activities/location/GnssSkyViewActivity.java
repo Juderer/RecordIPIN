@@ -18,6 +18,7 @@ package com.zhushuli.recordipin.activities.location;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -34,6 +35,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -52,7 +54,7 @@ import java.util.stream.Collectors;
 /**
  * @author      : zhushuli
  * @createDate  : 2023/10/23 21:22
- * @description : GNSS星空图
+ * @description : GNSS Sky View.
  */
 public class GnssSkyViewActivity extends BaseActivity {
 
@@ -81,11 +83,12 @@ public class GnssSkyViewActivity extends BaseActivity {
                             rvSatellite.setAdapter(mSatelliteAdapter);
                         }
                         else {
-                            mDiffResult = DiffUtil.calculateDiff(
-                                    new SatelliteDiffCallback(mSatellites, satellites), true);
-                            mDiffResult.dispatchUpdatesTo(mSatelliteAdapter);
+//                            mDiffResult = DiffUtil.calculateDiff(
+//                                    new SatelliteDiffCallback(mSatellites, satellites), true);
+//                            mDiffResult.dispatchUpdatesTo(mSatelliteAdapter);
 
                             mSatellites = satellites;
+                            mSatelliteAdapter.notifyDataSetChanged();
                         }
                     }
                     break;
@@ -144,6 +147,9 @@ public class GnssSkyViewActivity extends BaseActivity {
 
         mSkyView = (GnssSkyView) findViewById(R.id.gnssSkyView);
         rvSatellite = (RecyclerView) findViewById(R.id.rvSatellite);
+        rvSatellite.setItemAnimator(null);
+        rvSatellite.addItemDecoration(new DividerItemDecoration(this,
+                DividerItemDecoration.VERTICAL));
 
         LinearLayoutManager layoutManager = new LinearLayoutManager(GnssSkyViewActivity.this);
         rvSatellite.setLayoutManager(layoutManager);
@@ -205,7 +211,8 @@ public class GnssSkyViewActivity extends BaseActivity {
         @NonNull
         @Override
         public SatelliteViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-            View view = View.inflate(GnssSkyViewActivity.this, R.layout.satellite_list_item, null);
+//            View view = View.inflate(GnssSkyViewActivity.this, R.layout.satellite_list_item, null);
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.satellite_list_item, parent, false);
             SatelliteViewHolder viewHolder = new SatelliteViewHolder(view);
             return viewHolder;
         }
