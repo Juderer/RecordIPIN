@@ -11,6 +11,8 @@ import android.provider.Settings;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.zhushuli.recordipin.BaseApplication;
+
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -66,8 +68,8 @@ public class WiFiUtils {
         return String.join("", strings);
     }
 
-    public static boolean isWiFiEnabled(Context context) {
-        final WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
+    public static boolean isWiFiEnabled() {
+        final WifiManager wifiManager = (WifiManager) BaseApplication.getContext().getSystemService(Context.WIFI_SERVICE);
         if (!wifiManager.isWifiEnabled()) {
 //            final Intent wifiSettingIntent = new Intent(Settings.ACTION_WIFI_SETTINGS);
 //            wifiSettingIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -75,14 +77,14 @@ public class WiFiUtils {
             if (Build.VERSION.SDK_INT >= 29) {
                 final Intent panelIntent = new Intent(Settings.Panel.ACTION_WIFI);
                 panelIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(panelIntent);
+                BaseApplication.getContext().startActivity(panelIntent);
             } else {
-                Toast.makeText(context, "Please turn on WiFi", Toast.LENGTH_SHORT).show();
+                Toast.makeText(BaseApplication.getContext(), "Please turn on WiFi", Toast.LENGTH_SHORT).show();
                 new Handler().postDelayed(() -> {
                     try {
                         final Intent wifiSettingIntent = new Intent(Settings.ACTION_WIFI_SETTINGS);
                         wifiSettingIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                        context.startActivity(wifiSettingIntent);
+                        BaseApplication.getContext().startActivity(wifiSettingIntent);
                     } catch (Exception e) {
                         // An IllegalStateException can occur when the fragment is no longer attached to the activity
                         Log.e("WiFiUtils", "Could not kick off the Wifi Settings Intent for the older pre Android 10 setup");

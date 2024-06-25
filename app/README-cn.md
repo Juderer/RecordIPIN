@@ -194,4 +194,10 @@
 
 - [Android Q+ 新特性 Settings Panel](https://blog.csdn.net/u013398960/article/details/106662631)
 
+## 1.49 Permissions
+
+- [Permissions](https://developer.android.com/guide/topics/permissions/overview)
+- [permissions-samples](https://github.com/android/permissions-samples)
+- [android-RuntimePermissions](https://github.com/googlearchive/android-RuntimePermissions)
+
 # 2 Android音视频开发/图形编程

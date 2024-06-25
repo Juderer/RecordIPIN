@@ -1,5 +1,6 @@
 package com.zhushuli.recordipin;
 
+import androidx.activity.result.ActivityResultCallback;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.preference.PreferenceManager;
@@ -9,6 +10,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,21 +26,18 @@ import com.zhushuli.recordipin.activities.wifi.WiFiActivity;
 import com.zhushuli.recordipin.activities.wifi.WiFiActivity2;
 import com.zhushuli.recordipin.utils.CellularUtils;
 import com.zhushuli.recordipin.utils.DialogUtils;
+import com.zhushuli.recordipin.utils.PermissionUtils;
 import com.zhushuli.recordipin.utils.log.CrashHandler;
 
 import timber.log.Timber;
 
-public class MainActivity extends BaseActivity implements View.OnClickListener {
+public class MainActivity extends BaseActivity implements View.OnClickListener, ActivityResultCallback {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
-    private static final int MY_PERMISSION_REQUEST_CODE = 2024;
-
-    private final String[] permissions = {
+    private final String[] PERMISSIONS = {
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.READ_PHONE_STATE,
             Manifest.permission.ACCESS_NETWORK_STATE,
             Manifest.permission.CAMERA,
@@ -106,10 +105,12 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         btn2VideoAty = (Button) findViewById(R.id.btn2VideoAty);
         btn2VideoAty.setOnClickListener(this);
 
-        isAllGranted = checkPermissionAllGranted(permissions);
-        if (!isAllGranted) {
-            Timber.w(TAG, "未授权");
-            ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+        isAllGranted = PermissionUtils.checkPermissionsAllGranted(PERMISSIONS);
+        if (true) {
+            Timber.w("未授权");
+            ActivityCompat.requestPermissions(this,
+                    PERMISSIONS,
+                    PermissionUtils.MY_PERMISSION_REQUEST_CODE);
         }
     }
 
@@ -117,42 +118,47 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.btn2LocationActivity:
-                isAllGranted = checkPermissionAllGranted(new String[]{
+                Log.d(TAG, "btn2LocationActivity");
+                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
                         Manifest.permission.ACCESS_COARSE_LOCATION,
                         Manifest.permission.ACCESS_FINE_LOCATION});
                 if (!isAllGranted) {
                     Timber.w("未授权");
-                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            PERMISSIONS,
+                            PermissionUtils.MY_PERMISSION_REQUEST_CODE);
                     break;
                 }
                 startActivity(new Intent(this, LocationActivity.class));
                 break;
             case R.id.btn2ImuActivity:
-                // 注意！不授予外部读写权限仍能保存IMU数据，因为保存的路径算是内部存储
-                isAllGranted = checkPermissionAllGranted(new String[]{
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                });
-                if (!isAllGranted) {
-                    Timber.w("外部存储读写权限未授权");
-                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
-                }
+                // 高级别API不需要额外申请存储读写权限
+//                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
+//                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+//                        Manifest.permission.READ_EXTERNAL_STORAGE,
+//                });
+//                if (!isAllGranted) {
+//                    Timber.w("外部存储读写权限未授权");
+//                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+//                }
                 startActivity(new Intent(this, ImuActivity2.class));
                 break;
             case R.id.btn2CollectAty:
-                isAllGranted = checkPermissionAllGranted(new String[]{
+                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
                         Manifest.permission.ACCESS_COARSE_LOCATION,
                         Manifest.permission.ACCESS_FINE_LOCATION});
                 if (!isAllGranted) {
                     Timber.w("未授权");
-                    ActivityCompat.requestPermissions(MainActivity.this, permissions, MY_PERMISSION_REQUEST_CODE);
+                    ActivityCompat.requestPermissions(MainActivity.this,
+                            PERMISSIONS,
+                            PermissionUtils.MY_PERMISSION_REQUEST_CODE);
                     break;
                 }
 
                 startActivity(new Intent(this, CollectionActivity.class));
                 break;
             case R.id.btn2CellularAty:
-                isAllGranted = checkPermissionAllGranted(new String[]{
+                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
                         Manifest.permission.READ_PHONE_STATE,
                         Manifest.permission.ACCESS_NETWORK_STATE});
                 if (!isAllGranted) {
@@ -167,7 +173,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 startActivity(new Intent(this, CellularActivity.class));
                 break;
             case R.id.btn2WiFiAty:
-                isAllGranted = checkPermissionAllGranted(new String[]{
+                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
                         Manifest.permission.ACCESS_WIFI_STATE,
                         Manifest.permission.CHANGE_WIFI_STATE,
                         Manifest.permission.ACCESS_FINE_LOCATION});
@@ -184,7 +190,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 }
                 break;
             case R.id.btn2CameraxAty:
-                isAllGranted = checkPermissionAllGranted(new String[]{
+                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
                         Manifest.permission.CAMERA,
                         Manifest.permission.RECORD_AUDIO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -196,11 +202,9 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 startActivity(new Intent(this, CameraxActivity.class));
                 break;
             case R.id.btn2Camera2Aty:
-                isAllGranted = checkPermissionAllGranted(new String[]{
+                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
                         Manifest.permission.CAMERA,
-                        Manifest.permission.RECORD_AUDIO,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE});
+                        Manifest.permission.RECORD_AUDIO});
                 if (!isAllGranted) {
                     Timber.w("未授权");
                     break;
@@ -209,7 +213,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
                 break;
             case R.id.btn2VideoAty:
                 Timber.d("Transfer to Video");
-                isAllGranted = checkPermissionAllGranted(new String[]{
+                isAllGranted = PermissionUtils.checkPermissionsAllGranted(new String[]{
                         Manifest.permission.CAMERA,
                         Manifest.permission.RECORD_AUDIO,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -225,19 +229,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
         }
     }
 
-    private boolean checkPermissionAllGranted(String[] permissions) {
-        for (String permission : permissions) {
-            if (ActivityCompat.checkSelfPermission(MainActivity.this, permission) != PackageManager.PERMISSION_GRANTED) {
-                return false;
-            }
-        }
-        return true;
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == MY_PERMISSION_REQUEST_CODE) {
+        if (requestCode == PermissionUtils.MY_PERMISSION_REQUEST_CODE) {
             isAllGranted = true;
             for (int grant : grantResults) {
                 if (grant != PackageManager.PERMISSION_GRANTED) {
@@ -339,5 +334,10 @@ public class MainActivity extends BaseActivity implements View.OnClickListener {
     protected void onRestart() {
         super.onRestart();
         Timber.d("onRestart");
+    }
+
+    @Override
+    public void onActivityResult(Object result) {
+        Log.d(TAG, "onActivityResult");
     }
 }

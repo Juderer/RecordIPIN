@@ -193,7 +193,7 @@ public class WiFiActivity2 extends BaseActivity {
         super.onStart();
         Log.d(TAG, "onStart");
 
-        boolean wifiEnabled = WiFiUtils.isWiFiEnabled(getApplicationContext());
+        boolean wifiEnabled = WiFiUtils.isWiFiEnabled();
         Log.d(TAG, "WiFi enabled = " + wifiEnabled);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
