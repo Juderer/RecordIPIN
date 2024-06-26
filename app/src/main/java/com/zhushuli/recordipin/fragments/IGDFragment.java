@@ -227,12 +227,14 @@ public class IGDFragment extends Fragment {
                     btnCollectData.setText("Collect");
                     break;
                 case Sensor.TYPE_ACCELEROMETER:
+                case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
                     ImuInfo accelInfo = (ImuInfo) msg.obj;
                     tvAccelX.setText(String.format("%.4f", accelInfo.values[0]));
                     tvAccelY.setText(String.format("%.4f", accelInfo.values[1]));
                     tvAccelZ.setText(String.format("%.4f", accelInfo.values[2]));
                     break;
                 case Sensor.TYPE_GYROSCOPE:
+                case Sensor.TYPE_GYROSCOPE_UNCALIBRATED:
                     ImuInfo gyroInfo = (ImuInfo) msg.obj;
                     tvGyroX.setText(String.format("%.4f", gyroInfo.values[0]));
                     tvGyroY.setText(String.format("%.4f", gyroInfo.values[1]));
@@ -295,7 +297,7 @@ public class IGDFragment extends Fragment {
         super.onResume();
         Log.d(TAG, "onResume");
 
-        IntentFilter locationIntent = new IntentFilter();
+        final IntentFilter locationIntent = new IntentFilter();
         locationIntent.addAction(LocationService2.GNSS_LOCATION_CHANGED_ACTION);
         locationIntent.addAction(LocationService2.GNSS_PROVIDER_DISABLED_ACTION);
         getActivity().registerReceiver(
@@ -304,7 +306,7 @@ public class IGDFragment extends Fragment {
                 null,
                 new Handler(mLocationReceiveThread.getLooper()));
 
-        IntentFilter satelliteIntent = new IntentFilter();
+        final IntentFilter satelliteIntent = new IntentFilter();
         satelliteIntent.addAction(LocationService2.GNSS_SATELLITE_STATUS_CHANGED_ACTION);
         getActivity().registerReceiver(
                 mSatelliteReceiver,
@@ -312,7 +314,7 @@ public class IGDFragment extends Fragment {
                 null,
                 new Handler(mSatelliteReceiverThread.getLooper()));
 
-        IntentFilter imuIntent = new IntentFilter();
+        final IntentFilter imuIntent = new IntentFilter();
         imuIntent.addAction(ImuService2.IMU_SENSOR_CHANGED_ACTION);
         getActivity().registerReceiver(
                 mImuReceiver,
@@ -326,8 +328,8 @@ public class IGDFragment extends Fragment {
         super.onPause();
         Log.d(TAG, "onPause");
 
-        getActivity().unregisterReceiver(mLocationReceiver);
-        getActivity().unregisterReceiver(mSatelliteReceiver);
+//        getActivity().unregisterReceiver(mLocationReceiver);
+//        getActivity().unregisterReceiver(mSatelliteReceiver);
         getActivity().unregisterReceiver(mImuReceiver);
     }
 
@@ -368,10 +370,10 @@ public class IGDFragment extends Fragment {
 
     private void bindServices() {
         // 绑定定位服务
-        Intent locationIntent = new Intent(getActivity(), LocationService2.class);
+        final Intent locationIntent = new Intent(getActivity(), LocationService2.class);
         getActivity().bindService(locationIntent, mLocationServiceConn, Context.BIND_AUTO_CREATE);
         // 绑定IMU服务
-        Intent imuIntent = new Intent(getActivity(), ImuService2.class);
+        final Intent imuIntent = new Intent(getActivity(), ImuService2.class);
         getActivity().bindService(imuIntent, mImuServiceConn, Context.BIND_AUTO_CREATE);
 
         btnCollectData.setText("Stop");
@@ -379,7 +381,7 @@ public class IGDFragment extends Fragment {
 
     private void unbindServices() {
         // 服务解绑
-        getActivity().unbindService(mLocationServiceConn);
+//        getActivity().unbindService(mLocationServiceConn);
         getActivity().unbindService(mImuServiceConn);
 
         btnCollectData.setText("Collect");
