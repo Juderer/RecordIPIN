@@ -69,8 +69,6 @@ public class ImuService2 extends Service {
 
     public static final String IMU_SENSOR_CHANGED_ACTION = "recordipin.broadcast.imu.sensorChanged";
 
-    private SharedPreferences mSharedPreferences;
-
     private static final int ACCEL_RECORD_WRITE_CODE = 0x0100;
 
     private static final int ACCEL_RECORD_CLOSE_CODE = 0x0101;
@@ -78,6 +76,10 @@ public class ImuService2 extends Service {
     private static final int GYRO_RECORD_WRITE_CODE = 0x0200;
 
     private static final int GYRO_RECORD_CLOSE_CODE = 0x0201;
+
+    private SharedPreferences mSharedPreferences;
+
+    private int SAMPLING_PERIOD = 0;
 
     private SensorManager mSensorManager;
 
@@ -221,9 +223,13 @@ public class ImuService2 extends Service {
         super.onCreate();
         Log.d(TAG, "onCreate" + Thread.currentThread().getId());
 
+        // TODO::Inconsistent IMU Sampling Frequency (Period)!
+        // When the sampling periods are set to 200 microseconds,
+        // (i.e., the sampling frequencies are set to 5Hz)
+        // the actual sampling periods of the accelerometer and gyroscope are different.g
         mSensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
-        mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+        mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
+        mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
 
         // 从参考项目（VideoIMUCapture：https://github.com/DavidGillsjo/VideoIMUCapture-Android）中了解的无校准类型
 //        mAccelSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
@@ -232,6 +238,9 @@ public class ImuService2 extends Service {
         mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         setRecording(mSharedPreferences.getBoolean("prefImuCollected", false));
         Log.d(TAG, String.valueOf(checkRecording()));
+
+        SAMPLING_PERIOD = Integer.valueOf(mSharedPreferences.getString("prefImuFreq", "1"));
+        Log.d(TAG, String.valueOf(SAMPLING_PERIOD));
 
         registerResource();
 
@@ -252,16 +261,18 @@ public class ImuService2 extends Service {
         mSensorManager.registerListener(
                 mAccelEventListener,
                 mAccelSensor,
-                Integer.valueOf(mSharedPreferences.getString("prefImuFreq", "1")),
+                SAMPLING_PERIOD,
+                SAMPLING_PERIOD * 2,
                 new Handler(mAccelListenerThread.getLooper()));
         mSensorManager.registerListener(
                 mGyroEventListener,
                 mGyroSensor,
-                Integer.valueOf(mSharedPreferences.getString("prefImuFreq", "1")),
+                SAMPLING_PERIOD,
+                SAMPLING_PERIOD * 2,
                 new Handler(mGyroListenerThread.getLooper()));
 
-//        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
-//        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME, new Handler(mListenThread.getLooper()));
+//        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SAMPLING_PERIOD, new Handler(mListenThread.getLooper()));
+//        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SAMPLING_PERIOD, new Handler(mListenThread.getLooper()));
 
 //        mSensorManager.registerListener(mSensorEventListener, mAccelSensor, SensorManager.SENSOR_DELAY_GAME);
 //        mSensorManager.registerListener(mSensorEventListener, mGyroSensor, SensorManager.SENSOR_DELAY_GAME);

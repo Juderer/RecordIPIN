@@ -355,6 +355,7 @@ public class VIGDFragment extends VIGDFragmentBase implements SurfaceTexture.OnF
                     clickToggleRecording(null);
                     break;
                 case Sensor.TYPE_ACCELEROMETER:
+                case Sensor.TYPE_ACCELEROMETER_UNCALIBRATED:
                     ImuInfo accelInfo = (ImuInfo) msg.obj;
                     tvImuInfo.setText(String.format("%.4f,%.4f,%.4f",
                             accelInfo.values[0], accelInfo.values[1], accelInfo.values[2]));

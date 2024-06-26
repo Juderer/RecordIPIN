@@ -8,9 +8,9 @@
         android:icon="@drawable/baseline_sensors_24">
 
         <ListPreference
-            android:title="Sampling Frequency"
-            android:entries="@array/imuFreq"
-            android:entryValues="@array/imuFreqValues"
+            android:title="Sampling Period"
+            android:entries="@array/imuSamplingPeriod"
+            android:entryValues="@array/imuSamplingPeriodValues"
             android:key="prefImuFreq"
             android:defaultValue="1"
             android:summary="%s"
