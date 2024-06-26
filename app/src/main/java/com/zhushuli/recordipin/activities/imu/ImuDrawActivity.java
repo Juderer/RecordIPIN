@@ -19,6 +19,7 @@ import com.zhushuli.recordipin.views.ImuDynamicView;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Deprecated
 public class ImuDrawActivity extends AppCompatActivity {
 
     private final static String TAG = ImuDrawActivity.class.getSimpleName();

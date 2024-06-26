@@ -18,15 +18,15 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="19"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="28"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_SMS" /> <!-- 摄像头权限 -->
     <uses-permission android:name="android.permission.CAMERA" /> <!-- 录屏所需权限 -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
-    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+<!--    <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />-->
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
@@ -86,18 +86,9 @@
             android:screenOrientation="portrait"
             android:theme="@style/Theme.RecordIPIN.NoActionBar" />
         <activity
-            android:name=".activities.imu.ImuDrawActivity"
-            android:configChanges="orientation|screenSize"
-            android:exported="false" />
-        <activity
             android:name=".activities.imu.ImuDrawActivity2"
             android:configChanges="orientation|screenSize"
             android:exported="false" />
-        <activity
-            android:name=".activities.imu.ImuActivity"
-            android:configChanges="orientation|screenSize"
-            android:exported="false"
-            android:label="IMU" />
         <activity
             android:name=".activities.imu.ImuActivity2"
             android:configChanges="orientation|screenSize"
@@ -111,24 +102,11 @@
             android:launchMode="standard" />
 
         <service
-            android:name=".services.LocationService"
-            android:enabled="true"
-            android:exported="true"
-            tools:ignore="Instantiatable" />
-        <service
             android:name=".services.LocationService2"
             android:enabled="true"
             android:exported="true" />
         <service
-            android:name=".services.ImuService"
-            android:enabled="true"
-            android:exported="true" />
-        <service
             android:name=".services.ImuService2"
-            android:enabled="true"
-            android:exported="true" />
-        <service
-            android:name=".services.CellularService"
             android:enabled="true"
             android:exported="true" />
         <service

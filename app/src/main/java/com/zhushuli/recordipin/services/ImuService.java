@@ -26,9 +26,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Deprecated
 public class ImuService extends Service {
 
-    private static final String TAG = "My" + ImuService.class.getSimpleName();
+    private static final String TAG = ImuService.class.getSimpleName();
 
     private SensorManager mSensorManager;
 

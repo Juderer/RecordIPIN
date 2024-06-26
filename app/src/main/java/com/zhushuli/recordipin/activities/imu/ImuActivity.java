@@ -31,9 +31,10 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+@Deprecated
 public class ImuActivity extends AppCompatActivity {
 
-    private static final String TAG = "My" + ImuActivity.class.getSimpleName();
+    private static final String TAG = ImuActivity.class.getSimpleName();
 
     private TextView tvAccelX;
     private TextView tvAccelY;
