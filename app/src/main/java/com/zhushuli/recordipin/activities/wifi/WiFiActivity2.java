@@ -23,7 +23,6 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.preference.PreferenceManager;
-import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -35,19 +34,21 @@ import com.zhushuli.recordipin.utils.ThreadUtils;
 import com.zhushuli.recordipin.utils.WiFiUtils;
 
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author      : zhushuli
- * @createDate  : 2024/06/21 18:20
- * @description : Try to learn the scanning process of
- *                [android-network-survey](https://github.com/christianrowlands/android-network-survey)
- *                for avoiding WiFi scanning throttling.
- *                Here, we only show the scan results in a recycler view.
+ * <p>Try to learn the scanning process of
+ * [android-network-survey](https://github.com/christianrowlands/android-network-survey)
+ * for avoiding WiFi scanning throttling.
+ * Here, we only show the scan results in a recycler view.</p>
+ * <br>
+ * <p>WiFiActivity2.java</p>
+ * <br>
+ * <p>Created date: 2024/06/21 18:20</p>
+ * @author  : <a href="https://juderer.github.io">zhushuli</a>
  */
 public class WiFiActivity2 extends BaseActivity {
 
@@ -82,8 +83,6 @@ public class WiFiActivity2 extends BaseActivity {
                             mWiFiScanResults = scanResults;
                             rvWiFiScanResults.setAdapter(mWiFiAdapter);
                         } else {
-//                            mDiffResult = DiffUtil.calculateDiff(new WiFiActivity2.WiFiDiffCallback(mWiFiScanResults, scanResults), true);
-//                            mDiffResult.dispatchUpdatesTo(mWiFiAdapter);
                             mWiFiScanResults = scanResults;
                             mWiFiAdapter.notifyDataSetChanged();
                         }
@@ -94,8 +93,6 @@ public class WiFiActivity2 extends BaseActivity {
             }
         }
     };
-
-    private DiffUtil.DiffResult mDiffResult;
 
     private WifiManager mWiFiManager;
 
@@ -110,6 +107,7 @@ public class WiFiActivity2 extends BaseActivity {
                 boolean successful = intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false);
                 Log.d(TAG, "onReceive: " + successful);
                 final List<ScanResult> scanResults = mWiFiManager.getScanResults();
+                Collections.sort(scanResults, new WiFiUtils.WiFiScanResultComparator());
                 for (ScanResult result : scanResults) {
                     Log.d(TAG, result.toString());
                     break;
@@ -211,7 +209,6 @@ public class WiFiActivity2 extends BaseActivity {
 
                     Message msg = Message.obtain();
                     msg.what = WiFiService.WIFI_SCAN_CHANGED_CODE;
-                    Collections.sort(scanResults, new WiFiScanResultComparator());
                     msg.obj = scanResults;
                     mMainHandler.sendMessage(msg);
                 }
@@ -324,45 +321,6 @@ public class WiFiActivity2 extends BaseActivity {
         @Override
         public int getItemCount() {
             return mWiFiScanResults != null ? mWiFiScanResults.size() : 0;
-        }
-    }
-
-    private class WiFiDiffCallback extends DiffUtil.Callback {
-
-        private List<ScanResult> olds;
-
-        private List<ScanResult> news;
-
-        public WiFiDiffCallback(List<ScanResult> olds, List<ScanResult> news) {
-            this.olds = olds;
-            this.news = news;
-        }
-
-        @Override
-        public int getOldListSize() {
-            return this.olds != null ? this.olds.size() : 0;
-        }
-
-        @Override
-        public int getNewListSize() {
-            return this.news != null ? this.news.size() : 0;
-        }
-
-        @Override
-        public boolean areItemsTheSame(int oldItemPosition, int newItemPosition) {
-            return this.olds.get(oldItemPosition).BSSID == this.news.get(newItemPosition).BSSID;
-        }
-
-        @Override
-        public boolean areContentsTheSame(int oldItemPosition, int newItemPosition) {
-            return this.olds.get(oldItemPosition).equals(news.get(newItemPosition));
-        }
-    }
-
-    private class WiFiScanResultComparator implements Comparator<ScanResult> {
-        @Override
-        public int compare(ScanResult o1, ScanResult o2) {
-            return o2.level - o1.level;
         }
     }
 }

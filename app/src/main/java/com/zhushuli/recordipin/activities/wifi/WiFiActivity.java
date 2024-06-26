@@ -40,9 +40,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author      : zhushuli
- * @createDate  : 2024/06/18 18:41
- * @description : Present WiFi scan results received by {@link WiFiService}.
+ * <p>Present WiFi scan results received by {@link WiFiService}.</p>
+ * <br>
+ * <p>WiFiActivity.java</p>
+ * <br>
+ * <p>Created date: 2024/06/18 18:41</p>
+ * @author  : <a href="https://juderer.github.io">zhushuli</a>
  */
 public class WiFiActivity extends BaseActivity {
 

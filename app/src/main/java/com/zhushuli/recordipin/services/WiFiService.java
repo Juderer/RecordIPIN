@@ -51,9 +51,12 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * @author      : zhushuli
- * @createDate  : 2024/06/18 17:13
- * @description : WiFi service for scanning and recording.
+ * <p>WiFi service for scanning and recording.</p>
+ * <br>
+ * <p>WiFiService.java</p>
+ * <br>
+ * <p>Created date: 2024/06/18 17:13</p>
+ * @author  : <a href="https://juderer.github.io">zhushuli</a>
  */
 public class WiFiService extends Service {
 
@@ -87,7 +90,8 @@ public class WiFiService extends Service {
             } else {
                 boolean successful = intent.getBooleanExtra(WifiManager.EXTRA_RESULTS_UPDATED, false);
                 Log.d(TAG, "onReceive: " + successful);
-                final List<ScanResult> scanResults = mWiFiManager.getScanResults();
+                List<ScanResult> scanResults = mWiFiManager.getScanResults();
+                Collections.sort(scanResults, new WiFiUtils.WiFiScanResultComparator());
                 for (ScanResult result : scanResults) {
                     Log.d(TAG, result.toString());
                     break;
